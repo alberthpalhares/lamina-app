@@ -7,7 +7,7 @@ use serde_json::json;
 use super::common::Base;
 use super::ia_common::Lab;
 use super::tl_common::{built, editor_at, spec, three_spreads};
-use crate::{DropPlace, Editor, Session};
+use crate::{Command, DropPlace, Editor, Session};
 
 fn on_cover(project: Project) -> Editor {
     let mut editor = editor_at(project, 0);
@@ -106,6 +106,31 @@ fn ca_b32_soltar_fora_dos_quadros_nao_usa_o_motor() {
     assert!(editor.drop_on_cover(0.9, &photos[..1]));
     let cover = album(&editor).cover.as_ref().unwrap();
     assert_eq!(cover.content.frames.len(), 1);
+}
+
+#[test]
+fn ca_b34_album_sem_laminas_com_a_capa_aberta() {
+    let mut project = Project::new("teste", spec(30.0, 30.0));
+    project.add_photo("f.jpg", 3000, 2000);
+    let mut editor = Editor::new();
+    editor.adopt(project);
+    assert!(editor.is_blank(), "o convite do álbum em branco aparece");
+    let measures = CoverMeasures::defaults(&album(&editor).spec);
+    assert!(editor.create_cover(measures, None, &[]));
+    assert!(editor.on_cover());
+    assert!(
+        !editor.is_blank(),
+        "com a capa aberta, o convite não aparece"
+    );
+    assert!(!editor.hint().contains("layout"), "{}", editor.hint());
+    // → volta ao álbum, mesmo sem lâminas; ← abre a capa de novo.
+    assert!(editor.run(Command::NextSpread));
+    assert!(!editor.on_cover());
+    assert!(editor.is_blank());
+    assert!(editor.run(Command::PreviousSpread));
+    assert!(editor.on_cover());
+    assert!(editor.run(Command::LastSpread));
+    assert!(editor.is_blank());
 }
 
 #[test]

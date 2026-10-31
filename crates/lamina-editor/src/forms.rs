@@ -124,6 +124,9 @@ impl Editor {
             "Roda do mouse ou + e − para o zoom · arraste para mover · 0 encaixa · Esc sai"
         } else if self.selected_frame().is_some() {
             "Delete tira a foto · C ou duplo clique recorta · arraste para outro quadro para trocar"
+        } else if self.on_cover() {
+            // Na capa não há troca de layout (spec CA, regra 5).
+            "Arraste uma foto para Frente, Verso ou Lombada · T cria um texto · → vai para as lâminas"
         } else if self.session().is_some() {
             // Sem nada selecionado, o caminho das tarefas mais comuns (auditoria da Fase 4, 5 e 18).
             "Arraste uma foto da faixa de baixo para um quadro · ↑ ↓ trocam o layout · T cria um texto"

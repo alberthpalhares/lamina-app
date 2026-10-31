@@ -178,6 +178,7 @@ export component AppWindow inherits Window {
     callback ex-back();
     in property <bool> has-missing;
     // O álbum em branco e "Montar o álbum…" (spec BR).
+    in property <bool> empty-album;
     in property <float> blank-aspect: 0.5;
     in property <color> blank-color: Fixed.paper;
     in property <bool> can-build-album;
@@ -520,7 +521,7 @@ export component AppWindow inherits Window {
                         guides: root.guides;
                         gutter-shadow: root.gutter-shadow;
                         selected-frame: root.selected-frame;
-                        spread-count: root.spreads.length;
+                        empty-album: root.empty-album;
                         photo-count: root.photos.length;
                         blank-aspect: root.blank-aspect;
                         blank-color: root.blank-color;

@@ -67,6 +67,7 @@ impl App {
         w.set_album_name(session.title().into());
         w.set_counter(session.counter().into());
         // O álbum em branco: a lâmina vazia no formato e no fundo do álbum (spec BR).
+        w.set_empty_album(self.editor.is_blank());
         let project = session.project();
         let canvas = project.spec.canvas_rect();
         let aspect = canvas.height.get() / canvas.width.get().max(1.0);

@@ -21,8 +21,8 @@ export component Stage inherits Rectangle {
     in property <bool> guides;
     in property <bool> gutter-shadow;
     in property <int> selected-frame: -1;
-    // O álbum sem lâminas (spec IM): quantas lâminas e quantas fotos há.
-    in property <int> spread-count;
+    // O álbum sem lâminas (spec IM), fora da capa aberta (spec CA), e quantas fotos há.
+    in property <bool> empty-album;
     in property <int> photo-count;
     // O álbum em branco (spec BR): o formato e o fundo da lâmina vazia e "Montar o álbum…".
     in property <float> blank-aspect: 0.5;
@@ -355,7 +355,7 @@ export component Stage inherits Rectangle {
         border-width: 3px;
         border-color: Fixed.target;
     }
-    if root.has-project && root.spread-count == 0: EmptyAlbum {
+    if root.has-project && root.empty-album: EmptyAlbum {
         photos: root.photo-count;
         aspect: root.blank-aspect;
         paper: root.blank-color;

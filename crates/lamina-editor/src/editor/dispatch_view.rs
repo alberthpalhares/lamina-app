@@ -10,12 +10,12 @@ impl Editor {
     pub(super) fn view_available(&self, command: Command) -> Option<bool> {
         let s = self.session.as_ref()?;
         let last = s.album().spreads.len().saturating_sub(1);
-        let has_spreads = !s.album().spreads.is_empty();
         let ok = match command {
             // Com a capa aberta, → e End andam para as lâminas, Home vai para a lâmina 1 (spec CA,
             // regra 10); na lâmina 1, ← vai para a capa.
+            // Num álbum sem lâminas, eles voltam ao álbum.
             Command::NextSpread | Command::LastSpread | Command::FirstSpread if s.on_cover() => {
-                has_spreads
+                true
             }
             Command::PreviousSpread if s.on_cover() => false,
             Command::PreviousSpread if s.current() == 0 && s.album().cover.is_some() => true,
@@ -74,6 +74,17 @@ impl Editor {
     }
 
     fn navigate(&mut self, command: Command) -> bool {
+        let forward = command != Command::PreviousSpread;
+        if forward
+            && self.on_cover()
+            && self
+                .session
+                .as_ref()
+                .is_some_and(|s| s.album().spreads.is_empty())
+        {
+            self.leave_cover();
+            return true;
+        }
         let Some(s) = self.session.as_mut() else {
             return false;
         };
