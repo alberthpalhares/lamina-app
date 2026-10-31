@@ -19,11 +19,10 @@ impl Editor {
         self.backups.as_mut()?.step(session)
     }
 
-    /// O Lamina fecha direito: nenhuma cópia fica (regra 3).
+    /// O Lamina fecha direito: a cópia desta execução não fica (regras 3 e 9).
     pub fn finish_backups(&mut self) {
-        let session = self.session.as_ref();
         if let Some(backups) = self.backups.as_mut() {
-            backups.finish(session);
+            backups.finish();
         }
     }
 
@@ -47,6 +46,9 @@ impl Editor {
         };
         let on_disk = found.file.as_deref().and_then(|f| read_project(f).ok());
         let session = Session::recovered(project, found.file.clone(), on_disk, found.spread);
+        if let Some(backups) = self.backups.as_mut() {
+            backups.recovered(found, &session);
+        }
         self.remember_current();
         self.forget_view();
         self.session = Some(session);

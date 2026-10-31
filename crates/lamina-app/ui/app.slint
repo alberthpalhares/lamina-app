@@ -104,6 +104,8 @@ export component AppWindow inherits Window {
     // área da lâmina (stage.slint).
     in property <SpreadData> leaving;
     in property <bool> has-leaving;
+    // As vagas da lâmina grande: sempre a mesma lista (spec RL, regra 32).
+    in property <[FrameData]> slots;
     callback nav-ended <=> stage.nav-ended;
     // `dir`: 1 = para a frente (a nova vem da direita), -1 = para trás.
     public function start-nav(dir: int) {
@@ -514,6 +516,7 @@ export component AppWindow inherits Window {
                         vertical-stretch: 1;
                         has-project: root.has-project;
                         current: root.current;
+                        slots: root.slots;
                         guides: root.guides;
                         gutter-shadow: root.gutter-shadow;
                         selected-frame: root.selected-frame;

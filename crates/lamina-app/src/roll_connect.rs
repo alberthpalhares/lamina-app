@@ -266,6 +266,7 @@ pub fn connect(window: &AppWindow, app: &Shared) {
     let ui = window.global::<RollUi>();
     ui.set_cells(app.borrow().roll.cells.model());
     window.set_timeline(app.borrow().roll.line.model());
+    window.set_slots(app.borrow().slot_rows.model());
     let a = app.clone();
     ui.on_line_window(move |start, width| {
         let mut app = a.borrow_mut();

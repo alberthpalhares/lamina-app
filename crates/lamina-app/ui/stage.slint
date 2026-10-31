@@ -4,7 +4,7 @@
 
 import { CoverUi } from "cover.slint";
 import { Theme, Fixed, Type } from "theme.slint";
-import { SpreadCanvas, SpreadData, BoxData } from "canvas.slint";
+import { SpreadCanvas, SpreadData, BoxData, FrameData } from "canvas.slint";
 import { EmptyAlbum } from "importing.slint";
 import { GhostData } from "ghost.slint";
 import { OrganizeUi, OrganizeBar, OrganizeMarks, OrganizeRulers, OrganizeTools } from "organize.slint";
@@ -63,6 +63,8 @@ export component Stage inherits Rectangle {
     // por um bool para parar sozinho (ADR 0011, decisão 6).
     in property <SpreadData> leaving;
     in property <bool> has-leaving;
+    // As vagas da lâmina grande: sempre a mesma lista (spec RL, regra 32).
+    in property <[FrameData]> slots;
     property <bool> nav-running: false;
     property <duration> nav-t0;
     property <int> nav-dir: 1;
@@ -308,6 +310,7 @@ export component Stage inherits Rectangle {
         height: self.width * root.current.aspect;
         y: (parent.height - self.height) / 2 + root.top-room / 2 + root.view-pan-y;
         data: root.current;
+        frames: root.slots;
         guides: root.guides;
         gutter-shadow: root.gutter-shadow;
         interactive: true;

@@ -120,6 +120,22 @@ pub fn connect(window: &AppWindow) {
             select(&w, usize::try_from(index).unwrap_or(0));
         }
     });
+    let w = window.as_weak();
+    ui.on_released(move || {
+        if let Some(w) = w.upgrade() {
+            release(&w);
+        }
+    });
+}
+
+/// A janela fechou: para a animação e solta as ilustrações, que somam dezenas de MB (NV-B17).
+fn release(window: &AppWindow) {
+    news_player::stop();
+    let ui = window.global::<NewsUi>();
+    ui.set_playing(false);
+    ui.set_frame(Image::default());
+    ui.set_entries(model(Vec::new()));
+    ui.set_selected(0);
 }
 
 /// Escolhe a novidade da linha `index` e toca a ilustração dela.
@@ -131,7 +147,46 @@ fn select(window: &AppWindow, index: usize) {
 
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+
+    use slint::platform::software_renderer::{MinimalSoftwareWindow, RepaintBufferType};
+    use slint::platform::{Platform, WindowAdapter};
+    use slint::{Model, PlatformError};
+
     use super::*;
+
+    /// A plataforma sem janela do sistema, para criar a `AppWindow` de verdade no teste.
+    struct Headless(Rc<MinimalSoftwareWindow>);
+
+    impl Platform for Headless {
+        fn create_window_adapter(&self) -> Result<Rc<dyn WindowAdapter>, PlatformError> {
+            Ok(self.0.clone())
+        }
+    }
+
+    #[test]
+    fn nv_b17_fechar_solta_as_ilustracoes_da_memoria() {
+        let window = MinimalSoftwareWindow::new(RepaintBufferType::NewBuffer);
+        slint::platform::set_platform(Box::new(Headless(window))).unwrap();
+        let app = AppWindow::new().unwrap();
+        connect(&app);
+        let ui = app.global::<NewsUi>();
+        let entry = NewsEntryData {
+            has_image: true,
+            ..NewsEntryData::default()
+        };
+        ui.set_entries(model(vec![entry.clone(), entry]));
+        ui.set_selected(1);
+        ui.set_playing(true);
+        ui.set_show(true);
+
+        ui.invoke_close();
+
+        assert!(!ui.get_show());
+        assert_eq!(ui.get_entries().row_count(), 0);
+        assert_eq!(ui.get_selected(), 0);
+        assert!(!ui.get_playing());
+    }
 
     #[test]
     fn as_notas_embutidas_leem_e_toda_ilustracao_citada_esta_embutida() {

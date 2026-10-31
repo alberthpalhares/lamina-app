@@ -37,6 +37,12 @@ export global NewsUi {
     callback next();
     // Um clique numa linha da lista: o Rust escolhe e começa a animação dela.
     callback chose(int);
+    // A janela fechou: o Rust solta as ilustrações da memória (NV-B17).
+    callback released();
+    public function close() {
+        show = false;
+        released();
+    }
 }
 
 // Uma linha da lista à esquerda, com a barra da escolhida.
@@ -105,14 +111,14 @@ export component NewsDialog inherits Rectangle {
     // Um clique fora da janela fecha (regra 6).
     TouchArea {
         clicked => {
-            NewsUi.show = false;
+            NewsUi.close();
             root.closed();
         }
     }
     keys := FocusScope {
         key-pressed(event) => {
             if (event.text == Key.Escape) {
-                NewsUi.show = false;
+                NewsUi.close();
                 root.closed();
                 return accept;
             }
@@ -196,8 +202,10 @@ export component NewsDialog inherits Rectangle {
                                     text: "Experimente agora";
                                     primary: true;
                                     clicked => {
-                                        NewsUi.show = false;
-                                        root.try-now(root.chosen.command);
+                                        // Antes de fechar: fechar esvazia a lista de onde o comando vem.
+                                        let command = root.chosen.command;
+                                        NewsUi.close();
+                                        root.try-now(command);
                                     }
                                 }
                             }
@@ -220,7 +228,7 @@ export component NewsDialog inherits Rectangle {
                             DialogButton {
                                 text: "Fechar";
                                 clicked => {
-                                    NewsUi.show = false;
+                                    NewsUi.close();
                                     root.closed();
                                 }
                             }

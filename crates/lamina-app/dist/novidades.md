@@ -13,6 +13,38 @@ botão "Experimente agora": `<!-- imagem: atalhos.png; comando: ajuda.atalhos --
 
 ## [Não lançado]
 
+## [0.1.0-beta.8] - 2026-10-31
+
+Esta versão traz layouts que enchem a lâmina até a borda, põe as fotos maiores primeiro nas sugestões, dá mais espaço à lâmina numa janela redesenhada e deixa o Lamina mais leve.
+
+- **Layouts sem borda.** De 2 a 24 fotos, agora há layouts em que as fotos vão até a borda do papel,
+  separadas só pelo espaço que você escolheu para o álbum; com espaço 0, ficam coladas. Eles cortam
+  até 35% de cada foto, ou até 15% com o corte "Pouco". Com o corte "Nada", ficam desligados. Dá para
+  desligar no álbum novo, em "Layouts sem borda". Experimente: abra a faixa de layouts com a
+  tecla L e veja os que têm "Sem borda" no nome.
+  <!-- imagem: layouts-sem-borda.png; comando: ver.faixa-layouts -->
+- **As fotos maiores vêm primeiro.** As sugestões começam pelos layouts em que as fotos ficam maiores,
+  e os que deixam muito branco vão para o fim. Por isso, ao arrastar ou tirar uma foto, a lâmina tende
+  a se refazer mais cheia, com mais recorte. Na montagem automática, depois de duas lâminas até a borda
+  vem uma mais calma. Experimente: arraste uma foto para uma lâmina e aperte ↓ para ver as outras opções.
+  <!-- imagem: fotos-maiores-primeiro.png -->
+- **A lâmina ganhou espaço.** Lâminas e Sequência viraram abas de uma faixa só, as fotos abrem com uma
+  linha e a faixa encolhe em janela baixa. O painel da direita ficou organizado em Álbum, Impressão e
+  Lâmina, os limites de páginas aparecem na barra de cima, e uma sombra na tela marca a dobra, sem ir
+  para a impressão. Cinzas neutros em volta ajudam a julgar a cor das fotos. Experimente: ligue e
+  desligue a sombra em Ver, Sombra da dobra.
+  <!-- imagem: lamina-com-mais-espaco.png; comando: ver.sombra-dobra -->
+- **O Lamina ficou mais leve.** Exportar com fotos de 24 MP caiu de cerca de 3 GB para 0,8 GB de memória,
+  em troca de levar de 13% a 29% mais tempo. Importar gasta 57% menos memória no mesmo tempo, e editar
+  não copia mais o álbum. Os arquivos exportados continuam idênticos. Experimente: exporte um
+  álbum grande com outros programas abertos.
+  <!-- imagem: mais-leve.png; comando: arquivo.exportar -->
+- **Fotos que não apareciam.** Em computadores em que o programa não consegue usar o OpenGL, as lâminas
+  vizinhas e as fotos nítidas não chegavam à tela, e parte da lâmina podia ficar cinza. Em qualquer
+  computador, uma foto também podia se perder ao chegar entre dois desenhos da janela. Fechar esta
+  janela de novidades agora também devolve a memória das ilustrações. Experimente: passe de lâmina com
+  → e veja as fotos ficarem nítidas.
+
 ## [0.1.0-beta.7] - 2026-10-29
 
 Esta versão traz as fontes do computador nos textos, reencontra as fotos que mudaram de lugar, tira fotos do álbum pela grade, simplifica a escolha do tamanho, deixa editar os textos que já estão na lâmina e leva fotos de uma lâmina para outra pela Sequência.

@@ -64,6 +64,12 @@ impl SlotRows {
         self.model.iter().collect()
     }
 
+    /// Sem lâmina para mostrar (álbum sem lâminas): a lista da tela fica vazia.
+    pub fn clear(&mut self) {
+        self.slots = Slots::default();
+        self.model.set_vec(Vec::new());
+    }
+
     /// Retira as vagas que terminaram de esmaecer (MV-B12), só por remoção.
     pub fn sweep(&mut self) {
         for i in self.slots.sweep() {
@@ -91,5 +97,131 @@ fn row(slot: &Slot, rows: &[FrameData], old: Option<FrameData>) -> FrameData {
             live: false,
             ..old.unwrap_or_default()
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::rc::Rc;
+
+    use slint::platform::software_renderer::{MinimalSoftwareWindow, RepaintBufferType};
+    use slint::platform::{Platform, WindowAdapter};
+    use slint::{
+        Color, ComponentHandle, Image, Model, ModelRc, PhysicalSize, Rgb8Pixel, Rgba8Pixel,
+        SharedPixelBuffer, VecModel,
+    };
+
+    use crate::{AppWindow, BoxData, FrameData, SpreadData};
+
+    const WIDTH: u32 = 1600;
+    const HEIGHT: u32 = 1000;
+    /// A cor do quadro sem foto (`Fixed.placeholder`).
+    const GREY: (u8, u8, u8) = (128, 128, 128);
+    /// Mais que isto, é uma área: alguns poucos pixels dessa cor saem da borda das letras.
+    const LOTS: usize = 1000;
+
+    /// A janela de verdade, sem tela: desenha num buffer e deixa o teste escolher quando desenhar.
+    struct Headless(Rc<MinimalSoftwareWindow>);
+
+    impl Platform for Headless {
+        fn create_window_adapter(&self) -> Result<Rc<dyn WindowAdapter>, slint::PlatformError> {
+            Ok(self.0.clone())
+        }
+    }
+
+    fn draw(window: &MinimalSoftwareWindow) -> Vec<Rgb8Pixel> {
+        let mut pixels = vec![Rgb8Pixel::default(); (WIDTH * HEIGHT) as usize];
+        slint::platform::update_timers_and_animations();
+        window.draw_if_needed(|r| {
+            r.render(&mut pixels, WIDTH as usize);
+        });
+        pixels
+    }
+
+    fn count(pixels: &[Rgb8Pixel], (r, g, b): (u8, u8, u8)) -> usize {
+        pixels
+            .iter()
+            .filter(|p| (p.r, p.g, p.b) == (r, g, b))
+            .count()
+    }
+
+    fn red_image() -> Image {
+        let mut buffer = SharedPixelBuffer::<Rgba8Pixel>::new(4, 2);
+        buffer.make_mut_slice().fill(Rgba8Pixel {
+            r: 255,
+            g: 0,
+            b: 0,
+            a: 255,
+        });
+        Image::from_rgba8(buffer)
+    }
+
+    /// Uma vaga que cobre a lâmina inteira, ainda sem foto ou com ela.
+    fn slot(img: Option<Image>) -> FrameData {
+        FrameData {
+            id: 1,
+            index: 0,
+            kind: 1,
+            live: true,
+            w: 1.0,
+            h: 0.5,
+            pw: 1.0,
+            ph: 0.5,
+            op: 1.0,
+            photo: 4,
+            has_img: img.is_some(),
+            img: img.unwrap_or_default(),
+            ..FrameData::default()
+        }
+    }
+
+    /// Como `refresh_spread` monta: cada desenho da lâmina traz uma lista nova de páginas inativas.
+    fn spread(frames: &Rc<VecModel<FrameData>>) -> SpreadData {
+        SpreadData {
+            aspect: 0.5,
+            bg: Color::from_rgb_u8(255, 255, 255),
+            bg_right: Color::from_rgb_u8(255, 255, 255),
+            // Sem o corte, a lâmina inteira ficaria sob o véu de fora do corte.
+            trim: BoxData {
+                w: 1.0,
+                h: 0.5,
+                ..BoxData::default()
+            },
+            inactive: ModelRc::from(Rc::new(VecModel::<BoxData>::default())),
+            frames: ModelRc::from(frames.clone()),
+            ..SpreadData::default()
+        }
+    }
+
+    #[test]
+    fn rl_b30_a_foto_que_chega_entre_dois_desenhos_aparece_na_vaga() {
+        let window = MinimalSoftwareWindow::new(RepaintBufferType::NewBuffer);
+        slint::platform::set_platform(Box::new(Headless(window.clone()))).unwrap();
+        let w = AppWindow::new().unwrap();
+        window.set_size(PhysicalSize::new(WIDTH, HEIGHT));
+        w.show().unwrap();
+        w.set_has_project(true);
+        w.set_spreads(ModelRc::from(Rc::new(VecModel::from(vec![
+            SpreadData::default(),
+        ]))));
+        // Como `refresh_spread`: nenhum quadro em recorte (o véu do recorte mudaria as cores).
+        w.set_crop_frame(-1);
+        w.set_selected_frame(-1);
+        // Sem animar: a lâmina fica logo com o tamanho final.
+        w.global::<crate::Motion>().set_on(false);
+        let rows = Rc::new(VecModel::from(vec![slot(None)]));
+        w.set_slots(ModelRc::from(rows.clone()));
+        w.set_current(spread(&rows));
+        let before = draw(&window);
+        assert!(count(&before, GREY) > LOTS, "a vaga sem foto aparece cinza");
+
+        // Duas atualizações da lâmina antes do próximo desenho: a miniatura chega na segunda.
+        w.set_current(spread(&rows));
+        rows.set_row_data(0, slot(Some(red_image())));
+        w.set_current(spread(&rows));
+        let after = draw(&window);
+
+        assert!(count(&after, GREY) < LOTS, "a vaga ficou cinza");
+        assert!(count(&after, (255, 0, 0)) > LOTS, "a foto não entrou");
     }
 }
