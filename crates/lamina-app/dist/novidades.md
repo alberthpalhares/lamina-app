@@ -17,6 +17,16 @@ botão "Experimente agora": `<!-- imagem: atalhos.png; comando: ajuda.atalhos --
   em que você parou. Os outros ficam embaixo, com os fixados primeiro. Experimente: feche o álbum pelo botão
   Início e veja o álbum esperando por você.
 
+## [0.1.0-beta.8.1] - 2026-10-31
+
+Esta versão corrige a recuperação do trabalho depois de uma queda.
+
+- **O trabalho não salvo não se perde ao abrir pelo arquivo.** Se o Lamina ou o computador desligava e
+  você abria o álbum com dois cliques no arquivo, a cópia de segurança era apagada sem perguntar. Fechar o
+  Lamina com a pergunta aberta também a apagava. Agora a pergunta "Recuperar?" aparece sempre, e a cópia
+  só sai quando você responde. Experimente: mude um layout, espere um minuto, feche o Lamina à força e
+  abra o álbum com dois cliques no arquivo.
+
 ## [0.1.0-beta.8] - 2026-10-31
 
 Esta versão traz layouts que enchem a lâmina até a borda, põe as fotos maiores primeiro nas sugestões, dá mais espaço à lâmina numa janela redesenhada e deixa o Lamina mais leve.
