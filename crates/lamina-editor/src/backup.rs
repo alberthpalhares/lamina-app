@@ -90,7 +90,8 @@ impl Backups {
     }
 
     /// O passo de cada minuto e de cada salvar ou fechar (regras 1 a 3): a cópia a gravar, se o
-    /// álbum mudou desde a última; sem alterações (ou sem álbum), a cópia que havia é apagada.
+    /// álbum mudou desde a última; sem alterações (ou sem álbum), a cópia desta execução é apagada.
+    /// A que ficou de uma queda espera a resposta do fotógrafo (regra 9).
     pub fn step(&mut self, session: Option<&Session>) -> Option<BackupJob> {
         let key = session.map(|s| key_of(s.file()));
         if let Some((old, _)) = &self.written
@@ -101,8 +102,9 @@ impl Backups {
         }
         let (session, key) = (session?, key?);
         if !session.is_dirty() {
-            self.remove(&key);
-            self.written = None;
+            if let Some((old, _)) = self.written.take() {
+                self.remove(&old);
+            }
             return None;
         }
         let project = session.for_disk();
@@ -130,14 +132,22 @@ impl Backups {
         })
     }
 
-    /// Fechou direito (o fotógrafo já respondeu "Salvar as alterações?"): nenhuma cópia fica.
-    pub fn finish(&mut self, session: Option<&Session>) {
+    /// Fechou direito (o fotógrafo já respondeu "Salvar as alterações?"): a cópia desta execução
+    /// não fica. A de uma queda ainda sem resposta volta a ser perguntada (regra 9).
+    pub fn finish(&mut self) {
         if let Some((old, _)) = self.written.take() {
             self.remove(&old);
         }
-        if let Some(session) = session {
-            self.remove(&key_of(session.file()));
+    }
+
+    /// "Recuperar": a cópia passa a ser desta execução, e salvar ou fechar a apaga (regras 2 e 3).
+    pub fn recovered(&mut self, found: &FoundBackup, session: &Session) {
+        if let Some((old, _)) = self.written.take()
+            && old != found.key
+        {
+            self.remove(&old);
         }
+        self.written = Some((found.key.clone(), session.for_disk()));
     }
 
     /// As cópias que ficaram de uma queda, a mais nova primeiro. Uma cópia que não dá para ler

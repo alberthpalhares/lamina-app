@@ -51,8 +51,9 @@ ajustar as fotos e mandar para a gráfica.
     <td width="33%" valign="top">
       <img src="crates/lamina-app/dist/novidades/faixa-de-layouts.png" alt="" width="100%"><br>
       <b>Layouts feitos para as suas fotos.</b> Cada layout é calculado pela proporção de cada
-      foto, sem biblioteca fixa de modelos e sem cortar foto sem necessidade. <kbd>↑</kbd> e
-      <kbd>↓</kbd> trocam de layout; <kbd>L</kbd> mostra todos de uma vez.
+      foto, sem biblioteca fixa de modelos. As fotos maiores vêm primeiro, inclusive sem borda, e
+      você escolhe quanto o Lamina pode cortar. <kbd>↑</kbd> e <kbd>↓</kbd> trocam de layout;
+      <kbd>L</kbd> mostra todos de uma vez.
     </td>
     <td width="33%" valign="top">
       <img src="crates/lamina-app/dist/novidades/rolo.png" alt="" width="100%"><br>
@@ -228,11 +229,11 @@ livres, para você ver tudo funcionando. Depois, **Novo álbum com minhas fotos�
 
 <table>
   <tr>
-    <td width="50%" valign="top"><img src="site/midia/tela-album.webp" alt="O álbum aberto, com a lâmina grande e as faixas de lâminas, sequência e fotografias" width="100%"><br><b>O álbum inteiro à vista.</b> A lâmina grande em cima; embaixo, as lâminas (reordene arrastando), a sequência e as fotos.</td>
+    <td width="50%" valign="top"><img src="site/midia/tela-album.webp" alt="O álbum aberto, com a lâmina grande até a borda e, embaixo, as abas Lâminas e Sequência e as fotografias" width="100%"><br><b>O álbum inteiro à vista.</b> A lâmina grande em cima; embaixo, lâminas (reordene arrastando) e sequência em abas, e as fotos.</td>
     <td width="50%" valign="top"><img src="site/midia/faixa-de-layouts.webp" alt="A faixa de layouts: cada seta escolhe outro layout, com a nota de cada um" width="100%"><br><b>Faixa de layouts.</b> <kbd>L</kbd> mostra todas as opções para as fotos da lâmina, com nota; as setas passam por elas.</td>
   </tr>
   <tr>
-    <td width="50%" valign="top"><img src="site/midia/tela-foto.webp" alt="A foto selecionada com a temperatura mais quente e os controles deslizantes ao lado" width="100%"><br><b>Ajustes da foto.</b> Girar, escala, brilho, contraste, temperatura e matiz por controles deslizantes.</td>
+    <td width="50%" valign="top"><img src="site/midia/tela-foto.webp" alt="Uma foto selecionada, com os controles deslizantes no painel ao lado" width="100%"><br><b>Ajustes da foto.</b> Girar, escala, brilho, contraste, temperatura e matiz por controles deslizantes.</td>
     <td width="50%" valign="top"><img src="site/midia/tela-organizar.webp" alt="O modo organizar, com régua, barra de ferramentas e fundo e bordas" width="100%"><br><b>Modo organizar.</b> Régua, lupa, tamanho real 1:1, espaço entre fotos, fundo, bordas e cantos.</td>
   </tr>
   <tr>

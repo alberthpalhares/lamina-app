@@ -255,3 +255,48 @@ fn cs_b10_copia_pedida_antes_de_salvar_nao_fica_para_tras() {
     assert_eq!(copies(dir.path()), 0);
     assert!(reopen(dir.path()).found_backups().is_empty());
 }
+
+#[test]
+fn cs_b11_abrir_o_album_pelo_arquivo_depois_de_uma_queda_ainda_pergunta() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = album(dir.path());
+    let mut editor = editor(dir.path(), &file);
+    assert!(editor.run(Command::Mirror));
+    assert!(tick(&mut editor));
+    let changed = editor.session().unwrap().project().spreads.clone();
+    drop(editor);
+
+    // O duplo clique: o álbum abre sem alterações, e a janela troca de álbum antes de perguntar.
+    let mut editor = reopen(dir.path());
+    editor.open(&file).unwrap();
+    assert!(!tick(&mut editor));
+    assert!(!tick(&mut editor), "e também no minuto seguinte");
+    assert_eq!(copies(dir.path()), 2, "a cópia e o que a acompanha");
+
+    let found = editor.found_backups();
+    assert_eq!(found.len(), 1);
+    assert!(editor.recover(&found[0]));
+    assert_eq!(editor.session().unwrap().project().spreads, changed);
+    assert!(!tick(&mut editor), "a cópia recuperada já está no disco");
+    // Salvar apaga a cópia recuperada (regra 2).
+    editor.save_to(None).unwrap();
+    assert!(!tick(&mut editor));
+    assert_eq!(copies(dir.path()), 0);
+}
+
+#[test]
+fn cs_b12_fechar_sem_responder_nao_perde_a_copia() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = album(dir.path());
+    let mut editor = editor(dir.path(), &file);
+    assert!(editor.run(Command::Mirror));
+    assert!(tick(&mut editor));
+    drop(editor);
+
+    let mut editor = reopen(dir.path());
+    editor.open(&file).unwrap();
+    assert_eq!(editor.found_backups().len(), 1, "a pergunta na tela");
+    editor.finish_backups();
+    assert_eq!(copies(dir.path()), 2);
+    assert_eq!(reopen(dir.path()).found_backups().len(), 1);
+}

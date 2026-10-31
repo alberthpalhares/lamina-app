@@ -108,6 +108,7 @@ pub fn refresh_spread(app: &mut App) {
         w.set_current(data);
         slide(app, &w, (place, index), before);
     } else {
+        app.slot_rows.clear();
         w.set_current(data);
     }
     crate::organize::refresh(app);

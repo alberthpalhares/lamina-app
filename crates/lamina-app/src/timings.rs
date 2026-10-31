@@ -10,6 +10,9 @@ use slint::{RenderingState, Timer, TimerMode};
 
 use crate::state::App;
 
+/// De quanto em quanto tempo a porta dos envios anda quando o desenho não avisa os quadros.
+const NO_NOTICE_TICK: Duration = Duration::from_millis(16);
+
 /// O medidor e o instante em que a janela abriu (a origem dos tempos).
 #[derive(Debug, Clone)]
 pub struct Clock {
@@ -29,7 +32,8 @@ impl Default for Clock {
 impl Clock {
     /// Lê a variável; ligada, recebe cada quadro desenhado e encerra as rajadas pelo `Timer`
     /// devolvido (que precisa ficar vivo). Cada quadro desenhado também move a porta dos envios do
-    /// rolo (spec RL, regra 9).
+    /// rolo (spec RL, regra 9). O desenho por software não avisa os quadros (é o reserva do Slint
+    /// num computador sem OpenGL): aí é um relógio que move a porta (regra 33).
     pub fn install(window: &slint::Window) -> (Clock, Option<Timer>) {
         let value = std::env::var(TIMINGS_VAR).ok();
         let clock = Clock {
@@ -52,7 +56,12 @@ impl Clock {
             _ => {}
         });
         if notified.is_err() {
-            eprintln!("Lamina: este desenho da janela não avisa os quadros (rolo e {TIMINGS_VAR})");
+            eprintln!("Lamina: este desenho da janela não avisa os quadros (sem {TIMINGS_VAR})");
+            let pump = Timer::default();
+            pump.start(TimerMode::Repeated, NO_NOTICE_TICK, || {
+                crate::mailbox::later(Duration::ZERO, crate::roll::frame_drawn);
+            });
+            return (clock, Some(pump));
         }
         if !on {
             return (clock, None);
@@ -106,5 +115,21 @@ impl App {
         }
         clock.mark(Timings::screen_done);
         changed
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use slint::platform::WindowAdapter;
+    use slint::platform::software_renderer::{MinimalSoftwareWindow, RepaintBufferType};
+
+    use super::*;
+
+    #[test]
+    fn rl_b31_sem_aviso_de_quadros_um_relogio_anda_a_porta_dos_envios() {
+        // O desenho por software não avisa os quadros, como o reserva do Slint sem OpenGL.
+        let window = MinimalSoftwareWindow::new(RepaintBufferType::NewBuffer);
+        let (_clock, pump) = Clock::install(window.window());
+        assert!(pump.is_some_and(|t| t.running()), "nada anda a porta");
     }
 }

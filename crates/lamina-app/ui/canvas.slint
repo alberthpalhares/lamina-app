@@ -206,6 +206,10 @@ component Slot inherits Rectangle {
 }
 
 export component SpreadCanvas inherits Rectangle {    in property <SpreadData> data;
+    // As vagas. Na lâmina grande vêm de uma propriedade que nunca muda: se viessem de `data`, cada
+    // `data` novo sujaria o modelo do `for` até o próximo desenho, e o Slint perde a linha mudada
+    // nesse intervalo (spec RL, regra 32).
+    in property <[FrameData]> frames: root.data.frames;
     in property <bool> guides;
     // A sombra da dobra (spec DJ, regra 1): só na lâmina grande, só na tela.
     in property <bool> gutter-shadow;
@@ -290,7 +294,7 @@ export component SpreadCanvas inherits Rectangle {    in property <SpreadData> d
     }
 
     // As vagas: a foto desliza e esmaece (spec MV); a tela desenha, o editor decide.
-    for f in root.data.frames: Slot {
+    for f in root.frames: Slot {
         f: f;
         unit: root.width;
         small: root.small;
@@ -299,7 +303,7 @@ export component SpreadCanvas inherits Rectangle {    in property <SpreadData> d
 
     // Os toques ficam no lugar final do quadro, sem deslizar: um clique no meio de um movimento
     // vale para a posição final (spec MV, regra 13).
-    for f in root.data.frames: TouchArea {
+    for f in root.frames: TouchArea {
         x: f.x * root.width;
         y: f.y * root.width;
         width: f.w * root.width;
