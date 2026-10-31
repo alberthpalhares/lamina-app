@@ -7,7 +7,9 @@ use std::path::PathBuf;
 use lamina_editor::error_log::{ErrorLog, LOG_FOLDER};
 use lamina_editor::guarded;
 use lamina_editor::recents::{
-    Card, Clock, cards, missing_files, recent_menu, search, show_search, write_thumbnail,
+    Card, Clock, Resume, card_label, card_tip, cards, grid_cards, grid_columns, missing_files,
+    no_results, recent_menu, resume, resume_height, show_search, write_big_thumbnail,
+    write_thumbnail,
 };
 use slint::ComponentHandle;
 
@@ -37,12 +39,42 @@ pub fn refresh(app: &App) {
         })
         .collect();
     ui.set_menu(model(menu));
-    let shown = search(&all, &app.recent_query);
-    let card = |c: &&Card| card_data(app, c);
-    ui.set_pinned(model(shown.iter().filter(|c| c.pinned).map(card).collect()));
-    ui.set_others(model(
-        shown.iter().filter(|c| !c.pinned).map(card).collect(),
-    ));
+    // Buscando, o botão principal não muda: ele diz se algum álbum existe, não o que a busca achou.
+    ui.set_main_new(resume(store.list(), &all, "").is_none());
+    let current = resume(store.list(), &all, &app.recent_query);
+    ui.set_has_resume(current.is_some());
+    if let Some(data) = current.as_ref().and_then(|r| resume_data(app, &all, r)) {
+        ui.set_resume(data);
+    }
+    let grid = grid_cards(&all, current.as_ref(), &app.recent_query);
+    let searching = !app.recent_query.trim().is_empty();
+    ui.set_no_results(if searching && grid.is_empty() {
+        no_results(&app.recent_query).into()
+    } else {
+        Default::default()
+    });
+    ui.set_cards(model(grid.iter().map(|c| card_data(app, c)).collect()));
+}
+
+/// O cartão do álbum em andamento, com a miniatura grande; sem ela, a pequena, ampliada (regra 14).
+fn resume_data(app: &App, all: &[Card], current: &Resume) -> Option<RecentCard> {
+    let card = all.iter().find(|c| c.index == current.index)?;
+    let recents = app.editor.recents();
+    let big = recents
+        .big_thumb_path(&card.path)
+        .and_then(|p| app.seen_thumbs.borrow_mut().get(&p))
+        .map(|picture| crate::news_player::image(&picture));
+    let mut data = card_data(app, card);
+    if let Some(picture) = big.filter(|_| !card.blank) {
+        data.thumb = picture;
+        data.has_thumb = true;
+    }
+    data.sentence = current.sentence.as_str().into();
+    data.button = current.button.as_str().into();
+    data.meta = current.meta.as_str().into();
+    data.fold =
+        recents.list().get(current.index).is_some_and(|r| r.fold) && app.editor.gutter_shadow_on();
+    Some(data)
 }
 
 fn card_data(app: &App, c: &Card) -> RecentCard {
@@ -65,6 +97,9 @@ fn card_data(app: &App, c: &Card) -> RecentCard {
         has_thumb: thumb.is_some() && !c.blank,
         blank: c.blank,
         thumb: thumb.unwrap_or_default(),
+        tip: card_tip(c).into(),
+        label: card_label(c).into(),
+        ..RecentCard::default()
     }
 }
 
@@ -95,11 +130,16 @@ pub fn thumbnail(app: &App) {
     let Some((project, target)) = app.editor.thumbnail_job() else {
         return;
     };
+    // O álbum aberto é o álbum em andamento: só ele tem a miniatura grande (spec DI, regra 14).
+    let big = app.editor.big_thumbnail_target();
     let (cache, tx) = (app.cache.clone(), app.tx.clone());
     std::thread::spawn(move || {
         // Se falhar, o cartão mostra o desenho neutro, sem aviso na tela, e o motivo vai para o
         // registro (spec TI, regra 5).
-        let failed = match guarded(|| write_thumbnail(&project, &cache, &target)) {
+        let failed = match guarded(|| {
+            write_thumbnail(&project, &cache, &target)?;
+            big.map_or(Ok(()), |big| write_big_thumbnail(&project, &cache, &big))
+        }) {
             Ok(Ok(())) => None,
             Ok(Err(reason)) => Some(reason),
             Err(panic) => Some(panic.details),
@@ -191,6 +231,8 @@ pub fn connect(window: &AppWindow, app: &Shared) {
         app.recent_query = text.to_string();
         refresh(&app);
     });
+    ui.on_grid_columns(|width| i32::try_from(grid_columns(width)).unwrap_or(1));
+    ui.on_resume_height(resume_height);
     let a = app.clone();
     ui.on_clear_confirmed(move || {
         let mut app = a.borrow_mut();

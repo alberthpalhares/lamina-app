@@ -10,6 +10,7 @@ use image::{Rgba, RgbaImage};
 use lamina_core::{FrameContent, Photo, PhotoId, Project};
 use lamina_render::{PhotoSource, RenderTarget};
 
+use super::{BIG_THUMB_END, RESUME_SIDE};
 use crate::Cache;
 use crate::updates::news::{Illustration, illustration};
 
@@ -32,10 +33,20 @@ impl<S: PhotoSource> PhotoSource for OrGray<S> {
     }
 }
 
-/// Desenha a primeira lâmina com o renderizador da prévia (as miniaturas das fotos, do cache,
-/// bastam nesse tamanho), seja qual for a lâmina em que o fotógrafo parou. `None` para o álbum
-/// sem lâminas (spec BR): o cartão mostra o desenho do álbum em branco. `Err` com o motivo.
+/// A miniatura do cartão: a primeira lâmina com 320 px no lado maior.
 pub fn thumbnail_image(project: &Project, cache: &Cache) -> Result<Option<RgbaImage>, String> {
+    spread_image(project, cache, THUMB_SIDE)
+}
+
+/// Desenha a primeira lâmina com o renderizador da prévia (as miniaturas das fotos, do cache,
+/// bastam nesse tamanho), seja qual for a lâmina em que o fotógrafo parou, com `side` px no lado
+/// maior. `None` para o álbum sem lâminas (spec BR): o cartão mostra o desenho do álbum em
+/// branco. `Err` com o motivo.
+pub fn spread_image(
+    project: &Project,
+    cache: &Cache,
+    side: u32,
+) -> Result<Option<RgbaImage>, String> {
     if project.spreads.is_empty() {
         return Ok(None);
     }
@@ -56,10 +67,8 @@ pub fn thumbnail_image(project: &Project, cache: &Cache) -> Result<Option<RgbaIm
         .filter_map(|p| cache.screen(p).map(|path| (p.id, path)))
         .collect();
     let source = OrGray(lamina_media::cached_source(thumbs, screens));
-    // O renderizador acha o tamanho pela `preview_size`: 320 px no lado maior.
-    let target_size = RenderTarget::Preview {
-        max_side: THUMB_SIDE,
-    };
+    // O renderizador acha o tamanho pela `preview_size`: `side` px no lado maior.
+    let target_size = RenderTarget::Preview { max_side: side };
     lamina_render::render_spread(project, 0, target_size, &source)
         .map(Some)
         .map_err(|e| e.to_string())
@@ -68,7 +77,34 @@ pub fn thumbnail_image(project: &Project, cache: &Cache) -> Result<Option<RgbaIm
 /// Grava em `target` a miniatura da primeira lâmina. Álbum sem lâminas não tem miniatura: a que
 /// sobrou de antes é apagada, para o cartão não mostrar lâminas que não existem mais.
 pub fn write_thumbnail(project: &Project, cache: &Cache, target: &Path) -> Result<(), String> {
-    let Some(image) = thumbnail_image(project, cache)? else {
+    write_image(project, cache, target, THUMB_SIDE)
+}
+
+/// Grava a miniatura grande do álbum em andamento e apaga a do álbum anterior: só existe uma (spec
+/// DI, regra 14).
+pub fn write_big_thumbnail(project: &Project, cache: &Cache, target: &Path) -> Result<(), String> {
+    write_image(project, cache, target, RESUME_SIDE)?;
+    let Some(folder) = target.parent() else {
+        return Ok(());
+    };
+    for entry in std::fs::read_dir(folder)
+        .map_err(|e| e.to_string())?
+        .flatten()
+    {
+        let path = entry.path();
+        let big = path
+            .file_name()
+            .is_some_and(|n| n.to_string_lossy().ends_with(BIG_THUMB_END));
+        if big && path != target {
+            // Se não der para apagar agora, a próxima gravação tenta de novo.
+            let _ = std::fs::remove_file(path);
+        }
+    }
+    Ok(())
+}
+
+fn write_image(project: &Project, cache: &Cache, target: &Path, side: u32) -> Result<(), String> {
+    let Some(image) = spread_image(project, cache, side)? else {
         return match std::fs::remove_file(target) {
             Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e.to_string()),
             _ => Ok(()),

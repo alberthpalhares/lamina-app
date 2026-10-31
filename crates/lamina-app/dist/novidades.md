@@ -13,6 +13,10 @@ botão "Experimente agora": `<!-- imagem: atalhos.png; comando: ajuda.atalhos --
 
 ## [Não lançado]
 
+- **Uma tela inicial nova.** O último álbum aberto vem grande, e um clique em "Continuar" volta para a lâmina
+  em que você parou. Os outros ficam embaixo, com os fixados primeiro. Experimente: feche o álbum pelo botão
+  Início e veja o álbum esperando por você.
+
 ## [0.1.0-beta.8] - 2026-10-31
 
 Esta versão traz layouts que enchem a lâmina até a borda, põe as fotos maiores primeiro nas sugestões, dá mais espaço à lâmina numa janela redesenhada e deixa o Lamina mais leve.

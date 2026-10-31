@@ -1,0 +1,256 @@
+// Os dados da tela inicial e os cartões dos álbuns (specs TI e DI). A lista vem do Rust
+// (`src/recents.rs`): as decisões (ordem, busca, quem é o álbum em andamento) ficam no editor.
+
+import { Theme, Type, Radius, Space, Line } from "theme.slint";
+import { Icons } from "icons.slint";
+import { BarButton, Card, DialogButton, FocusRing, Tip } from "widgets.slint";
+
+export struct RecentCard {
+    index: int,
+    name: string,
+    folder: string,
+    when: string,
+    counts: string,
+    pinned: bool,
+    missing: bool,
+    thumb: image,
+    has-thumb: bool,
+    blank: bool,
+    // O balão (nome inteiro e pasta) e o nome para leitores de tela.
+    tip: string,
+    label: string,
+    // Só no álbum em andamento: a frase de onde parou, o botão, o resumo e se a imagem tem dobra.
+    sentence: string,
+    button: string,
+    meta: string,
+    fold: bool,
+}
+
+export struct RecentItem {
+    index: int,
+    label: string,
+    enabled: bool,
+}
+
+// `index` é a posição na lista de recentes.
+export global RecentsUi {
+    in property <bool> has-recents;
+    // O álbum em andamento; sem ele, só a grade (arquivos sumidos ou busca preenchida).
+    in property <bool> has-resume;
+    in property <RecentCard> resume;
+    in property <[RecentCard]> cards;
+    in property <[RecentItem]> menu;
+    in property <bool> show-search;
+    // Nenhum álbum existe no disco: o novo álbum vira o botão principal da barra.
+    in property <bool> main-new;
+    // A frase da busca sem resultado; vazia quando há resultado.
+    in property <string> no-results;
+    in-out property <string> query;
+    in-out property <bool> show-clear;
+    callback open(int);
+    callback pin(int);
+    callback browse(int);
+    callback forget(int);
+    callback search(string);
+    callback clear-confirmed();
+    pure callback grid-columns(length) -> int;
+    pure callback resume-height(length) -> length;
+}
+
+// O alfinete: cheio quando fixado.
+export component PinButton inherits Rectangle {
+    in property <bool> pinned;
+    callback clicked();
+    accessible-role: button;
+    accessible-label: root.pinned ? "Desafixar" : "Fixar";
+    accessible-checked: root.pinned;
+    accessible-action-default => { root.clicked(); }
+    width: Space.s5;
+    height: Space.s5;
+    border-radius: Radius.small;
+    background: touch.has-hover ? Theme.hover : transparent;
+    Image {
+        accessible-role: none;
+        width: 14px;
+        height: 14px;
+        source: root.pinned ? Icons.pin-filled : Icons.pin;
+        colorize: root.pinned ? Theme.text-strong : Theme.text-3;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+    focus := FocusScope {
+        x: 0;
+        width: 0;
+        key-pressed(e) => {
+            if (e.text == Key.Space || e.text == Key.Return) {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+    }
+    FocusRing { shown: focus.has-focus; x: -3px; y: -3px; width: parent.width + 6px; height: parent.height + 6px; }
+}
+
+// O desenho do álbum sem miniatura: duas páginas abertas com o nome. É o álbum em branco da BR
+// (sem lâminas) e também o desenho neutro quando a miniatura falhou (spec TI, regra 5).
+export component BlankAlbum inherits Rectangle {
+    in property <string> name;
+    in property <bool> blank;
+    Rectangle {
+        width: parent.width * 0.76;
+        height: parent.height * 0.72;
+        background: Theme.g5;
+        border-width: Line.thin;
+        border-color: Theme.g7;
+        border-radius: Radius.hair;
+        // A dobra entre as duas páginas, interrompida no meio para não cortar o nome.
+        Rectangle { x: (parent.width - 1px) / 2; y: 0; width: 1px; height: 16px; background: Theme.g7; }
+        Rectangle { x: (parent.width - 1px) / 2; y: parent.height - 16px; width: 1px; height: 16px; background: Theme.g7; }
+        VerticalLayout {
+            padding: Space.s2;
+            alignment: center;
+            spacing: 2px;
+            Text { text: root.name; color: Theme.text; font-size: Type.small; font-weight: Type.semibold; horizontal-alignment: center; overflow: elide; }
+            if root.blank: Text { text: "Álbum em branco"; color: Theme.text-2; font-size: Type.caption; horizontal-alignment: center; }
+        }
+    }
+}
+
+component AlbumCard inherits Card {
+    in property <RecentCard> data;
+    // O balão cresce para a esquerda na metade direita da grade, para não sair da área.
+    in property <bool> tip-left;
+    accessible-role: button;
+    accessible-label: root.data.label;
+    accessible-action-default => { RecentsUi.open(root.data.index); }
+    // Por cima dos vizinhos, para o balão não ficar atrás deles.
+    z: open.has-hover ? 1 : 0;
+    border-color: (open.has-hover || focus.has-focus) && !root.data.missing ? Theme.line-strong : Theme.line;
+    animate border-color { duration: 120ms; }
+    open := TouchArea {
+        enabled: !root.data.missing;
+        mouse-cursor: root.data.missing ? default : pointer;
+        clicked => { RecentsUi.open(root.data.index); }
+    }
+    focus := FocusScope {
+        x: 0;
+        width: 0;
+        enabled: !root.data.missing;
+        key-pressed(e) => {
+            if (e.text == Key.Space || e.text == Key.Return) {
+                RecentsUi.open(root.data.index);
+                return accept;
+            }
+            return reject;
+        }
+    }
+    VerticalLayout {
+        padding: Space.s2;
+        spacing: Space.s2;
+        Rectangle {
+            height: (root.width - 2 * Space.s2) / 2;
+            background: Theme.g2;
+            border-radius: Radius.small;
+            opacity: root.data.missing ? 0.35 : 1;
+            if root.data.has-thumb: Image { accessible-role: none; source: root.data.thumb; image-fit: contain; width: parent.width; height: parent.height; }
+            if !root.data.has-thumb: BlankAlbum { name: root.data.name; blank: root.data.blank; }
+        }
+        VerticalLayout {
+            padding-left: Space.s1;
+            padding-right: Space.s1;
+            spacing: 2px;
+            HorizontalLayout {
+                spacing: Space.s1;
+                Text { text: root.data.name; color: root.data.missing ? Theme.text-2 : Theme.text; font-size: Type.body; font-weight: Type.semibold; overflow: elide; horizontal-stretch: 1; vertical-alignment: center; }
+                PinButton { pinned: root.data.pinned; clicked => { RecentsUi.pin(root.data.index); } }
+            }
+            if !root.data.missing: Text { text: root.data.when; color: Theme.text-2; font-size: Type.small; overflow: elide; }
+            if !root.data.missing: Text { text: root.data.counts; color: Theme.text-2; font-size: Type.small; overflow: elide; }
+            if root.data.missing: Text { text: "Não encontrado"; color: Theme.warning; font-size: Type.small; }
+            if root.data.missing: HorizontalLayout {
+                spacing: Space.s1;
+                DialogButton { text: "Procurar…"; pad: Space.s2; least-width: 0px; min-height: 28px; horizontal-stretch: 1; clicked => { RecentsUi.browse(root.data.index); } }
+                DialogButton { text: "Tirar da lista"; pad: Space.s2; least-width: 0px; min-height: 28px; horizontal-stretch: 1; clicked => { RecentsUi.forget(root.data.index); } }
+            }
+        }
+    }
+    FocusRing { shown: focus.has-focus; radius: Radius.medium; x: -3px; y: -3px; width: parent.width + 6px; height: parent.height + 6px; }
+    Tip {
+        x: root.tip-left ? parent.width - self.width : 0px;
+        y: Space.s2;
+        text: root.data.tip;
+        shown: open.has-hover;
+    }
+}
+
+// Os cartões em linhas que quebram conforme a largura (spec DI, regra 3).
+export component CardGrid inherits Rectangle {
+    in property <[RecentCard]> cards;
+    property <int> columns: RecentsUi.grid-columns(root.width);
+    property <length> card-width: (root.width - (root.columns - 1) * Space.s4) / root.columns;
+    // A miniatura 2:1 e o que vem embaixo dela, igual em todos os cartões.
+    property <length> card-height: (root.card-width - 2 * Space.s2) / 2 + 100px;
+    min-height: ceil(root.cards.length / root.columns) * (root.card-height + Space.s4) - Space.s4;
+    for card[i] in root.cards: AlbumCard {
+        x: mod(i, root.columns) * (root.card-width + Space.s4);
+        y: floor(i / root.columns) * (root.card-height + Space.s4);
+        width: root.card-width;
+        height: root.card-height;
+        tip-left: mod(i, root.columns) >= root.columns / 2;
+        data: card;
+    }
+}
+
+// "Enviar sugestão ou problema", um link discreto (spec PC).
+component FeedbackLink inherits Rectangle {
+    callback clicked();
+    accessible-role: button;
+    accessible-label: label.text;
+    accessible-action-default => { root.clicked(); }
+    preferred-width: label.preferred-width;
+    label := Text {
+        text: "Enviar sugestão ou problema";
+        color: touch.has-hover ? Theme.text-strong : Theme.link;
+        font-size: Type.small;
+        vertical-alignment: center;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+    focus := FocusScope {
+        x: 0;
+        width: 0;
+        key-pressed(e) => {
+            if (e.text == Key.Space || e.text == Key.Return) {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+    }
+    FocusRing { shown: focus.has-focus; x: -3px; y: 8px; width: parent.width + 6px; height: parent.height - 16px; }
+}
+
+// Os botões da tela inicial na barra de cima (spec DI, saídas 1, 3 e 7). Sem recentes, o novo álbum
+// e o exemplo ficam no corpo da tela, e aqui só o link e o abrir.
+export component WelcomeActions inherits HorizontalLayout {
+    callback command(string);
+    spacing: Space.s3;
+    FeedbackLink { clicked => { root.command("ajuda.enviar-sugestao"); } }
+    if RecentsUi.has-recents: VerticalLayout {
+        alignment: center;
+        BarButton { height: 32px; text: "Álbum de exemplo"; clicked => { root.command("arquivo.exemplo"); } }
+    }
+    VerticalLayout {
+        alignment: center;
+        DialogButton { text: "Abrir álbum…"; clicked => { root.command("arquivo.abrir"); } }
+    }
+    if RecentsUi.has-recents: VerticalLayout {
+        alignment: center;
+        DialogButton { text: "Novo álbum…"; primary: RecentsUi.main-new; clicked => { root.command("arquivo.novo"); } }
+    }
+}

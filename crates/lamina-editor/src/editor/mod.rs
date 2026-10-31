@@ -315,6 +315,11 @@ impl Editor {
         self.strips.strips.gutter_shadow && pages.left && pages.right && !self.organizing()
     }
 
+    /// A preferência da sombra da dobra, que vale também na tela inicial (spec DI).
+    pub fn gutter_shadow_on(&self) -> bool {
+        self.strips.strips.gutter_shadow
+    }
+
     /// Liga ou desliga a sombra da dobra e grava; se não gravar, vale nesta sessão, com aviso.
     fn toggle_gutter_shadow(&mut self) -> bool {
         self.strips.strips.gutter_shadow = !self.strips.strips.gutter_shadow;

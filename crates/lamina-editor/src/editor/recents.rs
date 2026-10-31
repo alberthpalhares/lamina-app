@@ -94,6 +94,11 @@ impl Editor {
         Some((session.project_shared(), target))
     }
 
+    /// Onde gravar a miniatura grande do álbum aberto (spec DI, regra 14).
+    pub fn big_thumbnail_target(&self) -> Option<PathBuf> {
+        self.recents.big_thumb_path(self.session.as_ref()?.file()?)
+    }
+
     /// Acabou de abrir: vai para a lâmina em que parou (ou a última, se hoje há menos) e põe o
     /// álbum no topo da lista.
     pub(super) fn after_open(&mut self) {
@@ -136,7 +141,13 @@ impl Editor {
 }
 
 fn recent_of(session: &Session) -> Option<Recent> {
+    let pages = session
+        .project()
+        .spec
+        .edges()
+        .active_pages(0, session.spread_count());
     Some(Recent {
+        fold: pages.left && pages.right,
         path: session.file()?.to_path_buf(),
         name: session.title().to_owned(),
         opened_at: now(),
