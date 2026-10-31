@@ -5,9 +5,8 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use lamina_editor::motion::reorder;
+use lamina_editor::motion::TimelineKey;
 use lamina_editor::motion::{CrossHit, cross_target};
-use lamina_editor::motion::{TimelineKey, timeline_rows};
 use lamina_editor::{CrossTarget, DropPlace};
 
 use crate::state::App;
@@ -209,24 +208,19 @@ fn connect_sequence(window: &AppWindow, app: &Shared) {
     });
 }
 
-/// A lâmina `from` solta no vão `gap` (da faixa ou da alça do rolo): o vão vira a posição final
-/// pela regra do editor (spec MV, MV-B23) e ela vira a atual (spec FQ, regra 7).
+/// A lâmina `from` solta no vão `gap` (da faixa ou da alça do rolo). A decisão é do editor.
 pub fn move_spread(app: &mut App, from: usize, gap: usize) {
-    let count = app.session().map_or(0, |s| s.spread_count());
-    let to = reorder(from, gap, count).to;
-    let moved = app.editor.session_mut().is_some_and(|s| s.go_to(from))
-        && (from == to || app.editor.move_current_to(to));
+    let moved = app.editor.move_spread_to_gap(from, gap);
     after_edit(app, moved);
 }
 
 /// A timeline: as fotos de cada lâmina e um corte entre uma lâmina e a outra (regra 8), só as
 /// posições que mudaram (spec MV, regra 3).
 pub fn refresh_timeline(app: &mut App) {
-    let Some(project) = app.session().map(|s| s.project_shared()) else {
+    let Some((project, rows)) = app.editor.sequence_rows() else {
         return;
     };
     let thumbs = app.thumbs(&project);
-    let rows = timeline_rows(&project);
     let mut items: Vec<TimelineItem> = rows
         .iter()
         .enumerate()

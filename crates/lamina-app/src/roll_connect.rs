@@ -380,9 +380,7 @@ fn connect_spreads(ui: &RollUi, app: &Shared) {
     });
     let a = app.clone();
     ui.on_shift(move |from, gap, i| {
-        let count = a
-            .try_borrow()
-            .map_or(0, |app| app.session().map_or(0, |s| s.spread_count()));
+        let count = a.try_borrow().map_or(0, |app| app.editor.album_end());
         let (Ok(from), Ok(gap), Ok(i)) = (
             usize::try_from(from),
             usize::try_from(gap),

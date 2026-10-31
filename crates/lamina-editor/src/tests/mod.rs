@@ -14,6 +14,7 @@ mod br;
 mod br_mais;
 mod br_rapido;
 mod ca;
+mod ca_aberta;
 mod cd;
 mod common;
 mod cs;

@@ -91,7 +91,7 @@ impl Editor {
     pub fn thumbnail_job(&self) -> Option<(Arc<Project>, PathBuf)> {
         let session = self.session.as_ref()?;
         let target = self.recents.thumb_path(session.file()?)?;
-        Some((session.project_shared(), target))
+        Some((session.album_shared(), target))
     }
 
     /// Acabou de abrir: vai para a lâmina em que parou (ou a última, se hoje há menos) e põe o
@@ -140,9 +140,9 @@ fn recent_of(session: &Session) -> Option<Recent> {
         path: session.file()?.to_path_buf(),
         name: session.title().to_owned(),
         opened_at: now(),
-        spreads: session.spread_count(),
+        spreads: session.album().spreads.len(),
         photos: session.album().photos.len(),
-        current: session.current(),
+        current: session.last_spread(),
         pinned: false,
     })
 }

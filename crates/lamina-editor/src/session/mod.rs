@@ -288,6 +288,11 @@ impl Session {
             .collect()
     }
 
+    /// Avisos da capa, com a capa aberta ou não (lâmina 0, fora da numeração).
+    pub fn cover_warnings(&self) -> Vec<&Warning> {
+        self.warnings.iter().filter(|w| w.spread == 0).collect()
+    }
+
     /// A capa tem avisos? (o selo da capa na faixa)
     pub fn cover_warned(&self) -> bool {
         self.warnings.iter().any(|w| w.spread == 0)

@@ -1,12 +1,17 @@
 //! Soltar uma foto na faixa Sequência pelo editor (spec SQ): um passo só do histórico, com o
 //! aviso da recusa quando a foto não pode ir.
 
-use lamina_core::PhotoId;
+use std::sync::Arc;
+
+use lamina_core::{PhotoId, Project};
 
 use super::Editor;
 use crate::EditorError;
 use crate::motion::{TIMELINE, TimelineKey, timeline_rows};
 use crate::sequence::{SeqSpot, move_in_sequence, sequence_spot, spot_x};
+
+/// O projeto que a Sequência mostra e as linhas dele.
+type SequenceRows = (Arc<Project>, Vec<(TimelineKey, usize)>);
 
 impl Editor {
     /// Solta a foto `photo` da lâmina `from` no lugar `to` da Sequência. `true` = mudou; a lâmina
@@ -38,6 +43,13 @@ impl Editor {
                 false
             }
         }
+    }
+
+    /// O projeto e as linhas que a Sequência mostra: sempre os do álbum, com a capa aberta ou não.
+    pub fn sequence_rows(&self) -> Option<SequenceRows> {
+        let project = self.session.as_ref()?.album_shared();
+        let rows = timeline_rows(&project);
+        Some((project, rows))
     }
 
     /// O lugar de entrada na Sequência para o ponteiro em `x` (pixels da linha) e o `x` da linha

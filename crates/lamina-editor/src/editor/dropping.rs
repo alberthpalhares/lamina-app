@@ -30,6 +30,9 @@ impl Editor {
         }
         let current = self.session.as_ref().map(crate::Session::current);
         match place {
+            // Na capa, fora dos quadros, quem decide é a área solta (`drop_on_cover`; spec CA,
+            // regra 19): o motor das lâminas não conhece a lombada.
+            DropPlace::Spread(_) if self.on_cover() => false,
             // Na lâmina vazia do álbum em branco, as fotos viram a lâmina 1 (spec BR, regra 4).
             DropPlace::Spread(_) if self.is_blank() => self.first_spread(photos),
             DropPlace::Frame { spread, frame } if Some(spread) == current => {
@@ -42,6 +45,11 @@ impl Editor {
             DropPlace::Spread(spread) => self.add_to(spread, photos),
             DropPlace::NewSpread(at) => self.new_spread_with(at, photos),
         }
+    }
+
+    /// A posição de uma lâmina nova no fim do álbum (regra 11), com a capa aberta ou não.
+    pub fn album_end(&self) -> usize {
+        self.session.as_ref().map_or(0, |s| s.album().spreads.len())
     }
 
     /// O álbum aberto não tem lâminas (o álbum em branco; spec BR).
