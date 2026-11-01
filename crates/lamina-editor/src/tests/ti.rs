@@ -29,6 +29,8 @@ pub fn entry(path: &Path, name: &str) -> Recent {
         current: 0,
         pinned: false,
         fold: true,
+        on_cover: false,
+        cover_image: false,
     }
 }
 

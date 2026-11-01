@@ -16,9 +16,9 @@ const MAX_COLUMNS: u16 = 32;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Resume {
     pub index: usize,
-    /// "Você parou na lâmina 3 de 6"; vazia no álbum em branco.
+    /// "Você parou na lâmina 3 de 6" ou "Você parou na capa"; vazia no álbum em branco.
     pub sentence: String,
-    /// "Continuar na lâmina 3" ou, no álbum em branco, "Abrir".
+    /// "Continuar na lâmina 3", "Continuar na capa" ou, no álbum em branco, "Abrir".
     pub button: String,
     /// "6 lâminas · 16 fotos · aberto hoje, 16:44".
     pub meta: String,
@@ -46,6 +46,12 @@ pub fn resume(list: &[Recent], cards: &[Card], query: &str) -> Option<Resume> {
 
 /// A frase de onde parou e o botão (regra 13). A lâmina guardada vale até a última que o álbum tem.
 fn phrases(recent: &Recent) -> (String, String) {
+    if recent.on_cover {
+        return (
+            "Você parou na capa".to_owned(),
+            "Continuar na capa".to_owned(),
+        );
+    }
     if recent.spreads == 0 {
         return (String::new(), "Abrir".to_owned());
     }

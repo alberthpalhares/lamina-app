@@ -22,7 +22,7 @@ pub use screen::{
     welcome_buttons, when_text,
 };
 pub use thumbs::{
-    MISSING_GRAY, THUMB_SIDE, ThumbCache, missing_files, read_thumbnail, spread_image,
+    MISSING_GRAY, THUMB_SIDE, ThumbCache, missing_files, read_thumbnail, shows_cover, spread_image,
     thumbnail_image, write_big_thumbnail, write_thumbnail,
 };
 
@@ -61,9 +61,15 @@ pub struct Recent {
     pub current: usize,
     #[serde(rename = "fixado")]
     pub pinned: bool,
-    /// A imagem do álbum tem dobra: a primeira lâmina tem duas páginas (spec DI, regra 12).
+    /// A imagem do álbum tem dobra: é uma lâmina de duas páginas, não a capa (spec DI, regras 12 e 16).
     #[serde(rename = "dobra", default = "with_fold")]
     pub fold: bool,
+    /// Parou na capa, e `current` guarda a última lâmina para quando sair dela (spec DI, regra 13).
+    #[serde(rename = "na_capa", default)]
+    pub on_cover: bool,
+    /// A imagem do álbum é a capa aberta (spec DI, regra 16).
+    #[serde(rename = "imagem_da_capa", default)]
+    pub cover_image: bool,
 }
 
 /// Quem veio de antes da spec DI: a tela só perde a sombra ao abrir o álbum de novo.

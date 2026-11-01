@@ -125,7 +125,7 @@ pub fn check(app: &App) {
     });
 }
 
-/// Depois de salvar ou abrir: a miniatura da primeira lâmina, fora da linha da janela (regra 5).
+/// Depois de salvar ou abrir: a miniatura do álbum, fora da linha da janela (regra 5).
 pub fn thumbnail(app: &App) {
     let Some((project, target)) = app.editor.thumbnail_job() else {
         return;

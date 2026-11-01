@@ -50,7 +50,8 @@ pub struct Card {
     pub pinned: bool,
     /// O arquivo não existe mais (regra 4).
     pub missing: bool,
-    /// O álbum não tem lâminas (spec BR): o cartão mostra o desenho do álbum em branco.
+    /// O álbum não tem lâminas nem capa a mostrar (spec BR): o cartão mostra o desenho do álbum em
+    /// branco.
     pub blank: bool,
 }
 
@@ -77,7 +78,7 @@ pub fn cards(list: &[Recent], missing: &[PathBuf], clock: Clock) -> Vec<Card> {
             counts: counts_text(r.spreads, r.photos),
             pinned: r.pinned,
             missing: gone.contains(&key(&r.path)),
-            blank: r.spreads == 0,
+            blank: r.spreads == 0 && !r.cover_image,
         })
         .collect()
 }

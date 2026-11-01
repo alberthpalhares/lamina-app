@@ -33,16 +33,41 @@ impl<S: PhotoSource> PhotoSource for OrGray<S> {
     }
 }
 
-/// A miniatura do cartão: a primeira lâmina com 320 px no lado maior.
+/// A imagem do álbum é a capa aberta (spec DI, regra 16)? Só com algo nela e medidas que fecham:
+/// a capa ainda vazia não mostraria nada, e vale a primeira lâmina.
+pub fn shows_cover(project: &Project) -> bool {
+    project.cover.as_ref().is_some_and(|cover| {
+        !cover.content.frames.is_empty()
+            && cover
+                .measures
+                .spec(&project.spec, project.page_count())
+                .is_ok()
+    })
+}
+
+/// A miniatura do cartão: a imagem do álbum com 320 px no lado maior.
 pub fn thumbnail_image(project: &Project, cache: &Cache) -> Result<Option<RgbaImage>, String> {
     spread_image(project, cache, THUMB_SIDE)
 }
 
-/// Desenha a primeira lâmina com o renderizador da prévia (as miniaturas das fotos, do cache,
-/// bastam nesse tamanho), seja qual for a lâmina em que o fotógrafo parou, com `side` px no lado
-/// maior. `None` para o álbum sem lâminas (spec BR): o cartão mostra o desenho do álbum em
-/// branco. `Err` com o motivo.
+/// Desenha a imagem do álbum com o renderizador da prévia (as miniaturas das fotos, do cache,
+/// bastam nesse tamanho), com `side` px no lado maior: a capa aberta, se `shows_cover`, ou a
+/// primeira lâmina, seja qual for a lâmina em que o fotógrafo parou. `None` para o álbum sem o que
+/// mostrar (spec BR): o cartão mostra o desenho do álbum em branco. `Err` com o motivo.
 pub fn spread_image(
+    project: &Project,
+    cache: &Cache,
+    side: u32,
+) -> Result<Option<RgbaImage>, String> {
+    let canvas = if shows_cover(project) {
+        project.cover_canvas().map_err(|e| e.to_string())?
+    } else {
+        None
+    };
+    first_spread_image(canvas.as_ref().unwrap_or(project), cache, side)
+}
+
+fn first_spread_image(
     project: &Project,
     cache: &Cache,
     side: u32,
@@ -74,8 +99,8 @@ pub fn spread_image(
         .map_err(|e| e.to_string())
 }
 
-/// Grava em `target` a miniatura da primeira lâmina. Álbum sem lâminas não tem miniatura: a que
-/// sobrou de antes é apagada, para o cartão não mostrar lâminas que não existem mais.
+/// Grava em `target` a miniatura do álbum. Álbum sem o que mostrar não tem miniatura: a que sobrou
+/// de antes é apagada, para o cartão não mostrar lâminas que não existem mais.
 pub fn write_thumbnail(project: &Project, cache: &Cache, target: &Path) -> Result<(), String> {
     write_image(project, cache, target, THUMB_SIDE)
 }
