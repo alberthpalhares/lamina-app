@@ -59,6 +59,14 @@ export global Fixed {
     out property <color> target: #ffd23f;
     // O contorno do quadro em recorte, sobre a foto.
     out property <color> crop: #e3b341;
+    // A barra de atualização (spec AV, regra 7): a única exceção ao estilo sóbrio, e só ela usa estes
+    // quatro. Amarelo com letras pretas, nos dois temas.
+    out property <color> attention: #ffd400;
+    out property <color> on-attention: #000000;
+    // "Agora não" sob o mouse (fundo, com a letra preta).
+    out property <color> attention-hover: #e6bf00;
+    // "Reiniciar e atualizar" sob o mouse (fundo, com a letra amarela).
+    out property <color> on-attention-hover: #333333;
     // Controles de temperatura e matiz (spec TM): azul a âmbar, verde a magenta.
     out property <color> cold: #4a90e2;
     out property <color> warm: #f5c542;

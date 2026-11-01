@@ -4,19 +4,23 @@
 //!
 //! O ciclo: ao abrir, [`Updates::on_open`] pede uma checagem ([`Job::Check`]); o app a roda
 //! numa linha separada com [`run`] e devolve o [`Outcome`] em [`Updates::finish`], que pede o
-//! download ([`Job::Download`]). Com tudo baixado, a barra aparece ([`Updates::bar`]).
+//! download ([`Job::Download`]). A barra ([`Updates::bar`]) aparece desde a versão achada e ganha
+//! os botões com tudo baixado (spec AV, regra 3).
 
 pub mod association;
+mod job;
 pub mod news;
 mod store;
 mod version;
 
 use std::ffi::OsString;
 
+pub use job::{Channel, Job, Outcome, UpdateError, Updater, run};
 pub use store::{UPDATES_FILE, UPDATES_UNREADABLE, UpdatePrefs, UpdatesStore};
 pub use version::Version;
 
-use crate::Editor;
+use crate::feedback::channel_name;
+use crate::{Editor, ErrorLog};
 
 /// Os avisos da spec (seção 4).
 pub const UP_TO_DATE: &str = "Você está com a versão mais nova";
@@ -24,100 +28,12 @@ pub const CHECK_FAILED: &str =
     "Não foi possível verificar agora. Confira a internet e tente de novo.";
 pub const NOT_INSTALLED: &str = "As atualizações automáticas funcionam no Lamina instalado.";
 
-/// De onde vêm as versões: as estáveis ou as de teste (regra 7).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Channel {
-    Stable,
-    Beta,
-}
-
-/// Por que o instalador não respondeu.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum UpdateError {
-    /// O Lamina não está numa instalação do Velopack (`cargo run`, regra 8).
-    NotInstalled,
-    /// Rede, servidor ou pacote que não confere: a mensagem fica só no registro.
-    Failed(String),
-}
-
-/// O instalador: o Velopack no app, um de mentira nos testes.
-pub trait Updater: Send {
-    /// A versão mais nova publicada no canal, se houver alguma.
-    fn latest(&mut self, channel: Channel) -> Result<Option<Version>, UpdateError>;
-    /// Baixa e confere a versão achada por [`Updater::latest`] no canal.
-    fn download(&mut self, channel: Channel, version: &Version) -> Result<(), UpdateError>;
-    /// Aplica o que foi baixado e reabre o Lamina com `args`. No app, não volta.
-    fn apply_and_restart(&mut self, args: &[OsString]) -> Result<(), UpdateError>;
-    /// Aplica o que foi baixado quando o Lamina sair (regra 6), sem reabrir.
-    fn apply_on_exit(&mut self) -> Result<(), UpdateError>;
-}
-
-/// O trabalho que o app roda fora da linha da janela.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Job {
-    /// Procura versão nova; `manual` = pedido pelo menu (regra 3).
-    Check {
-        manual: bool,
-        beta: bool,
-    },
-    Download {
-        channel: Channel,
-        version: Version,
-    },
-}
-
-/// A resposta de um [`Job`].
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Outcome {
-    Found {
-        manual: bool,
-        channel: Channel,
-        version: Version,
-    },
-    UpToDate {
-        manual: bool,
-    },
-    CheckFailed {
-        manual: bool,
-        error: UpdateError,
-    },
-    Downloaded(Version),
-    DownloadFailed(Version),
-}
-
-/// Roda um trabalho no instalador (na linha separada do app).
-pub fn run(updater: &mut dyn Updater, job: &Job, current: &Version) -> Outcome {
-    match job {
-        Job::Check { manual, beta } => {
-            let manual = *manual;
-            let mut channels = vec![Channel::Stable];
-            if *beta {
-                channels.push(Channel::Beta);
-            }
-            let mut best: Option<(Channel, Version)> = None;
-            for channel in channels {
-                match updater.latest(channel) {
-                    Ok(Some(v)) if v > *current && best.as_ref().is_none_or(|(_, b)| v > *b) => {
-                        best = Some((channel, v));
-                    }
-                    Ok(_) => {}
-                    Err(error) => return Outcome::CheckFailed { manual, error },
-                }
-            }
-            match best {
-                Some((channel, version)) => Outcome::Found {
-                    manual,
-                    channel,
-                    version,
-                },
-                None => Outcome::UpToDate { manual },
-            }
-        }
-        Job::Download { channel, version } => match updater.download(*channel, version) {
-            Ok(()) => Outcome::Downloaded(version.clone()),
-            Err(_) => Outcome::DownloadFailed(version.clone()),
-        },
-    }
+/// O aviso de quando a barra some porque o download falhou (spec AV, regra 4).
+pub fn download_failed(version: &Version) -> String {
+    format!(
+        "Não foi possível baixar o Lamina {version} agora. Tente de novo em Ajuda → Verificar \
+         atualizações agora."
+    )
 }
 
 /// Em que ponto está a atualização desta abertura.
@@ -125,8 +41,9 @@ pub fn run(updater: &mut dyn Updater, job: &Job, current: &Version) -> Outcome {
 pub enum Phase {
     Idle,
     Checking,
+    /// Achada e baixando: a barra aparece, sem botões (spec AV, regra 3).
     Downloading(Version),
-    /// Baixada e conferida: a barra aparece.
+    /// Baixada e conferida: a barra ganha os botões.
     Ready(Version),
     /// Baixada, mas "Agora não": entra ao fechar.
     Dismissed(Version),
@@ -134,13 +51,15 @@ pub enum Phase {
     Applying(Version),
 }
 
-/// O que o app faz depois de uma resposta: um aviso, o próximo trabalho e, na abertura, a versão
-/// anterior do fotógrafo quando há novidades a mostrar (spec NV).
+/// O que o app faz depois de uma resposta: um aviso, o próximo trabalho, na abertura a versão
+/// anterior do fotógrafo quando há novidades a mostrar (spec NV), e a linha do registro de uma
+/// falha (spec AV, regra 5).
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Step {
     pub notice: Option<String>,
     pub job: Option<Job>,
     pub news_since: Option<Version>,
+    pub log: Option<String>,
 }
 
 /// A atualização da abertura atual e as preferências.
@@ -190,8 +109,8 @@ impl Updates {
             .filter(|l| *l < self.current);
         Step {
             notice: self.store.remember_version(&current).err(),
-            job: None,
             news_since,
+            ..Step::default()
         }
     }
 
@@ -232,7 +151,7 @@ impl Updates {
         Step {
             notice: (!notices.is_empty()).then(|| notices.join(" ")),
             job,
-            news_since: None,
+            ..Step::default()
         }
     }
 
@@ -241,8 +160,7 @@ impl Updates {
         if !self.installed {
             return Step {
                 notice: Some(NOT_INSTALLED.to_owned()),
-                job: None,
-                news_since: None,
+                ..Step::default()
             };
         }
         if let Phase::Dismissed(v) = &self.phase {
@@ -251,9 +169,8 @@ impl Updates {
             return Step::default();
         }
         Step {
-            notice: None,
             job: self.start_check(true),
-            news_since: None,
+            ..Step::default()
         }
     }
 
@@ -276,17 +193,15 @@ impl Updates {
             } => {
                 self.phase = Phase::Downloading(version.clone());
                 Step {
-                    notice: None,
                     job: Some(Job::Download { channel, version }),
-                    news_since: None,
+                    ..Step::default()
                 }
             }
             Outcome::UpToDate { manual } => {
                 self.phase = Phase::Idle;
                 Step {
                     notice: manual.then(|| format!("{UP_TO_DATE} ({}).", self.current)),
-                    job: None,
-                    news_since: None,
+                    ..Step::default()
                 }
             }
             Outcome::CheckFailed { manual, error } => {
@@ -296,8 +211,12 @@ impl Updates {
                     UpdateError::NotInstalled => Some(NOT_INSTALLED.to_owned()),
                     UpdateError::Failed(_) => Some(CHECK_FAILED.to_owned()),
                 };
+                // Não instalado não é falha: é o Lamina compilado (AV-B6).
+                let log = matches!(error, UpdateError::Failed(_))
+                    .then(|| format!("atualização: a checagem falhou: {}", error.detail()));
                 Step {
                     notice,
+                    log,
                     ..Step::default()
                 }
             }
@@ -305,19 +224,56 @@ impl Updates {
                 self.phase = Phase::Ready(version);
                 Step::default()
             }
-            Outcome::DownloadFailed(_) => {
+            Outcome::DownloadFailed { version, error } => {
                 self.phase = Phase::Idle;
-                Step::default()
+                Step {
+                    notice: Some(download_failed(&version)),
+                    log: Some(format!(
+                        "atualização: o download da {version} falhou: {}",
+                        error.detail()
+                    )),
+                    ..Step::default()
+                }
             }
         }
     }
 
-    /// O texto da barra, quando há uma versão pronta (DS-B4).
+    /// O texto da barra: desde a versão achada, baixando ou pronta (spec AV, regra 3).
     pub fn bar(&self) -> Option<String> {
         match &self.phase {
+            Phase::Downloading(v) => Some(format!("Lamina {v} encontrada. Baixando…")),
             Phase::Ready(v) => Some(format!("Lamina {v} está pronta.")),
             _ => None,
         }
+    }
+
+    /// A barra já tem os botões: a versão está toda baixada (AV-B4).
+    pub fn bar_ready(&self) -> bool {
+        matches!(self.phase, Phase::Ready(_))
+    }
+
+    /// A linha "início" do registro, com qual Lamina abriu (spec SR, regra 5; AV-B7).
+    pub fn log_start(&self, log: &ErrorLog, system: &str) {
+        let origin = if self.installed {
+            "instalado"
+        } else {
+            "compilado"
+        };
+        let channel = channel_name(self.store.prefs.beta);
+        log.start(
+            &self.current.to_string(),
+            system,
+            &format!("{channel} · {origin}"),
+        );
+    }
+
+    /// `LAMINA_ATUALIZACAO=<versão>` (spec AV, seção 3): a barra de "baixando" no Lamina compilado,
+    /// sem rede. Devolve a versão para o app avisar depois, com [`Outcome::Downloaded`], que ela
+    /// ficou pronta. O instalado ignora, e uma versão inválida não mostra nada.
+    pub fn simulate_update(&mut self, version: &str) -> Option<Version> {
+        let version = Version::parse(version).filter(|_| !self.installed)?;
+        self.phase = Phase::Downloading(version.clone());
+        Some(version)
     }
 
     /// "Agora não": a barra some nesta abertura (regra 4).

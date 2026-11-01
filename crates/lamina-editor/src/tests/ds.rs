@@ -144,7 +144,7 @@ fn ds_b3_sem_rede_sem_aviso() {
 }
 
 #[test]
-fn ds_b4_versao_nova_vira_barra_so_depois_de_baixada() {
+fn ds_b4_versao_nova_vira_barra_e_ganha_os_botoes_depois_de_baixada() {
     let mut u = installed("0.1.0");
     let mut fake = Fake {
         stable: Some(v("0.2.0")),
@@ -153,7 +153,11 @@ fn ds_b4_versao_nova_vira_barra_so_depois_de_baixada() {
     let job = u.on_open().job.unwrap();
     let step = u.finish(run(&mut fake, &job, &v("0.1.0")));
     assert_eq!(*u.phase(), Phase::Downloading(v("0.2.0")));
-    assert_eq!(u.bar(), None, "sem barra enquanto baixa");
+    assert_eq!(
+        u.bar().as_deref(),
+        Some("Lamina 0.2.0 encontrada. Baixando…")
+    );
+    assert!(!u.bar_ready(), "sem botões enquanto baixa");
     let download = step.job.unwrap();
     assert_eq!(
         download,
@@ -165,6 +169,7 @@ fn ds_b4_versao_nova_vira_barra_so_depois_de_baixada() {
     u.finish(run(&mut fake, &download, &v("0.1.0")));
     assert_eq!(fake.downloaded, [v("0.2.0")]);
     assert_eq!(u.bar().as_deref(), Some("Lamina 0.2.0 está pronta."));
+    assert!(u.bar_ready());
 }
 
 #[test]
@@ -339,8 +344,7 @@ fn ds_b12_nao_instalado() {
         u.check_now(),
         Step {
             notice: Some(NOT_INSTALLED.to_owned()),
-            job: None,
-            news_since: None,
+            ..Step::default()
         }
     );
 }

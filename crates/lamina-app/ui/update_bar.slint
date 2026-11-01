@@ -1,21 +1,94 @@
-// A barra "Lamina X está pronta. · Reiniciar e atualizar · Agora não" (spec DS, seção 3):
-// discreta, no topo da área de trabalho, como os avisos. Só aparece com a versão já baixada.
+// A barra de atualização (spec AV): amarela com letras pretas, no topo da área de trabalho. Aparece
+// assim que a versão é achada e ganha os botões com tudo baixado. É a única exceção ao estilo sóbrio
+// (regra 7), e as cores não mudam com o tema (regra 6): por isso os botões são daqui, e não o
+// `BarButton`.
 
-import { Theme } from "theme.slint";
-import { BarButton } from "widgets.slint";
+import { Fixed, Radius, Type } from "theme.slint";
+import { Line } from "theme/metrics.slint";
+
+// O botão da barra: com `primary`, fundo preto e letra amarela; sem, contorno e letra pretos. O anel
+// de foco fica por fora, nos 4 px que a barra deixa livres em cima e embaixo.
+component AttentionButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> primary;
+    callback clicked();
+    accessible-role: button;
+    accessible-label: root.text;
+    accessible-action-default => { root.clicked(); }
+    width: label.preferred-width + 24px;
+    border-radius: Radius.small;
+    border-width: root.primary ? 0px : Line.thin;
+    border-color: Fixed.on-attention;
+    background: root.primary
+        ? (touch.has-hover ? Fixed.on-attention-hover : Fixed.on-attention)
+        : (touch.has-hover ? Fixed.attention-hover : Fixed.black-clear);
+    label := Text {
+        text: root.text;
+        font-size: Type.body;
+        font-weight: root.primary ? Type.semibold : Type.medium;
+        color: root.primary ? Fixed.attention : Fixed.on-attention;
+        vertical-alignment: center;
+        horizontal-alignment: center;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+    focus := FocusScope {
+        x: 0;
+        width: 0;
+        key-pressed(e) => {
+            if (e.text == Key.Space || e.text == Key.Return) {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+    }
+    Rectangle {
+        x: -3px;
+        y: -3px;
+        width: parent.width + 6px;
+        height: parent.height + 6px;
+        border-radius: Radius.small + 3px;
+        border-width: focus.has-focus ? Line.focus : 0px;
+        border-color: Fixed.on-attention;
+    }
+}
 
 export component UpdateBar inherits Rectangle {
     in property <string> text;
+    // A versão está toda baixada: aparecem os botões.
+    in property <bool> ready;
     callback restart();
     callback dismiss();
-    height: 30px;
-    background: Theme.accent-soft;
+    // 32 px dão linhas inteiras em toda escala de 25 em 25%: com 30, a 175%, sobrava meia linha, e a
+    // lâmina cobria essa linha embaixo da barra.
+    height: 32px;
+    background: Fixed.attention;
     HorizontalLayout {
         padding-left: 16px;
         padding-right: 8px;
+        padding-top: 4px;
+        padding-bottom: 4px;
         spacing: 12px;
-        Text { text: root.text; color: Theme.text; vertical-alignment: center; horizontal-stretch: 1; overflow: elide; }
-        BarButton { text: "Reiniciar e atualizar"; clicked => { root.restart(); } }
-        BarButton { text: "Agora não"; clicked => { root.dismiss(); } }
+        Text {
+            text: root.text;
+            font-size: Type.body;
+            font-weight: Type.semibold;
+            color: Fixed.on-attention;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+            overflow: elide;
+        }
+        if root.ready: AttentionButton {
+            text: "Reiniciar e atualizar";
+            primary: true;
+            clicked => { root.restart(); }
+        }
+        if root.ready: AttentionButton {
+            text: "Agora não";
+            clicked => { root.dismiss(); }
+        }
     }
 }

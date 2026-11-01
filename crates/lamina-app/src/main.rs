@@ -330,6 +330,7 @@ fn main() -> anyhow::Result<()> {
         Timer::single_shot(updates::CHECK_DELAY, move || {
             updates::on_open(&mut a.borrow_mut());
         });
+        updates::simulate(&app);
     }
 
     // As mensagens acordam a janela na hora, sem conferência repetida (spec LV, regra 7). Esta

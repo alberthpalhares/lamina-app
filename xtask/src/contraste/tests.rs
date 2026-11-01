@@ -119,6 +119,87 @@ fn df_b8_superficies_valem_nos_dois_temas() {
     );
 }
 
+/// As cores da barra de atualização (spec AV).
+fn attention_colors() -> Palette {
+    attention::fixed(
+        "export global Fixed {\n\
+         out property <color> attention: #ffd400;\n\
+         out property <color> on-attention: #000000;\n\
+         out property <color> attention-hover: #e6bf00;\n\
+         out property <color> on-attention-hover: #333333;\n\
+         }\n",
+    )
+}
+
+fn file(name: &str, text: &str) -> (String, String) {
+    (name.to_owned(), text.to_owned())
+}
+
+#[test]
+fn av_b9_a_barra_e_amarela_com_letras_pretas_e_passa_no_contraste() {
+    let good = attention_colors();
+    assert_eq!(good["attention"], [0xff, 0xd4, 0x00]);
+    assert_eq!(attention::color_problems(&good), Vec::<String>::new());
+    let with = |token: &str, color: [u8; 3]| {
+        let mut p = good.clone();
+        p.insert(token.into(), color);
+        attention::color_problems(&p)
+    };
+    let found = with("attention", CYAN_DARK);
+    assert!(
+        found.iter().any(|f| f.contains("não é amarelo")),
+        "{found:?}"
+    );
+    let found = with("on-attention", [0x22, 0x22, 0x22]);
+    assert!(found.iter().any(|f| f.contains("não é preto")), "{found:?}");
+    let found = with("attention-hover", [0x40, 0x40, 0x40]);
+    assert!(
+        found
+            .iter()
+            .any(|f| f.starts_with("on-attention sobre attention-hover")),
+        "{found:?}"
+    );
+    let found = with("on-attention-hover", [0xc0, 0xa0, 0x00]);
+    assert!(
+        found
+            .iter()
+            .any(|f| f.starts_with("attention sobre on-attention-hover")),
+        "{found:?}"
+    );
+    assert!(
+        !attention::color_problems(&Palette::new()).is_empty(),
+        "token faltando reprova"
+    );
+}
+
+#[test]
+fn av_b9_a_barra_nao_usa_o_tema_e_o_token_fica_so_nela() {
+    let bar = "// Sobre o Theme, em comentário.\nbackground: Fixed.attention;\n";
+    let palette = "out property <color> attention: #ffd400;\n";
+    let gallery = "UpdateBar { }\nFixed.attention\n";
+    let good = [
+        file("update_bar.slint", bar),
+        file("palette.slint", palette),
+        file("gallery.slint", gallery),
+        file("app.slint", "UpdateBar { }\n"),
+    ];
+    assert_eq!(attention::use_problems(&good), Vec::<String>::new());
+    let themed = [file("update_bar.slint", "background: Theme.bar;\n")];
+    let found = attention::use_problems(&themed);
+    assert!(found.iter().any(|f| f.contains("usa Theme")), "{found:?}");
+    let plain = [file("update_bar.slint", "background: Fixed.paper;\n")];
+    let found = attention::use_problems(&plain);
+    assert!(found.iter().any(|f| f.contains("não usa")), "{found:?}");
+    let elsewhere = [
+        file("update_bar.slint", bar),
+        file("stage.slint", "color: Fixed.on-attention;\n"),
+    ];
+    assert_eq!(
+        attention::use_problems(&elsewhere),
+        ["attention fora da barra de atualização: stage.slint"]
+    );
+}
+
 #[test]
 fn pv_b15_as_etiquetas_passam_no_contraste_nos_dois_temas() {
     let text = include_str!("../../../crates/lamina-app/ui/theme/palette.slint");

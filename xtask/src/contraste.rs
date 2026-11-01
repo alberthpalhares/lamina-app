@@ -1,10 +1,13 @@
 //! Trava do contraste (spec DF, regras 2 a 5): mede as paletas de `ui/theme/palette.slint` com a
 //! conta da WCAG 2.x, em vez de confiar no olho. Também confere que os cinzas não têm matiz, que o
-//! destaque é o ciano da marca e que as superfícies do tema escuro se distinguem.
+//! destaque é o ciano da marca e que as superfícies do tema escuro se distinguem. A barra de
+//! atualização, a única fora do estilo sóbrio, tem conferência própria (`attention`, spec AV).
 
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
+
+mod attention;
 
 type Palette = BTreeMap<String, [u8; 3]>;
 
@@ -233,6 +236,10 @@ pub fn run() -> bool {
             .into_iter()
             .map(|k| format!("token só numa paleta: {k}")),
     );
+    found.extend(attention::problems(
+        &text,
+        Path::new("crates/lamina-app/ui"),
+    ));
     for f in &found {
         eprintln!("  {f}");
     }

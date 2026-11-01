@@ -126,6 +126,7 @@ export component AppWindow inherits Window {
     in property <string> version;
     // Atualização automática (spec DS): o texto da barra e as marcas do menu Ajuda.
     in property <string> update-bar;
+    in property <bool> update-ready;
     in property <bool> auto-updates: true;
     in property <bool> beta-updates;
     callback update-restart();
@@ -496,6 +497,7 @@ export component AppWindow inherits Window {
 
             if root.update-bar != "": UpdateBar {
                 text: root.update-bar;
+                ready: root.update-ready;
                 restart => { root.update-restart(); }
                 dismiss => { root.update-dismiss(); }
             }
@@ -563,7 +565,7 @@ export component AppWindow inherits Window {
                         photo-scroll <=> root.photo-scroll;
                         photo-shown: root.photo-shown;
                         room: root.height;
-                        above: top.height + (root.update-bar != "" ? 30px : 0px) + (root.notice != "" ? 30px : 0px);
+                        above: top.height + (root.update-bar != "" ? 32px : 0px) + (root.notice != "" ? 30px : 0px);
                         command(name) => { root.command(name); }
                         header-clicked(i) => { root.strip-header-clicked(i); }
                         focus-main => { root.focus-main(); }
