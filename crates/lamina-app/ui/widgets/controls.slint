@@ -84,7 +84,15 @@ export component CheckRow inherits Rectangle {
     in property <string> text;
     in property <bool> enabled: true;
     in-out property <bool> checked;
+    // Recebe o foco quando o diálogo abre (spec DD, regra 7).
+    in property <bool> takes-focus;
     callback toggled();
+    forward-focus: focus;
+    init => {
+        if (root.takes-focus) {
+            self.focus();
+        }
+    }
     accessible-role: checkbox;
     accessible-label: root.text;
     accessible-enabled: root.enabled;

@@ -48,6 +48,13 @@ export struct RollHitData {
     h: length,
 }
 
+// A foto marcada na linha do tempo: a posição na lista inteira, onde fica na linha e a lâmina dela.
+export struct TimelineStep {
+    row: int,
+    x: length,
+    spread: int,
+}
+
 export global RollUi {
     // O rolo está à vista: há lâminas e não está no modo organizar nem no
     // recorte (regra 24).
@@ -72,6 +79,9 @@ export global RollUi {
     // na tela só os itens perto dele.
     in property <length> line-w;
     callback line-window(length, length);
+    // A próxima foto da linha, pelo teclado (spec DD, regra 28): a partir de `row`, `delta` fotos,
+    // pulando os cortes; com `row` −1, a primeira foto da lâmina atual.
+    callback line-step(int, int) -> TimelineStep;
     // A miniatura da faixa de lâminas sob um quadro arrastado e o ponto nela, em frações da
     // largura dela (spec ML, regra 11); -1 fora das miniaturas.
     in-out property <int> strip-spread: -1;

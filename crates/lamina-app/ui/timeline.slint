@@ -9,7 +9,8 @@ import { Theme, Radius } from "theme.slint";
 import { Motion } from "motion.slint";
 import { StripTheme } from "strip_header.slint";
 import { DragUi } from "drag.slint";
-import { RollUi } from "roll.slint";
+import { RollUi, TimelineStep } from "roll.slint";
+import { FocusRing } from "widgets.slint";
 
 // Uma posição da timeline: uma foto, ou o corte depois da lâmina `spread`.
 export struct TimelineItem {
@@ -39,6 +40,46 @@ export component TimelineStrip inherits Rectangle {
     // Clique numa foto: vai para a lâmina dela (spec RL, regra 22).
     callback go-to(int);
     callback focus-main();
+    // Uma parada de Tab (spec DD, regra 28): ← → andam pelas fotos, com o anel na foto marcada, e
+    // Enter vai para a lâmina dela. O Rust acha a foto, porque só as de perto existem na tela.
+    property <TimelineStep> mark;
+    function step(delta: int) {
+        root.mark = RollUi.line-step(root.mark.row, delta);
+        // A foto marcada fica à vista.
+        let left = root.mark.x;
+        if (left + line-scroll.content-x < 0px) {
+            line-scroll.content-x = -left;
+        } else if (left + 46px + line-scroll.content-x > line-scroll.visible-width) {
+            line-scroll.content-x = line-scroll.visible-width - left - 46px;
+        }
+    }
+    accessible-role: AccessibleRole.list;
+    accessible-label: "Sequência";
+    keys := FocusScope {
+        x: 0;
+        width: 0;
+        changed has-focus => {
+            if (self.has-focus) {
+                root.mark.row = -1;
+                root.step(1);
+            }
+        }
+        key-pressed(e) => {
+            if (e.text == Key.LeftArrow) {
+                root.step(-1);
+                return accept;
+            }
+            if (e.text == Key.RightArrow) {
+                root.step(1);
+                return accept;
+            }
+            if (e.text == Key.Return && root.mark.row >= 0) {
+                root.go-to(root.mark.spread);
+                return accept;
+            }
+            reject
+        }
+    }
     background: StripTheme.timeline;
     Rectangle { y: 0; height: 1px; background: StripTheme.line; }
 
@@ -186,6 +227,13 @@ export component TimelineStrip inherits Rectangle {
                     background: cut-touch.has-hover || cut-touch.pressed ? Theme.text-strong : Theme.text-2;
                 }
             }
+        }
+        if keys.has-focus && root.mark.row >= 0: FocusRing {
+            x: root.mark.x - 2px;
+            y: 4px;
+            width: 50px;
+            height: line-scroll.height - 8px;
+            shown: true;
         }
         // Fora do `for` (spec RL, regra 31): a linha de onde a foto entra e a miniatura levantada.
         if root.seq-on && root.seq-inside: Rectangle {

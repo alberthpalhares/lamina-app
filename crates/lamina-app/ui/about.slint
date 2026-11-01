@@ -1,36 +1,28 @@
-// Ajuda → Sobre o Lamina: o logo, a versão e a licença. A atribuição que a licença
-// royalty-free do Slint pede fica no selo "Made with Slint" da página de download (README do
-// repositório público e notas de cada versão), a opção 2b da licença (ADR 0002, adendo).
+// Ajuda → Sobre o Lamina: o logo, a versão, quem criou e a licença (spec DD, regra 27). A atribuição
+// que a licença royalty-free do Slint pede fica no selo "Made with Slint" da página de download
+// (README do repositório público e notas de cada versão), a opção 2b da licença (ADR 0002, adendo).
 
 import { Theme } from "theme.slint";
-import { Shade, Panel, DialogButton } from "widgets.slint";
+import { Dialog, DialogFooter, DialogButton } from "widgets.slint";
 
-export component AboutDialog inherits Shade {
+export component AboutDialog inherits Dialog {
     in property <string> version;
     callback close();
-    Panel {
-        width: 460px;
-        height: 300px;
-        VerticalLayout {
-            padding: 28px;
-            spacing: 14px;
-            alignment: start;
-            Image {
-                accessible-role: none;
-                source: @image-url("../icons/lamina-logo-escuro.svg");
-                height: 52px;
-                image-fit: contain;
-                horizontal-alignment: left;
-            }
-            Text {
-                text: "Versão " + root.version + "\nDiagramação de álbuns de fotos para impressão.\nCódigo aberto, licença Apache-2.0.";
-                color: Theme.text;
-                wrap: word-wrap;
-            }
-            HorizontalLayout {
-                alignment: end;
-                DialogButton { text: "OK"; primary: true; clicked => { root.close(); } }
-            }
-        }
+    child-focus: true;
+    dismissed => { root.close(); }
+    Image {
+        accessible-role: none;
+        source: @image-url("../icons/lamina-logo-escuro.svg");
+        height: 52px;
+        image-fit: contain;
+        horizontal-alignment: left;
+    }
+    Text {
+        text: "Versão " + root.version + "\nDiagramação de álbuns de fotos para impressão.\nCriado por Alberth Klinsmann.\nCódigo aberto, licença Apache-2.0.";
+        color: Theme.text;
+        wrap: word-wrap;
+    }
+    DialogFooter {
+        DialogButton { text: "OK"; primary: true; takes-focus: true; clicked => { root.close(); } }
     }
 }

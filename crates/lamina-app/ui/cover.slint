@@ -2,8 +2,8 @@
 // contas ficam no `lamina-editor::cover_form` e o Rust preenche o `CoverUi`.
 
 import { ComboBox } from "std-widgets.slint";
-import { Theme, Type, Radius } from "theme.slint";
-import { DialogButton, FilterTab, Shade, Panel, Field, CheckRow } from "widgets.slint";
+import { Theme, Type, Radius, Space } from "theme.slint";
+import { DialogButton, FilterTab, Dialog, DialogBody, DialogFooter, Field, CheckRow } from "widgets.slint";
 import { NumberField } from "number_field.slint";
 import { SpreadCanvas, SpreadData } from "canvas.slint";
 import { DragUi } from "drag.slint";
@@ -151,132 +151,145 @@ component CoverDrawing inherits Rectangle {
     }
 }
 
+// Uma linha da caixa: o rótulo mais largo pede 200 px, para os campos ficarem na mesma coluna.
+component CoverRow inherits Field {
+    label-width: 200px;
+}
+
+// Um campo de medida: cada mudança refaz as contas, e Enter aciona o principal (spec DD, regra 10).
+component CoverNumber inherits NumberField {
+    minimum: 0;
+    input-type: decimal;
+    edited => { CoverUi.changed(); }
+    accepted => {
+        if (CoverUi.error == "") {
+            CoverUi.confirm();
+        }
+    }
+}
+
+// O primeiro campo de cada aba recebe o foco ao abrir (spec DD, regra 7).
+component FirstCoverNumber inherits CoverNumber {
+    init => { self.focus(); }
+}
+
+// A medida total recebe o foco só na aba dela; no arquivo-guia, ele vai para "Escolher arquivo…".
+component TotalWidth inherits CoverNumber {
+    init => {
+        if (CoverUi.tab == 1) {
+            self.focus();
+        }
+    }
+}
+
 // Os campos que a medida total e o arquivo-guia dividem.
 component TotalFields inherits VerticalLayout {
-    spacing: 10px;
-    Field {
+    spacing: Space.s3;
+    CoverRow {
         label: "Total (largura × altura, cm)";
-        NumberField { width: 104px; text <=> CoverUi.total-width; minimum: 0; input-type: decimal; edited => { CoverUi.changed(); } }
-        NumberField { width: 104px; text <=> CoverUi.total-height; minimum: 0; input-type: decimal; edited => { CoverUi.changed(); } }
+        TotalWidth { width: 104px; text <=> CoverUi.total-width; }
+        CoverNumber { width: 104px; text <=> CoverUi.total-height; }
     }
     CheckRow {
         text: "O total já inclui a dobra";
         checked <=> CoverUi.includes-wrap;
         toggled => { CoverUi.changed(); }
     }
-    Field {
+    CoverRow {
         label: "Lombada (cm)";
-        NumberField { text <=> CoverUi.spine; minimum: 0; input-type: decimal; edited => { CoverUi.changed(); } }
+        CoverNumber { text <=> CoverUi.spine; }
     }
 }
 
-export component CoverDialog inherits Shade {
-    init => { keys.focus(); }
-    keys := FocusScope {
-        key-pressed(event) => {
-            if (event.text == Key.Escape) {
-                CoverUi.cancel();
-                return accept;
-            }
-            if (event.text == Key.Return && CoverUi.error == "") {
-                CoverUi.confirm();
-                return accept;
-            }
-            reject
-        }
-    Panel {
-        width: 820px;
-        height: content.preferred-height;
-        content := VerticalLayout {
-            padding: 24px;
-            spacing: 12px;
-            Text {
-                text: CoverUi.creating ? "Criar a capa" : "Medidas da capa";
-                font-size: Type.heading;
-                font-weight: Type.semibold;
-                color: Theme.text-strong;
-            }
-            HorizontalLayout {
-                spacing: 4px;
-                alignment: start;
-                FilterTab { text: "Calcular pelo álbum"; active: CoverUi.tab == 0; clicked => { CoverUi.tab-picked(0); } }
-                FilterTab { text: "Medida total do laboratório"; active: CoverUi.tab == 1; clicked => { CoverUi.tab-picked(1); } }
-                FilterTab { text: "Arquivo-guia"; active: CoverUi.tab == 2; clicked => { CoverUi.tab-picked(2); } }
-            }
-            HorizontalLayout {
-                spacing: 20px;
-                VerticalLayout {
-                    width: 430px;
-                    spacing: 10px;
-                    alignment: start;
-                    if CoverUi.tab == 0: Field {
-                        label: "Face (largura × altura, cm)";
-                        NumberField { width: 104px; text <=> CoverUi.face-width; minimum: 0; input-type: decimal; edited => { CoverUi.changed(); } }
-                        NumberField { width: 104px; text <=> CoverUi.face-height; minimum: 0; input-type: decimal; edited => { CoverUi.changed(); } }
-                    }
-                    if CoverUi.tab == 0: CheckRow {
-                        text: "Calcular a lombada pelo álbum";
-                        checked <=> CoverUi.spine-auto;
-                        toggled => { CoverUi.changed(); }
-                    }
-                    if CoverUi.tab == 0 && CoverUi.spine-auto: Field {
-                        label: "Espessura de cada folha (mm)";
-                        NumberField { text <=> CoverUi.sheet; minimum: 0; input-type: decimal; edited => { CoverUi.changed(); } }
-                    }
-                    if CoverUi.tab == 0 && !CoverUi.spine-auto: Field {
-                        label: "Lombada (cm)";
-                        NumberField { text <=> CoverUi.spine; minimum: 0; input-type: decimal; edited => { CoverUi.changed(); } }
-                    }
-                    if CoverUi.tab == 2: HorizontalLayout {
-                        spacing: 10px;
-                        DialogButton { text: "Escolher arquivo…"; clicked => { CoverUi.choose-guide(); } }
-                        Text {
-                            text: CoverUi.guide-name != "" ? CoverUi.guide-name : "JPEG, PNG ou TIFF";
-                            color: Theme.text-2;
-                            vertical-alignment: center;
-                            overflow: elide;
-                        }
-                    }
-                    if CoverUi.tab == 2 && CoverUi.needs-guide-width: Field {
-                        label: "Largura total do guia (cm)";
-                        NumberField { text <=> CoverUi.guide-width; minimum: 0; input-type: decimal; edited => { CoverUi.changed(); } }
-                    }
-                    if CoverUi.tab != 0: TotalFields { }
-                    Field {
-                        label: "Dobra (cm)";
-                        NumberField { text <=> CoverUi.wrap; minimum: 0; input-type: decimal; edited => { CoverUi.changed(); } }
-                    }
-                    Field {
-                        label: "Zona segura (cm)";
-                        NumberField { text <=> CoverUi.safe; minimum: 0; input-type: decimal; edited => { CoverUi.changed(); } }
-                    }
-                    if CoverUi.tab == 2: Text {
-                        text: "O guia fica por cima da capa, só na tela. Ele não vai para a impressão.";
-                        color: Theme.text-2;
-                        wrap: word-wrap;
-                    }
-                }
-                VerticalLayout {
-                    spacing: 8px;
-                    alignment: start;
-                    CoverDrawing { height: 170px; summary-text: CoverUi.summary; }
-                    Text { text: CoverUi.summary; color: Theme.text; wrap: word-wrap; }
-                    if CoverUi.warnings != "": Text { text: CoverUi.warnings; color: Theme.warning; wrap: word-wrap; }
-                }
-            }
-            if CoverUi.error != "": Text { text: CoverUi.error; color: Theme.warning; wrap: word-wrap; }
-            HorizontalLayout {
-                alignment: end;
-                spacing: 8px;
-                DialogButton { text: "Cancelar"; clicked => { CoverUi.cancel(); } }
-                DialogButton {
-                    text: CoverUi.creating ? "Criar a capa" : "Aplicar";
-                    primary: true;
-                    enabled: CoverUi.error == "";
-                    clicked => { CoverUi.confirm(); }
-                }
-            }
+export component CoverDialog inherits Dialog {
+    title: CoverUi.creating ? "Criar a capa" : "Medidas da capa";
+    // A capa mantém a largura que o desenho pede (spec DD, regra 2).
+    size: 820px;
+    child-focus: true;
+    dismissed => { CoverUi.cancel(); }
+    confirmed => {
+        if (CoverUi.error == "") {
+            CoverUi.confirm();
         }
     }
+    DialogBody {
+        HorizontalLayout {
+            spacing: Space.s1;
+            alignment: start;
+            FilterTab { text: "Calcular pelo álbum"; active: CoverUi.tab == 0; clicked => { CoverUi.tab-picked(0); } }
+            FilterTab { text: "Medida total do laboratório"; active: CoverUi.tab == 1; clicked => { CoverUi.tab-picked(1); } }
+            FilterTab { text: "Arquivo-guia"; active: CoverUi.tab == 2; clicked => { CoverUi.tab-picked(2); } }
+        }
+        HorizontalLayout {
+            spacing: Space.s4;
+            VerticalLayout {
+                width: 430px;
+                spacing: Space.s3;
+                alignment: start;
+                if CoverUi.tab == 0: CoverRow {
+                    label: "Face (largura × altura, cm)";
+                    FirstCoverNumber { width: 104px; text <=> CoverUi.face-width; }
+                    CoverNumber { width: 104px; text <=> CoverUi.face-height; }
+                }
+                if CoverUi.tab == 0: CheckRow {
+                    text: "Calcular a lombada pelo álbum";
+                    checked <=> CoverUi.spine-auto;
+                    toggled => { CoverUi.changed(); }
+                }
+                if CoverUi.tab == 0 && CoverUi.spine-auto: CoverRow {
+                    label: "Espessura de cada folha (mm)";
+                    CoverNumber { text <=> CoverUi.sheet; }
+                }
+                if CoverUi.tab == 0 && !CoverUi.spine-auto: CoverRow {
+                    label: "Lombada (cm)";
+                    CoverNumber { text <=> CoverUi.spine; }
+                }
+                if CoverUi.tab == 2: HorizontalLayout {
+                    spacing: Space.s3;
+                    DialogButton { text: "Escolher arquivo…"; takes-focus: true; clicked => { CoverUi.choose-guide(); } }
+                    Text {
+                        text: CoverUi.guide-name != "" ? CoverUi.guide-name : "JPEG, PNG ou TIFF";
+                        color: Theme.text-2;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+                }
+                if CoverUi.tab == 2 && CoverUi.needs-guide-width: CoverRow {
+                    label: "Largura total do guia (cm)";
+                    CoverNumber { text <=> CoverUi.guide-width; }
+                }
+                if CoverUi.tab != 0: TotalFields { }
+                CoverRow {
+                    label: "Dobra (cm)";
+                    CoverNumber { text <=> CoverUi.wrap; }
+                }
+                CoverRow {
+                    label: "Zona segura (cm)";
+                    CoverNumber { text <=> CoverUi.safe; }
+                }
+                if CoverUi.tab == 2: Text {
+                    text: "O guia fica por cima da capa, só na tela. Ele não vai para a impressão.";
+                    color: Theme.text-2;
+                    wrap: word-wrap;
+                }
+            }
+            VerticalLayout {
+                spacing: Space.s2;
+                alignment: start;
+                CoverDrawing { height: 170px; summary-text: CoverUi.summary; }
+                Text { text: CoverUi.summary; color: Theme.text; wrap: word-wrap; }
+                if CoverUi.warnings != "": Text { text: CoverUi.warnings; color: Theme.warning; wrap: word-wrap; }
+            }
+        }
+        if CoverUi.error != "": Text { text: CoverUi.error; color: Theme.warning; wrap: word-wrap; }
+    }
+    DialogFooter {
+        DialogButton { text: "Cancelar"; clicked => { CoverUi.cancel(); } }
+        DialogButton {
+            text: CoverUi.creating ? "Criar a capa" : "Aplicar";
+            primary: true;
+            enabled: CoverUi.error == "";
+            clicked => { CoverUi.confirm(); }
+        }
     }
 }

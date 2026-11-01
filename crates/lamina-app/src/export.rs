@@ -4,7 +4,9 @@
 use std::path::{Path, PathBuf};
 
 use lamina_core::ColorSpace;
-use lamina_editor::forms::{ExportForm, replace_question};
+use lamina_editor::forms::{
+    ExportForm, quality_applies, replace_question, replace_title, short_path,
+};
 use lamina_editor::{
     CoverExport, DEFAULT_QUALITY, ExportFormat, ExportOptions, Human, export_progress,
     export_project, export_summary, guarded,
@@ -14,6 +16,9 @@ use crate::AppWindow;
 use crate::convert::model;
 use crate::files::show_error;
 use crate::state::{App, Msg};
+
+/// Quantas letras da pasta cabem na linha da janela (spec DD, regra 17).
+const SHORT_FOLDER: usize = 44;
 
 /// Abre a janela com a pasta da última exportação (ou a padrão) e as opções padrão da EX.
 pub fn start(app: &mut App) {
@@ -84,6 +89,8 @@ pub fn changed(app: &mut App) {
         .map(|e| e.human().line())
         .unwrap_or_default();
     w.set_ex_error(error.into());
+    w.set_ex_quality_shown(quality_applies(form(&w).format));
+    w.set_ex_folder_short(short_path(w.get_ex_folder().as_str(), SHORT_FOLDER).into());
 }
 
 pub fn pick_folder(app: &mut App) {
@@ -178,6 +185,7 @@ pub fn proceed(app: &mut App) {
         return;
     }
     let text = replace_question(existing, &folder(&w));
+    w.set_ex_replace_title(replace_title(existing).into());
     w.set_ex_replace_text(text.into());
     w.set_ex_step(2);
 }

@@ -1,8 +1,8 @@
 // Limpar as lâminas (spec LL): a pergunta antes de tirar as fotos de todas as lâminas ou de apagar
 // todas elas. O texto e o botão vêm do Rust; a decisão é do editor.
 
-import { Theme, Type } from "theme.slint";
-import { Shade, Panel, DialogButton } from "widgets.slint";
+import { Theme } from "theme.slint";
+import { Dialog, DialogFooter, DialogButton } from "widgets.slint";
 
 export global ClearUi {
     in-out property <bool> show;
@@ -12,22 +12,14 @@ export global ClearUi {
     callback confirmed();
 }
 
-export component ClearAllDialog inherits Shade {
+export component ClearAllDialog inherits Dialog {
     callback closed();
-    Panel {
-        width: 460px;
-        height: 180px;
-        VerticalLayout {
-            padding: 24px;
-            spacing: 12px;
-            Text { text: ClearUi.title; font-size: Type.heading; font-weight: Type.semibold; color: Theme.text; wrap: word-wrap; }
-            Text { text: ClearUi.message; color: Theme.text-2; wrap: word-wrap; }
-            HorizontalLayout {
-                alignment: end;
-                spacing: 8px;
-                DialogButton { text: "Cancelar"; clicked => { ClearUi.show = false; root.closed(); } }
-                DialogButton { text: ClearUi.action; primary: true; clicked => { ClearUi.show = false; ClearUi.confirmed(); root.closed(); } }
-            }
-        }
+    title: ClearUi.title;
+    child-focus: true;
+    dismissed => { ClearUi.show = false; root.closed(); }
+    Text { text: ClearUi.message; color: Theme.text-2; wrap: word-wrap; }
+    DialogFooter {
+        DialogButton { text: "Cancelar"; takes-focus: true; clicked => { ClearUi.show = false; root.closed(); } }
+        DialogButton { text: ClearUi.action; danger: true; clicked => { ClearUi.show = false; ClearUi.confirmed(); root.closed(); } }
     }
 }

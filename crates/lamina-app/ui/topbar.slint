@@ -200,6 +200,8 @@ export component NoticeBar inherits Rectangle {
     in property <string> text;
     in property <bool> has-missing;
     callback command(string);
+    // O ✕: o aviso some e só volta se acontecer de novo (spec DD, regra 20).
+    callback dismiss();
     height: 30px;
     background: Theme.warning-soft;
     HorizontalLayout {
@@ -208,5 +210,15 @@ export component NoticeBar inherits Rectangle {
         spacing: 12px;
         Text { text: root.text; color: Theme.text; vertical-alignment: center; horizontal-stretch: 1; overflow: elide; }
         if root.has-missing: BarButton { text: "Reencontrar fotos…"; clicked => { root.command("arquivo.procurar-fotos"); } }
+        IconButton {
+            y: (parent.height - self.height) / 2;
+            width: 24px;
+            height: 24px;
+            icon: Icons.close;
+            icon-size: 16px;
+            tip: "Fechar este aviso";
+            tip-side: 1;
+            clicked => { root.dismiss(); }
+        }
     }
 }

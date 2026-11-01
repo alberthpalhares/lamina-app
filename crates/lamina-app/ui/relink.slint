@@ -1,8 +1,8 @@
 // Reencontrar fotos que mudaram de lugar (spec RF): a janela que diz qual pasta sumiu e o que
 // fazer, com "Mostrar onde está…" em cada pasta. Os textos e as decisões vêm do editor.
 
-import { Theme, Type } from "theme.slint";
-import { Shade, Panel, DialogButton } from "widgets.slint";
+import { Theme, Type, Space } from "theme.slint";
+import { Dialog, DialogSize, DialogBody, DialogFooter, DialogButton } from "widgets.slint";
 
 export struct RelinkRowUi {
     // "Casamento".
@@ -34,67 +34,60 @@ export global RelinkUi {
     callback use-new();
 }
 
-export component RelinkDialog inherits Shade {
+export component RelinkDialog inherits Dialog {
     callback closed();
-    Panel {
-        width: 560px;
-        height: RelinkUi.question != "" ? 170px : min(560px, 130px + (RelinkUi.discovered != "" ? 80px : 0px) + (RelinkUi.rows.length > 0 ? 100px + RelinkUi.rows.length * 52px : 0px));
-        if RelinkUi.question != "": VerticalLayout {
-            padding: 24px;
-            spacing: 12px;
-            Text { text: "Localizar esta foto"; font-size: Type.heading; font-weight: Type.semibold; color: Theme.text; }
-            Text { text: RelinkUi.question; color: Theme.text-2; wrap: word-wrap; }
-            HorizontalLayout {
-                alignment: end;
-                spacing: 8px;
-                DialogButton { text: "Cancelar"; clicked => { RelinkUi.answer(false); } }
-                DialogButton { text: "Usar mesmo assim"; primary: true; clicked => { RelinkUi.answer(true); } }
+    title: RelinkUi.question != "" ? "Localizar esta foto" : RelinkUi.title;
+    size: DialogSize.form;
+    child-focus: true;
+    dismissed => {
+        if (RelinkUi.question != "") {
+            RelinkUi.answer(false);
+        } else {
+            RelinkUi.show = false;
+            RelinkUi.later();
+            root.closed();
+        }
+    }
+    if RelinkUi.question != "": Text { text: RelinkUi.question; color: Theme.text-2; wrap: word-wrap; }
+    if RelinkUi.question != "": DialogFooter {
+        DialogButton { text: "Cancelar"; takes-focus: true; clicked => { RelinkUi.answer(false); } }
+        DialogButton { text: "Usar mesmo assim"; primary: true; clicked => { RelinkUi.answer(true); } }
+    }
+    if RelinkUi.question == "": DialogBody {
+        if RelinkUi.discovered != "": Text { text: RelinkUi.discovered; color: Theme.text; font-weight: Type.semibold; wrap: word-wrap; }
+        if RelinkUi.discovered != "": HorizontalLayout {
+            alignment: start;
+            DialogButton { text: "Usar o lugar novo"; primary: true; clicked => { RelinkUi.use-new(); } }
+        }
+        if RelinkUi.rows.length > 0: Text { text: RelinkUi.intro; color: Theme.text-2; wrap: word-wrap; }
+        for row[i] in RelinkUi.rows: HorizontalLayout {
+            height: 44px;
+            spacing: Space.s3;
+            VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                Text { text: row.name; color: Theme.text; font-weight: Type.semibold; overflow: elide; }
+                Text {
+                    text: row.detail;
+                    color: row.unplugged ? Theme.warning : Theme.text-2;
+                    font-size: Type.small;
+                    overflow: elide;
+                }
+            }
+            DialogButton {
+                text: "Mostrar onde está…";
+                accessible-label: "Mostrar onde está a pasta " + row.name;
+                takes-focus: i == 0;
+                clicked => { RelinkUi.pick(i); }
             }
         }
-        if RelinkUi.question == "": VerticalLayout {
-            padding: 24px;
-            spacing: 10px;
-            Text { text: RelinkUi.title; font-size: Type.heading; font-weight: Type.semibold; color: Theme.text; wrap: word-wrap; }
-            if RelinkUi.discovered != "": VerticalLayout {
-                spacing: 10px;
-                Text { text: RelinkUi.discovered; color: Theme.text; font-weight: Type.semibold; wrap: word-wrap; }
-                HorizontalLayout {
-                    alignment: start;
-                    DialogButton { text: "Usar o lugar novo"; primary: true; clicked => { RelinkUi.use-new(); } }
-                }
-            }
-            if RelinkUi.rows.length > 0: Text { text: RelinkUi.intro; color: Theme.text-2; wrap: word-wrap; }
-            for row[i] in RelinkUi.rows: HorizontalLayout {
-                height: 44px;
-                spacing: 12px;
-                VerticalLayout {
-                    horizontal-stretch: 1;
-                    alignment: center;
-                    Text { text: row.name; color: Theme.text; font-weight: Type.semibold; overflow: elide; }
-                    Text {
-                        text: row.detail;
-                        color: row.unplugged ? Theme.warning : Theme.text-2;
-                        font-size: Type.small;
-                        overflow: elide;
-                    }
-                }
-                DialogButton {
-                    text: "Mostrar onde está…";
-                    accessible-label: "Mostrar onde está a pasta " + row.name;
-                    clicked => { RelinkUi.pick(i); }
-                }
-            }
-            if RelinkUi.more != "": Text { text: RelinkUi.more; color: Theme.text-2; font-size: Type.small; }
-            if RelinkUi.rows.length > 0: Text { text: RelinkUi.hint; color: Theme.text; wrap: word-wrap; }
-            if RelinkUi.plug-in != "": Text { text: RelinkUi.plug-in; color: Theme.warning; wrap: word-wrap; }
-            if RelinkUi.status != "": Text { text: RelinkUi.status; color: Theme.warning; wrap: word-wrap; }
-            Rectangle { vertical-stretch: 1; }
-            HorizontalLayout {
-                alignment: end;
-                spacing: 8px;
-                DialogButton { text: "Tentar de novo"; clicked => { RelinkUi.retry(); } }
-                DialogButton { text: "Agora não"; clicked => { RelinkUi.show = false; RelinkUi.later(); root.closed(); } }
-            }
-        }
+        if RelinkUi.more != "": Text { text: RelinkUi.more; color: Theme.text-2; font-size: Type.small; }
+        if RelinkUi.rows.length > 0: Text { text: RelinkUi.hint; color: Theme.text; wrap: word-wrap; }
+        if RelinkUi.plug-in != "": Text { text: RelinkUi.plug-in; color: Theme.warning; wrap: word-wrap; }
+        if RelinkUi.status != "": Text { text: RelinkUi.status; color: Theme.warning; wrap: word-wrap; }
+    }
+    if RelinkUi.question == "": DialogFooter {
+        DialogButton { text: "Tentar de novo"; clicked => { RelinkUi.retry(); } }
+        DialogButton { text: "Agora não"; clicked => { RelinkUi.show = false; RelinkUi.later(); root.closed(); } }
     }
 }

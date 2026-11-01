@@ -1,9 +1,10 @@
 // Modelos do fotógrafo (spec MD): o nome ao salvar a lâmina como modelo e a lista "Meus modelos"
 // (renomear, apagar). Só desenho: as decisões são do editor.
 
-import { LineEdit, ListView } from "std-widgets.slint";
-import { Theme, Type, Radius } from "theme.slint";
-import { Shade, Panel, DialogButton } from "widgets.slint";
+import { LineEdit } from "std-widgets.slint";
+import { Theme, Space } from "theme.slint";
+import { Icons } from "icons.slint";
+import { Dialog, DialogSize, DialogFooter, DialogButton, FirstLineEdit, PickList, EmptyState } from "widgets.slint";
 
 export global ModelUi {
     in-out property <bool> show-name;
@@ -21,72 +22,53 @@ export global ModelUi {
 }
 
 // Lâmina → Salvar como modelo…
-export component ModelNameDialog inherits Shade {
-    Panel {
-        width: 440px;
-        height: 220px;
-        VerticalLayout {
-            padding: 24px;
-            spacing: 12px;
-            Text { text: "Salvar como modelo"; font-size: Type.title; font-weight: Type.semibold; color: Theme.text; }
-            LineEdit {
-                text <=> ModelUi.name;
-                placeholder-text: "ex.: Abertura com título";
-                accepted => { ModelUi.name-save(); }
-            }
-            Text { text: ModelUi.name-message; color: Theme.warning; wrap: word-wrap; vertical-stretch: 1; }
-            HorizontalLayout {
-                alignment: end;
-                spacing: 8px;
-                DialogButton { text: "Cancelar"; clicked => { ModelUi.show-name = false; ModelUi.closed(); } }
-                DialogButton { text: "Salvar"; primary: true; clicked => { ModelUi.name-save(); } }
-            }
-        }
+export component ModelNameDialog inherits Dialog {
+    title: "Salvar como modelo";
+    child-focus: true;
+    dismissed => { ModelUi.show-name = false; ModelUi.closed(); }
+    FirstLineEdit {
+        text <=> ModelUi.name;
+        placeholder-text: "ex.: Abertura com título";
+        accepted => { ModelUi.name-save(); }
+    }
+    if ModelUi.name-message != "": Text { text: ModelUi.name-message; color: Theme.warning; wrap: word-wrap; }
+    DialogFooter {
+        DialogButton { text: "Cancelar"; clicked => { ModelUi.show-name = false; ModelUi.closed(); } }
+        DialogButton { text: "Salvar"; primary: true; clicked => { ModelUi.name-save(); } }
     }
 }
 
-// Lâmina → Meus modelos…
-export component ModelsDialog inherits Shade {
-    Panel {
-        width: 480px;
-        height: 420px;
-        VerticalLayout {
-            padding: 24px;
-            spacing: 10px;
-            Text { text: "Meus modelos"; font-size: Type.title; font-weight: Type.semibold; color: Theme.text; }
-            Text {
-                text: ModelUi.models.length == 0
-                    ? "Nenhum modelo salvo. Monte uma lâmina e use Lâmina → Salvar como modelo…"
-                    : "Os modelos aparecem no painel de layouts quando as fotos casam com eles.";
-                color: Theme.text-2;
-                wrap: word-wrap;
-            }
-            ListView {
-                vertical-stretch: 1;
-                for item[i] in ModelUi.models: Rectangle {
-                    height: 28px;
-                    border-radius: Radius.small;
-                    background: i == ModelUi.list-selected ? Theme.press : touch.has-hover ? Theme.hover : transparent;
-                    Text { x: 8px; text: item; color: Theme.text; vertical-alignment: center; }
-                    touch := TouchArea {
-                        clicked => {
-                            ModelUi.list-selected = i;
-                            ModelUi.list-name = item;
-                        }
-                    }
-                }
-            }
-            HorizontalLayout {
-                spacing: 8px;
-                LineEdit { text <=> ModelUi.list-name; enabled: ModelUi.list-selected >= 0; }
-                DialogButton { text: "Renomear"; enabled: ModelUi.list-selected >= 0; clicked => { ModelUi.list-rename(); } }
-                DialogButton { text: "Apagar"; enabled: ModelUi.list-selected >= 0; clicked => { ModelUi.list-delete(); } }
-            }
-            Text { text: ModelUi.list-message; color: Theme.warning; wrap: word-wrap; }
-            HorizontalLayout {
-                alignment: end;
-                DialogButton { text: "Fechar"; primary: true; clicked => { ModelUi.show-list = false; ModelUi.closed(); } }
-            }
-        }
+// Lâmina → Meus modelos… Sem nada salvo, diz o que fazer; a linha de renomear só aparece com um
+// modelo escolhido (spec DD, regra 24).
+export component ModelsDialog inherits Dialog {
+    title: "Meus modelos";
+    size: DialogSize.form;
+    child-focus: true;
+    dismissed => { ModelUi.show-list = false; ModelUi.closed(); }
+    if ModelUi.models.length == 0: EmptyState {
+        icon: Icons.layouts;
+        text: "Nenhum modelo salvo.\nMonte uma lâmina e use Lâmina → Salvar como modelo…";
+    }
+    if ModelUi.models.length > 0: Text {
+        text: "Os modelos aparecem no painel de layouts quando as fotos casam com eles.";
+        color: Theme.text-2;
+        wrap: word-wrap;
+    }
+    if ModelUi.models.length > 0: PickList {
+        label: "Meus modelos";
+        items: ModelUi.models;
+        selected <=> ModelUi.list-selected;
+        picked(name) => { ModelUi.list-name = name; }
+    }
+    if ModelUi.list-selected >= 0: HorizontalLayout {
+        spacing: Space.s2;
+        vertical-stretch: 0;
+        LineEdit { text <=> ModelUi.list-name; accepted => { ModelUi.list-rename(); } }
+        DialogButton { text: "Renomear"; clicked => { ModelUi.list-rename(); } }
+        DialogButton { text: "Apagar"; danger: true; clicked => { ModelUi.list-delete(); } }
+    }
+    if ModelUi.list-message != "": Text { text: ModelUi.list-message; color: Theme.warning; wrap: word-wrap; }
+    DialogFooter {
+        DialogButton { text: "Fechar"; primary: true; takes-focus: true; clicked => { ModelUi.show-list = false; ModelUi.closed(); } }
     }
 }

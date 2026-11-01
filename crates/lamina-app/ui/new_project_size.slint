@@ -1,12 +1,12 @@
-// A etapa 1 do Novo projeto, o tamanho (specs NP e ET; correções do dono de 2026-10-29): tudo
-// centralizado, os formatos desenhados como o álbum fechado, a lâmina aberta embaixo, e o
-// Personalizado na horizontal. Só desenho: os textos e as decisões vêm do Rust.
+// A etapa 1 do Novo projeto, o tamanho (specs NP, ET e DD): à esquerda, a escolha, com os formatos
+// desenhados como o álbum fechado; à direita, sempre à vista, a lâmina aberta e o resumo. Só
+// desenho: os textos e as decisões vêm do Rust.
 
 import { ComboBox, LineEdit } from "std-widgets.slint";
 import { NumberField } from "number_field.slint";
-import { Theme, Fixed, Type, Radius } from "theme.slint";
+import { Theme, Fixed, Type, Radius, Line, Space } from "theme.slint";
 import { Icons } from "icons.slint";
-import { DialogButton, CheckRow } from "widgets.slint";
+import { DialogButton, CheckRow, FilterTab, FirstComboBox, FocusStop } from "widgets.slint";
 import { PresetUi } from "spec.slint";
 import { NewProjectUi, FormatCard, DrawData } from "new_project_ui.slint";
 
@@ -25,7 +25,7 @@ component Field inherits HorizontalLayout {
     // O passo das setas ↑ e ↓ (spec NU): 1 nas medidas e no DPI, 2 nas páginas.
     in property <float> step: 1;
     callback edited();
-    spacing: 8px;
+    spacing: Space.s2;
     alignment: start;
     Label { text: root.label; min-width: root.label-width; }
     NumberField { text <=> root.text; width: 72px; step: root.step; minimum: 0; edited => { root.edited(); } }
@@ -77,16 +77,20 @@ component SpreadDrawing inherits Rectangle {
 component FormatButton inherits Rectangle {
     in property <FormatCard> card;
     in property <bool> chosen;
+    in property <bool> takes-focus;
     callback clicked();
     width: 148px;
     height: 148px;
     border-radius: Radius.medium;
     opacity: root.card.enabled ? 1 : 0.35;
-    background: root.chosen ? Theme.accent-soft : (touch.has-hover && root.card.enabled ? Theme.g6 : Theme.g4);
-    border-width: root.chosen ? 2px : 0px;
+    background: root.chosen ? Theme.accent-soft : (touch.has-hover && root.card.enabled ? Theme.hover : Theme.strip);
+    border-width: root.chosen ? Line.focus : 0px;
     border-color: Theme.accent;
     accessible-role: button;
     accessible-label: root.card.label;
+    accessible-enabled: root.card.enabled;
+    accessible-checked: root.chosen;
+    accessible-action-default => { root.clicked(); }
     property <length> box: 92px;
     property <length> page-w: root.card.aspect >= 1 ? root.box : root.box * root.card.aspect;
     property <length> page-h: root.card.aspect >= 1 ? root.box / root.card.aspect : root.box;
@@ -114,23 +118,35 @@ component FormatButton inherits Rectangle {
         enabled: root.card.enabled;
         clicked => { root.clicked(); }
     }
+    FocusStop {
+        enabled: root.card.enabled;
+        radius: Radius.medium;
+        takes-focus: root.takes-focus;
+        activated => { root.clicked(); }
+    }
 }
 
 // A encadernadora: o campo mostra a escolhida e abre a lista com busca, em ordem alfabética
 // (ET-B11). Os nomes e a ordem vêm do editor (`binder_list`).
 component BinderPicker inherits Rectangle {
-    width: 280px;
+    function open() {
+        NewProjectUi.binder-search = "";
+        NewProjectUi.search-binders("");
+        popup.show();
+    }
+    horizontal-stretch: 1;
     height: 30px;
     border-radius: Radius.small;
-    background: Theme.g4;
-    border-width: 1px;
+    background: Theme.field;
+    border-width: Line.thin;
     border-color: touch.has-hover ? Theme.accent : Theme.line;
     accessible-role: combobox;
     accessible-label: "Encadernadora: " + NewProjectUi.binder;
+    accessible-action-default => { root.open(); }
     HorizontalLayout {
-        padding-left: 10px;
-        padding-right: 10px;
-        spacing: 6px;
+        padding-left: Space.s2;
+        padding-right: Space.s2;
+        spacing: Space.s2;
         Text { text: NewProjectUi.binder; color: Theme.text; vertical-alignment: center; overflow: elide; horizontal-stretch: 1; }
         Image {
             accessible-role: none;
@@ -140,25 +156,22 @@ component BinderPicker inherits Rectangle {
         }
     }
     touch := TouchArea {
-        clicked => {
-            NewProjectUi.binder-search = "";
-            NewProjectUi.search-binders("");
-            popup.show();
-        }
+        clicked => { root.open(); }
     }
+    FocusStop { takes-focus: true; activated => { root.open(); } }
     popup := PopupWindow {
         y: root.height + 2px;
         width: root.width;
         height: min(300px, 50px + NewProjectUi.binder-rows.length * 30px);
         close-policy: close-on-click-outside;
         Rectangle {
-            background: Theme.panel;
+            background: Theme.raised;
             border-radius: Radius.medium;
-            border-width: 1px;
+            border-width: Line.thin;
             border-color: Theme.line;
             VerticalLayout {
-                padding: 6px;
-                spacing: 4px;
+                padding: Space.s1;
+                spacing: Space.s1;
                 search := LineEdit {
                     placeholder-text: "Buscar encadernadora";
                     accessible-label: "Buscar encadernadora";
@@ -173,9 +186,15 @@ component BinderPicker inherits Rectangle {
                         for row in NewProjectUi.binder-rows: Rectangle {
                             height: 28px;
                             border-radius: Radius.small;
-                            background: area.has-hover ? Theme.g6 : (row == NewProjectUi.binder ? Theme.accent-soft : transparent);
+                            background: area.has-hover ? Theme.hover : (row == NewProjectUi.binder ? Theme.accent-soft : transparent);
+                            accessible-role: AccessibleRole.list-item;
+                            accessible-label: row;
+                            accessible-action-default => {
+                                NewProjectUi.pick-binder(row);
+                                popup.close();
+                            }
                             Text {
-                                x: 8px;
+                                x: Space.s2;
                                 text: row;
                                 color: row == NewProjectUi.add-binder-text ? Theme.text-2 : Theme.text;
                                 vertical-alignment: center;
@@ -194,31 +213,62 @@ component BinderPicker inherits Rectangle {
     }
 }
 
-// Tamanhos prontos (spec ET): a encadernadora, os três formatos e o tamanho, tudo centralizado.
+// Uma linha que abre e recolhe o que está embaixo ("Mais opções", "Ajustes da gráfica").
+export component Disclosure inherits Rectangle {
+    in property <string> text;
+    in property <string> note;
+    in-out property <bool> open;
+    function flip() {
+        root.open = !root.open;
+    }
+    accessible-role: button;
+    accessible-label: root.text;
+    accessible-expandable: true;
+    accessible-expanded: root.open;
+    accessible-action-default => { root.flip(); }
+    height: 28px;
+    HorizontalLayout {
+        spacing: Space.s2;
+        Image {
+            accessible-role: none;
+            y: (parent.height - self.height) / 2;
+            width: 16px;
+            height: 16px;
+            source: root.open ? Icons.chevron-down : Icons.chevron-right;
+            colorize: Theme.text-2;
+        }
+        Text { text: root.text; color: Theme.text; vertical-alignment: center; }
+        if !root.open: Text { text: root.note; color: Theme.text-3; font-size: Type.small; vertical-alignment: center; overflow: elide; horizontal-stretch: 1; }
+        Rectangle { horizontal-stretch: 1; }
+    }
+    TouchArea { clicked => { root.flip(); } }
+    FocusStop { activated => { root.flip(); } }
+}
+
+// Tamanhos prontos (spec ET): a encadernadora, os três formatos e o tamanho.
 component ReadySizes inherits VerticalLayout {
-    spacing: 16px;
+    spacing: Space.s3;
     alignment: start;
     if NewProjectUi.has-binders: HorizontalLayout {
-        alignment: center;
-        spacing: 8px;
-        Label { text: "Encadernadora"; }
+        spacing: Space.s2;
+        Label { text: "Encadernadora"; width: 90px; }
         BinderPicker { }
     }
     HorizontalLayout {
-        alignment: center;
-        spacing: 16px;
+        alignment: start;
+        spacing: Space.s4;
         for card[i] in NewProjectUi.formats: FormatButton {
             card: card;
             chosen: NewProjectUi.format == i;
+            takes-focus: !NewProjectUi.has-binders && i == 0;
             clicked => { NewProjectUi.pick-format(i); }
         }
     }
     HorizontalLayout {
-        alignment: center;
-        spacing: 8px;
-        Label { text: "Tamanho"; }
+        spacing: Space.s2;
+        Label { text: "Tamanho"; width: 90px; }
         ComboBox {
-            width: 220px;
+            horizontal-stretch: 1;
             model: NewProjectUi.sizes;
             current-index: NewProjectUi.size;
             selected => { NewProjectUi.pick-size(self.current-index); }
@@ -226,7 +276,7 @@ component ReadySizes inherits VerticalLayout {
         if NewProjectUi.size < 0: Label { text: "medidas personalizadas"; }
     }
     if !NewProjectUi.has-binders: HorizontalLayout {
-        alignment: center;
+        alignment: start;
         DialogButton {
             text: NewProjectUi.add-binder-text;
             clicked => { NewProjectUi.tab = 1; NewProjectUi.advanced-open = true; }
@@ -237,101 +287,113 @@ component ReadySizes inherits VerticalLayout {
 // Uma coluna dos ajustes da gráfica, com o título em cima.
 component Column inherits VerticalLayout {
     in property <string> title;
-    spacing: 6px;
+    spacing: Space.s1;
     alignment: start;
     Text { text: root.title; color: Theme.text; font-weight: Type.semibold; }
     @children
 }
 
-// Personalizado (spec ET, regra 6), na horizontal: as medidas numa linha; aberto, os ajustes da
-// gráfica em colunas lado a lado.
+// Personalizado (spec ET, regra 6): as medidas em duas linhas; aberto, os ajustes da gráfica em
+// colunas lado a lado.
 component CustomSize inherits VerticalLayout {
-    spacing: 14px;
+    spacing: Space.s3;
     alignment: start;
     // A unidade dos campos e o passo das setas na sangria e na zona segura: 1 mm, 0,1 cm, 0,05 pol.
     property <string> unit: NewProjectUi.unit == 0 ? "mm" : NewProjectUi.unit == 1 ? "cm" : "pol";
     property <float> margin-step: NewProjectUi.unit == 0 ? 1 : NewProjectUi.unit == 1 ? 0.1 : 0.05;
     HorizontalLayout {
-        alignment: center;
-        spacing: 8px;
+        spacing: Space.s2;
         Label { text: "Unidade"; }
-        ComboBox {
+        FirstComboBox {
             width: 80px;
             model: ["mm", "cm", "pol"];
             current-index <=> NewProjectUi.unit;
             selected => { NewProjectUi.unit-changed(self.current-index); }
         }
-        Rectangle { width: 12px; }
+        Rectangle { width: Space.s2; }
         Label { text: "Medidas de"; }
         ComboBox {
-            width: 140px;
+            horizontal-stretch: 1;
             model: ["uma página", "lâmina aberta"];
             current-index: NewProjectUi.open-spread ? 1 : 0;
             selected => { NewProjectUi.open-spread = self.current-index == 1; NewProjectUi.unit-changed(NewProjectUi.unit); }
         }
-        Rectangle { width: 12px; }
-        Field { label: "Largura"; text <=> NewProjectUi.width; edited => { NewProjectUi.size-changed(); } }
-        Rectangle { width: 4px; }
-        Field { label: "Altura"; text <=> NewProjectUi.height; edited => { NewProjectUi.size-changed(); } }
     }
     HorizontalLayout {
-        alignment: center;
-        DialogButton {
-            text: NewProjectUi.advanced-open ? "Esconder os ajustes da gráfica" : "Ajustes da gráfica (DPI, páginas, sangria)…";
-            clicked => { NewProjectUi.advanced-open = !NewProjectUi.advanced-open; }
-        }
+        spacing: Space.s2;
+        alignment: start;
+        Field { label: "Largura"; text <=> NewProjectUi.width; edited => { NewProjectUi.size-changed(); } }
+        Rectangle { width: Space.s2; }
+        Field { label: "Altura"; text <=> NewProjectUi.height; edited => { NewProjectUi.size-changed(); } }
+    }
+    Disclosure {
+        text: "Ajustes da gráfica";
+        note: "DPI, páginas e sangria";
+        open <=> NewProjectUi.advanced-open;
     }
     if NewProjectUi.advanced-open: HorizontalLayout {
-        alignment: center;
-        spacing: 40px;
+        spacing: Space.s3;
+        alignment: start;
         Column {
             title: "DPI e páginas";
             Field { label: "DPI"; label-width: 100px; text <=> NewProjectUi.dpi; edited => { NewProjectUi.size-changed(); } }
             Field { label: "Páginas mínimas"; label-width: 100px; step: 2; text <=> NewProjectUi.min-pages; edited => { NewProjectUi.size-changed(); } }
             Field { label: "Páginas máximas"; label-width: 100px; step: 2; text <=> NewProjectUi.max-pages; edited => { NewProjectUi.size-changed(); } }
-            CheckRow { text: "Começa com página simples"; checked <=> NewProjectUi.starts; toggled => { NewProjectUi.size-changed(); } }
-            CheckRow { text: "Termina com página simples"; checked <=> NewProjectUi.ends; toggled => { NewProjectUi.size-changed(); } }
         }
         Column {
             title: "Sangria (" + root.unit + ")";
-            Field { label: "Externa"; label-width: 80px; step: root.margin-step; text <=> NewProjectUi.bleed-outer; edited => { NewProjectUi.size-changed(); } }
-            Field { label: "Cima e baixo"; label-width: 80px; step: root.margin-step; text <=> NewProjectUi.bleed-top; edited => { NewProjectUi.size-changed(); } }
-            Field { label: "Lombada"; label-width: 80px; step: root.margin-step; text <=> NewProjectUi.bleed-spine; edited => { NewProjectUi.size-changed(); } }
+            Field { label: "Externa"; label-width: 76px; step: root.margin-step; text <=> NewProjectUi.bleed-outer; edited => { NewProjectUi.size-changed(); } }
+            Field { label: "Cima e baixo"; label-width: 76px; step: root.margin-step; text <=> NewProjectUi.bleed-top; edited => { NewProjectUi.size-changed(); } }
+            Field { label: "Lombada"; label-width: 76px; step: root.margin-step; text <=> NewProjectUi.bleed-spine; edited => { NewProjectUi.size-changed(); } }
         }
         Column {
             title: "Zona segura (" + root.unit + ")";
-            Field { label: "Externa"; label-width: 80px; step: root.margin-step; text <=> NewProjectUi.safe-outer; edited => { NewProjectUi.size-changed(); } }
-            Field { label: "Cima e baixo"; label-width: 80px; step: root.margin-step; text <=> NewProjectUi.safe-top; edited => { NewProjectUi.size-changed(); } }
-            Field { label: "Lombada"; label-width: 80px; step: root.margin-step; text <=> NewProjectUi.safe-spine; edited => { NewProjectUi.size-changed(); } }
+            Field { label: "Externa"; label-width: 76px; step: root.margin-step; text <=> NewProjectUi.safe-outer; edited => { NewProjectUi.size-changed(); } }
+            Field { label: "Cima e baixo"; label-width: 76px; step: root.margin-step; text <=> NewProjectUi.safe-top; edited => { NewProjectUi.size-changed(); } }
+            Field { label: "Lombada"; label-width: 76px; step: root.margin-step; text <=> NewProjectUi.safe-spine; edited => { NewProjectUi.size-changed(); } }
         }
     }
     if NewProjectUi.advanced-open: HorizontalLayout {
-        alignment: center;
-        spacing: 8px;
+        spacing: Space.s4;
+        alignment: start;
+        CheckRow { text: "Começa com página simples"; checked <=> NewProjectUi.starts; toggled => { NewProjectUi.size-changed(); } }
+        CheckRow { text: "Termina com página simples"; checked <=> NewProjectUi.ends; toggled => { NewProjectUi.size-changed(); } }
+    }
+    if NewProjectUi.advanced-open: HorizontalLayout {
+        spacing: Space.s2;
+        alignment: start;
         DialogButton { text: "Igual em todas as bordas"; clicked => { NewProjectUi.same-margins(); } }
         DialogButton { text: "Salvar como preset…"; enabled: NewProjectUi.error == ""; clicked => { PresetUi.save-as(0); } }
     }
 }
 
-// A etapa 1: as abas no alto, a escolha no meio e, embaixo, a lâmina aberta do tamanho escolhido
-// com o resumo (spec ET, regra 3, correção de 2026-10-29).
-export component StepOne inherits VerticalLayout {
-    spacing: 18px;
-    HorizontalLayout {
-        alignment: center;
-        spacing: 8px;
-        DialogButton { text: "Tamanhos prontos"; primary: NewProjectUi.tab == 0; clicked => { NewProjectUi.tab = 0; } }
-        DialogButton { text: "Personalizado"; primary: NewProjectUi.tab == 1; clicked => { NewProjectUi.tab = 1; } }
-    }
-    if NewProjectUi.tab == 0: ReadySizes { }
-    if NewProjectUi.tab == 1: CustomSize { }
-    Rectangle { vertical-stretch: 1; min-height: 4px; }
-    SpreadDrawing { d: NewProjectUi.drawing; height: 170px; }
+// A coluna da direita, nas etapas 1 e 3: a lâmina aberta do tamanho escolhido e o resumo.
+export component SizeSummary inherits VerticalLayout {
+    width: 320px;
+    spacing: Space.s2;
+    alignment: start;
+    SpreadDrawing { d: NewProjectUi.drawing; height: 164px; }
+    Text { text: NewProjectUi.label; color: Theme.text; font-weight: Type.semibold; horizontal-alignment: center; wrap: word-wrap; }
+    Text { text: NewProjectUi.short-summary; color: Theme.text; horizontal-alignment: center; wrap: word-wrap; }
+    Text { text: NewProjectUi.summary; color: Theme.text-2; font-size: Type.caption; horizontal-alignment: center; wrap: word-wrap; }
+}
+
+// A etapa 1: a escolha à esquerda e o resultado à direita (spec DD, regra 13).
+export component StepOne inherits HorizontalLayout {
+    spacing: Space.s5;
     VerticalLayout {
-        spacing: 4px;
-        Text { text: NewProjectUi.label; color: Theme.text; font-weight: Type.semibold; horizontal-alignment: center; wrap: word-wrap; }
-        Text { text: NewProjectUi.short-summary; color: Theme.text; horizontal-alignment: center; wrap: word-wrap; }
-        Text { text: NewProjectUi.summary; color: Theme.text-2; font-size: Type.caption; horizontal-alignment: center; wrap: word-wrap; }
-        if NewProjectUi.error != "": Text { text: NewProjectUi.error; color: Theme.warning; horizontal-alignment: center; wrap: word-wrap; }
+        horizontal-stretch: 1;
+        spacing: Space.s3;
+        alignment: start;
+        HorizontalLayout {
+            spacing: Space.s1;
+            alignment: start;
+            FilterTab { text: "Tamanhos prontos"; active: NewProjectUi.tab == 0; clicked => { NewProjectUi.tab = 0; } }
+            FilterTab { text: "Personalizado"; active: NewProjectUi.tab == 1; clicked => { NewProjectUi.tab = 1; } }
+        }
+        if NewProjectUi.tab == 0: ReadySizes { }
+        if NewProjectUi.tab == 1: CustomSize { }
+        if NewProjectUi.error != "": Text { text: NewProjectUi.error; color: Theme.warning; wrap: word-wrap; }
     }
+    SizeSummary { }
 }

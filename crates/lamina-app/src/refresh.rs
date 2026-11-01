@@ -9,6 +9,14 @@ use crate::convert::model;
 use crate::state::App;
 
 impl App {
+    /// O ✕ da barra de aviso: ele some e só volta se acontecer de novo (spec DD, regra 20).
+    pub fn dismiss_notice(&mut self) {
+        self.notice.clear();
+        if let Some(w) = self.window.upgrade() {
+            w.set_notice("".into());
+        }
+    }
+
     /// Título, contador, comandos disponíveis e a lâmina atual com o painel e a faixa de layouts.
     pub fn refresh_current(&mut self) {
         let Some(w) = self.window.upgrade() else {

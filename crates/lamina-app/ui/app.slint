@@ -51,11 +51,11 @@ import { BottomStrips } from "bottom.slint";
 import { ShortcutsUi, ShortcutsDialog, ShortcutGroup, ShortcutRow } from "shortcuts.slint";
 import { NewsUi, NewsEntryData, NewsCardData, NewsFilterData } from "news.slint";
 import { NewsPage } from "news_page.slint";
-import { RollUi, RollCell, RollButton, RollHitData } from "roll.slint";
+import { RollUi, RollCell, RollButton, RollHitData, TimelineStep } from "roll.slint";
 import { Gallery } from "gallery.slint";
 
 export { BuildUi }
-export { PageMeterData, CalibrateUi, SpreadData, FrameData, BoxData, LayoutItem, BandUi, Swatch, HistoryItem, PhotoData, TimelineItem, PresetUi, LookUi, FrameUi, FontUi, FontRowUi, ModelUi, RecentsUi, ClearUi, RelinkUi, RelinkRowUi, RecentCard, RecentItem, Motion, GhostData, OrganizeUi, MarkData, TickData, BarRow, ContextUi, ContextRow, PaletteUi, PhotoUi, DetailRow, NewProjectUi, FormatCard, DrawData, ImportUi, ShortcutsUi, RecoverUi, ShortcutGroup, ShortcutRow, NewsUi, NewsEntryData, NewsCardData, NewsFilterData, Theme, RollUi, RollCell, RollButton, RollHitData }
+export { PageMeterData, CalibrateUi, SpreadData, FrameData, BoxData, LayoutItem, BandUi, Swatch, HistoryItem, PhotoData, TimelineItem, PresetUi, LookUi, FrameUi, FontUi, FontRowUi, ModelUi, RecentsUi, ClearUi, RelinkUi, RelinkRowUi, RecentCard, RecentItem, Motion, GhostData, OrganizeUi, MarkData, TickData, BarRow, ContextUi, ContextRow, PaletteUi, PhotoUi, DetailRow, NewProjectUi, FormatCard, DrawData, ImportUi, ShortcutsUi, RecoverUi, ShortcutGroup, ShortcutRow, NewsUi, NewsEntryData, NewsCardData, NewsFilterData, Theme, RollUi, RollCell, RollButton, RollHitData, TimelineStep }
 
 export component AppWindow inherits Window {
     title: root.window-title;
@@ -130,6 +130,7 @@ export component AppWindow inherits Window {
     in property <bool> beta-updates;
     callback update-restart();
     callback update-dismiss();
+    callback notice-dismiss();
     in property <bool> can-undo;
     in property <bool> can-redo;
 
@@ -169,6 +170,9 @@ export component AppWindow inherits Window {
     in property <[string]> ex-warnings;
     in property <string> ex-album;
     in property <string> ex-replace-text;
+    in property <string> ex-replace-title;
+    in property <string> ex-folder-short;
+    in property <bool> ex-quality-shown: true;
     callback ex-pick-folder();
     callback ex-changed();
     callback ex-export();
@@ -501,9 +505,12 @@ export component AppWindow inherits Window {
             }
 
             if root.notice != "": NoticeBar {
+                // Por cima do resto, para o balão de dica do ✕ descer sobre a lâmina.
+                z: 5;
                 text: root.notice;
                 has-missing: root.has-missing;
                 command(name) => { root.command(name); }
+                dismiss => { root.notice-dismiss(); }
             }
 
             HorizontalLayout {
@@ -629,11 +636,15 @@ export component AppWindow inherits Window {
         closed => { root.focus-main(); }
     }
     if root.show-confirm: ConfirmDialog {
-        name: root.project-title;
+        // O nome do álbum, sem o ponto de não salvo (spec DD, regra 23).
+        name: root.album-name;
         answer(choice) => { root.confirm(choice); }
     }
     if root.show-export: ExportDialog {
         folder: root.ex-folder;
+        folder-short: root.ex-folder-short;
+        quality-shown: root.ex-quality-shown;
+        replace-title: root.ex-replace-title;
         all-spreads <=> root.ex-all;
         range <=> root.ex-range;
         pages <=> root.ex-pages;

@@ -180,6 +180,8 @@ fn connect_dialogs(window: &AppWindow, app: &Shared) {
     let a = app.clone();
     window.on_update_dismiss(move || updates::dismiss(&mut a.borrow_mut()));
     let a = app.clone();
+    window.on_notice_dismiss(move || a.borrow_mut().dismiss_notice());
+    let a = app.clone();
     window.window().on_close_requested(move || {
         let mut app = a.borrow_mut();
         if app.editor.needs_confirmation() {

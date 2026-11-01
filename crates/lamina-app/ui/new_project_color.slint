@@ -1,0 +1,73 @@
+// A cor compacta da etapa 2 do Novo álbum (spec DD, regra 15): a amostra, as cores prontas numa
+// linha e "Outra cor…", que abre o quadro de cores e o código. Só desenho: a conta é do editor.
+
+import { LineEdit } from "std-widgets.slint";
+import { Theme, Fixed, Radius, Line, Space } from "theme.slint";
+import { BarButton, FocusStop } from "widgets.slint";
+import { NewProjectUi } from "new_project_ui.slint";
+
+// Uma cor pronta.
+export component ColorSwatch inherits Rectangle {
+    in property <color> shade;
+    in property <string> hex;
+    in property <bool> current;
+    callback picked();
+    accessible-role: button;
+    accessible-label: "Cor " + root.hex;
+    accessible-checked: root.current;
+    accessible-action-default => { root.picked(); }
+    width: 22px;
+    height: 22px;
+    border-radius: Radius.small;
+    background: root.shade;
+    border-width: root.current ? Line.focus : Line.thin;
+    border-color: root.current ? Theme.text-strong : Theme.press;
+    TouchArea { clicked => { root.picked(); } }
+    FocusStop { activated => { root.picked(); } }
+}
+
+// "Outra cor…": o código e o quadro de cores, num balão por cima do diálogo. Matiz na horizontal;
+// do branco (topo) à cor pura (meio) e ao preto (embaixo).
+export component OtherColor inherits BarButton {
+    in property <int> which;
+    in-out property <string> hex;
+    text: "Outra cor…";
+    outlined: true;
+    pad: Space.s2;
+    clicked => { balloon.show(); }
+    balloon := PopupWindow {
+        y: root.height + Space.s1;
+        width: 200px;
+        height: 134px;
+        close-policy: close-on-click-outside;
+        Rectangle {
+            background: Theme.raised;
+            border-radius: Radius.medium;
+            border-width: Line.thin;
+            border-color: Theme.line;
+            VerticalLayout {
+                padding: Space.s3;
+                spacing: Space.s2;
+                LineEdit {
+                    accessible-label: "Código da cor";
+                    text <=> root.hex;
+                    edited => { NewProjectUi.mount-changed(); }
+                }
+                area := Rectangle {
+                    height: 70px;
+                    width: 176px;
+                    border-radius: Radius.small;
+                    clip: true;
+                    accessible-role: image;
+                    accessible-label: "Quadro de cores";
+                    background: @linear-gradient(90deg, Fixed.red 0%, Fixed.yellow 17%, Fixed.lime 33%, Fixed.cyan 50%, Fixed.blue 67%, Fixed.pink 83%, Fixed.red 100%);
+                    Rectangle { background: @linear-gradient(180deg, Fixed.paper 0%, Fixed.white-clear 50%, Fixed.black-clear 50%, Fixed.ink 100%); }
+                    TouchArea {
+                        mouse-cursor: crosshair;
+                        clicked => { NewProjectUi.color-at(root.which, self.mouse-x / area.width, self.mouse-y / area.height); }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,8 +1,8 @@
 // O menu de botão direito da grade de fotos e a pergunta antes de tirar fotos usadas em lâminas
 // (spec TF, regras 1 e 4). Os textos e as decisões vêm do Rust (`src/photo_menu.rs`).
 
-import { Theme, Type } from "theme.slint";
-import { Shade, Panel, DialogButton } from "widgets.slint";
+import { Theme } from "theme.slint";
+import { Dialog, DialogFooter, DialogButton } from "widgets.slint";
 
 export global PhotoMenuUi {
     // "Remover fotografia do álbum" ou "Remover 3 fotografias do álbum"; "Mostrar no Explorador"
@@ -18,22 +18,14 @@ export global PhotoMenuUi {
     callback confirm();
 }
 
-export component RemoveAskDialog inherits Shade {
+export component RemoveAskDialog inherits Dialog {
     callback closed();
-    Panel {
-        width: 480px;
-        height: 170px;
-        VerticalLayout {
-            padding: 24px;
-            spacing: 16px;
-            Text { text: PhotoMenuUi.remove-text + "?"; font-size: Type.title; font-weight: Type.semibold; color: Theme.text; }
-            Text { text: PhotoMenuUi.question; color: Theme.text-2; wrap: word-wrap; }
-            HorizontalLayout {
-                alignment: end;
-                spacing: 8px;
-                DialogButton { text: "Cancelar"; clicked => { PhotoMenuUi.show-ask = false; root.closed(); } }
-                DialogButton { text: PhotoMenuUi.confirm-text; primary: true; clicked => { PhotoMenuUi.confirm(); root.closed(); } }
-            }
-        }
+    title: PhotoMenuUi.remove-text + "?";
+    child-focus: true;
+    dismissed => { PhotoMenuUi.show-ask = false; root.closed(); }
+    Text { text: PhotoMenuUi.question; color: Theme.text-2; wrap: word-wrap; }
+    DialogFooter {
+        DialogButton { text: "Cancelar"; takes-focus: true; clicked => { PhotoMenuUi.show-ask = false; root.closed(); } }
+        DialogButton { text: PhotoMenuUi.confirm-text; danger: true; clicked => { PhotoMenuUi.confirm(); root.closed(); } }
     }
 }

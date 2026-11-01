@@ -3,8 +3,8 @@
 // Só desenho: as contas são do editor (`lamina_editor::building`), pelo Rust.
 
 import { SpinBox, ComboBox } from "std-widgets.slint";
-import { Theme, Type } from "theme.slint";
-import { Shade, Panel, DialogButton } from "widgets.slint";
+import { Theme, Space } from "theme.slint";
+import { Dialog, DialogSize, DialogFooter, DialogButton } from "widgets.slint";
 
 export global BuildUi {
     in-out property <bool> show;
@@ -22,61 +22,48 @@ export global BuildUi {
     callback closed();
 }
 
-export component BuildAlbumDialog inherits Shade {
-    keys := FocusScope {
-        key-pressed(event) => {
-            if (event.text == Key.Escape) {
-                BuildUi.show = false;
-                BuildUi.closed();
-                return accept;
-            }
-            if (event.text == Key.Return && BuildUi.error == "") {
-                BuildUi.build();
-                return accept;
-            }
-            reject
-        }
-        Panel {
-            width: 520px;
-            height: 330px;
-            VerticalLayout {
-                padding: 24px;
-                spacing: 12px;
-                Text { text: "Montar o álbum"; font-size: Type.title; font-weight: Type.semibold; color: Theme.text; }
-                Text { text: BuildUi.what; color: Theme.text; wrap: word-wrap; }
-                HorizontalLayout {
-                    spacing: 8px;
-                    Text { text: "Número de lâminas"; width: 170px; color: Theme.text; vertical-alignment: center; }
-                    SpinBox {
-                        width: 110px;
-                        value <=> BuildUi.spreads;
-                        minimum: 1;
-                        maximum: max(1, BuildUi.most);
-                        edited => { BuildUi.changed(); }
-                    }
-                    Text { text: BuildUi.suggestion; color: Theme.text-2; vertical-alignment: center; wrap: word-wrap; horizontal-stretch: 1; }
-                }
-                HorizontalLayout {
-                    spacing: 8px;
-                    Text { text: "Variedade dos desenhos"; width: 170px; color: Theme.text; vertical-alignment: center; }
-                    ComboBox {
-                        model: ["Muita variedade", "Equilibrado", "Mais uniforme"];
-                        current-index <=> BuildUi.reuse;
-                        selected => { BuildUi.changed(); }
-                    }
-                }
-                if BuildUi.error == "": Text { text: BuildUi.result; color: Theme.text; wrap: word-wrap; }
-                if BuildUi.error == "" && BuildUi.warning != "": Text { text: BuildUi.warning; color: Theme.warning; wrap: word-wrap; }
-                if BuildUi.error != "": Text { text: BuildUi.error; color: Theme.warning; wrap: word-wrap; }
-                Rectangle { vertical-stretch: 1; }
-                HorizontalLayout {
-                    alignment: end;
-                    spacing: 8px;
-                    DialogButton { text: "Cancelar"; clicked => { BuildUi.show = false; BuildUi.closed(); } }
-                    DialogButton { text: "Montar"; primary: true; enabled: BuildUi.error == ""; clicked => { BuildUi.build(); } }
-                }
-            }
+// O número de lâminas é o primeiro campo: recebe o foco ao abrir (spec DD, regra 7).
+component SpreadsField inherits SpinBox {
+    init => { self.focus(); }
+}
+
+export component BuildAlbumDialog inherits Dialog {
+    title: "Montar o álbum";
+    size: DialogSize.form;
+    child-focus: true;
+    dismissed => { BuildUi.show = false; BuildUi.closed(); }
+    confirmed => {
+        if (BuildUi.error == "") {
+            BuildUi.build();
         }
     }
-    init => { keys.focus(); }
+    Text { text: BuildUi.what; color: Theme.text; wrap: word-wrap; }
+    HorizontalLayout {
+        spacing: Space.s2;
+        Text { text: "Número de lâminas"; width: 170px; color: Theme.text; vertical-alignment: center; }
+        SpreadsField {
+            width: 110px;
+            value <=> BuildUi.spreads;
+            minimum: 1;
+            maximum: max(1, BuildUi.most);
+            edited => { BuildUi.changed(); }
+        }
+        Text { text: BuildUi.suggestion; color: Theme.text-2; vertical-alignment: center; wrap: word-wrap; horizontal-stretch: 1; }
+    }
+    HorizontalLayout {
+        spacing: Space.s2;
+        Text { text: "Variedade dos desenhos"; width: 170px; color: Theme.text; vertical-alignment: center; }
+        ComboBox {
+            model: ["Muita variedade", "Equilibrado", "Mais uniforme"];
+            current-index <=> BuildUi.reuse;
+            selected => { BuildUi.changed(); }
+        }
+    }
+    if BuildUi.error == "": Text { text: BuildUi.result; color: Theme.text; wrap: word-wrap; }
+    if BuildUi.error == "" && BuildUi.warning != "": Text { text: BuildUi.warning; color: Theme.warning; wrap: word-wrap; }
+    if BuildUi.error != "": Text { text: BuildUi.error; color: Theme.warning; wrap: word-wrap; }
+    DialogFooter {
+        DialogButton { text: "Cancelar"; clicked => { BuildUi.show = false; BuildUi.closed(); } }
+        DialogButton { text: "Montar"; primary: true; enabled: BuildUi.error == ""; clicked => { BuildUi.build(); } }
+    }
 }

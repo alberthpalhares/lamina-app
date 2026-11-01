@@ -1,11 +1,13 @@
-// Superfícies (spec DF, saída 5): o véu e o painel dos diálogos, a linha de campo com rótulo, o
-// cartão, o aviso que some sozinho, o estado vazio e a barra de progresso com Cancelar.
+// Superfícies (spec DF, saída 5): o véu e o painel dos diálogos, a moldura única (spec DD), a linha
+// de campo com rótulo, o cartão, o aviso que some sozinho, o estado vazio e a barra de progresso
+// com Cancelar.
 
+import { ComboBox, LineEdit, ListView, ScrollView } from "std-widgets.slint";
 import { Theme } from "../theme/theme.slint";
 import { Radius, Line, Elevation, Space } from "../theme/metrics.slint";
 import { Type } from "../theme/type.slint";
 import { Motion } from "../motion.slint";
-import { BarButton } from "buttons.slint";
+import { BarButton, FocusRing } from "buttons.slint";
 
 // Fundo escurecido que bloqueia os cliques na janela de baixo.
 export component Shade inherits Rectangle {
@@ -27,12 +29,262 @@ export component Panel inherits Rectangle {
     drop-shadow-color: Elevation.dialog-color;
 }
 
+// As medidas dos diálogos (spec DD, regras 2, 3 e 12).
+export global DialogSize {
+    out property <length> question: 440px;
+    out property <length> form: 560px;
+    out property <length> wizard: 960px;
+    out property <length> wizard-height: 560px;
+    // A folga até a borda da janela, somando os dois lados.
+    out property <length> margin: 40px;
+}
+
+// A moldura de todo diálogo (spec DD, regras 1 a 3, 8 e 9): véu, painel e título; o corpo e o rodapé
+// vêm de quem herda. O conteúdo mora num `PopupWindow` porque só ali o Slint prende o Tab; o tamanho
+// do popup é lido uma vez só, por isso ele nasce maior que qualquer tela, e quem segue a janela é
+// o véu lá dentro. O popup que fecha devolve o foco a quem o tinha.
+export component Dialog inherits Rectangle {
+    in property <string> title;
+    // O texto pequeno à direita do título ("Etapa 1 de 3 · Tamanho").
+    in property <string> note;
+    in property <length> size: DialogSize.question;
+    // Zero: a altura vem do conteúdo.
+    in property <length> fixed-height: 0px;
+    // Algo lá dentro pede o foco ao abrir; sem isso, a moldura fica com ele (regra 7).
+    in property <bool> child-focus;
+    // Falso em "Recuperar o álbum" e no andamento (regra 9).
+    in property <bool> escape: true;
+    // Um clique fora do painel fecha (atalhos do teclado).
+    in property <bool> closes-outside;
+    callback dismissed();
+    // Enter sem nada que o use: num diálogo que tem principal.
+    callback confirmed();
+    popup := PopupWindow {
+        x: 0;
+        y: 0;
+        width: 16000px;
+        height: 16000px;
+        close-policy: no-auto-close;
+        Shade {
+            x: 0;
+            y: 0;
+            width: root.width;
+            height: root.height;
+            TouchArea {
+                clicked => {
+                    if (root.closes-outside) {
+                        root.dismissed();
+                    }
+                }
+            }
+            keys := FocusScope {
+                focus-on-tab-navigation: false;
+                init => {
+                    if (!root.child-focus) {
+                        self.focus();
+                    }
+                }
+                key-pressed(event) => {
+                    if (event.text == Key.Escape && root.escape) {
+                        root.dismissed();
+                        return accept;
+                    }
+                    if (event.text == Key.Return) {
+                        root.confirmed();
+                        return accept;
+                    }
+                    reject
+                }
+                Panel {
+                    width: min(root.size, root.width - DialogSize.margin);
+                    height: min(root.fixed-height > 0px ? root.fixed-height : column.preferred-height, root.height - DialogSize.margin);
+                    // Cliques dentro do painel ficam nele.
+                    TouchArea { }
+                    column := VerticalLayout {
+                        padding: Space.s5;
+                        spacing: Space.s4;
+                        if root.title != "": HorizontalLayout {
+                            spacing: Space.s3;
+                            vertical-stretch: 0;
+                            Text {
+                                text: root.title;
+                                color: Theme.text;
+                                font-size: Type.title;
+                                font-weight: Type.semibold;
+                                wrap: word-wrap;
+                                horizontal-stretch: 1;
+                            }
+                            if root.note != "": Text {
+                                text: root.note;
+                                color: Theme.text-2;
+                                font-size: Type.small;
+                                horizontal-alignment: right;
+                                vertical-alignment: center;
+                            }
+                        }
+                        @children
+                    }
+                }
+            }
+        }
+    }
+    init => { popup.show(); }
+}
+
+// O corpo de um diálogo que pode passar da janela: só ele rola; título e rodapé ficam à vista
+// (regra 3).
+export component DialogBody inherits Rectangle {
+    in property <length> gap: Space.s3;
+    vertical-stretch: 1;
+    preferred-height: inner.preferred-height;
+    min-height: min(inner.preferred-height, 120px);
+    ScrollView {
+        content-height: inner.preferred-height;
+        inner := VerticalLayout {
+            spacing: root.gap;
+            alignment: start;
+            @children
+        }
+    }
+}
+
+// O rodapé: à direita, Cancelar e o principal por último; à esquerda de um `DialogGap`, só o que
+// não responde à pergunta (regra 4).
+export component DialogFooter inherits HorizontalLayout {
+    alignment: end;
+    spacing: Space.s2;
+    vertical-stretch: 0;
+    @children
+}
+
+export component DialogGap inherits Rectangle {
+    horizontal-stretch: 1;
+}
+
+// O campo que recebe o foco ao abrir (regra 7).
+export component FirstLineEdit inherits LineEdit {
+    init => { self.focus(); }
+}
+
+export component FirstComboBox inherits ComboBox {
+    init => { self.focus(); }
+}
+
+// Um caminho com o meio cortado; com o mouse em cima, o caminho inteiro, em quantas linhas precisar
+// (regra 17). A dica fica dentro do corpo do diálogo, porque o corpo corta o que passa dele.
+export component PathLabel inherits Rectangle {
+    in property <string> short;
+    in property <string> full;
+    accessible-role: AccessibleRole.text;
+    accessible-label: root.full;
+    horizontal-stretch: 1;
+    z: hover.has-hover ? 1 : 0;
+    Text {
+        width: 100%;
+        height: 100%;
+        text: root.short;
+        color: Theme.text;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+    hover := TouchArea { }
+    if hover.has-hover: Rectangle {
+        x: 0;
+        y: parent.height;
+        width: parent.width;
+        height: tip.preferred-height + 2 * Space.s1;
+        border-radius: Radius.small;
+        border-width: Line.thin;
+        border-color: Theme.line;
+        background: Theme.raised;
+        tip := Text {
+            x: Space.s2;
+            width: parent.width - 2 * Space.s2;
+            text: root.full;
+            color: Theme.text;
+            font-size: Type.small;
+            wrap: char-wrap;
+        }
+    }
+}
+
+// Uma lista de nomes com uma parada de Tab: as setas andam, e clicar também escolhe (regras 11 e
+// 24). Devolve o nome para o campo de renomear.
+export component PickList inherits Rectangle {
+    in property <[string]> items;
+    in property <string> label;
+    in-out property <int> selected: -1;
+    callback picked(string);
+    property <length> row-height: 28px;
+    function pick(i: int) {
+        root.selected = i;
+        root.picked(root.items[i]);
+        // A linha escolhida fica à vista.
+        scroller.content-y = max(min(scroller.content-y, -i * root.row-height), scroller.visible-height - (i + 1) * root.row-height);
+    }
+    accessible-role: AccessibleRole.list;
+    accessible-label: root.label;
+    vertical-stretch: 1;
+    min-height: 3 * root.row-height;
+    preferred-height: min(root.items.length, 6) * root.row-height;
+    scroller := ListView {
+        for item[i] in root.items: Rectangle {
+            height: root.row-height;
+            border-radius: Radius.small;
+            accessible-role: AccessibleRole.list-item;
+            accessible-label: item;
+            accessible-item-selectable: true;
+            accessible-item-selected: i == root.selected;
+            accessible-action-default => { root.pick(i); }
+            background: i == root.selected ? Theme.press : touch.has-hover ? Theme.hover : transparent;
+            Text {
+                x: Space.s2;
+                text: item;
+                color: Theme.text;
+                vertical-alignment: center;
+            }
+            touch := TouchArea {
+                clicked => {
+                    keys.focus();
+                    root.pick(i);
+                }
+            }
+        }
+    }
+    keys := FocusScope {
+        x: 0;
+        width: 0;
+        key-pressed(e) => {
+            if (root.items.length == 0) {
+                return reject;
+            }
+            if (e.text == Key.DownArrow) {
+                root.pick(min(root.selected + 1, root.items.length - 1));
+                return accept;
+            }
+            if (e.text == Key.UpArrow) {
+                root.pick(max(root.selected - 1, 0));
+                return accept;
+            }
+            reject
+        }
+    }
+    FocusRing {
+        x: -3px;
+        y: -3px;
+        width: parent.width + 6px;
+        height: parent.height + 6px;
+        shown: keys.has-focus;
+    }
+}
+
 export component Field inherits HorizontalLayout {
     in property <string> label;
+    in property <length> label-width: 120px;
     spacing: Space.s2;
     Text {
         text: root.label;
-        width: 200px;
+        width: root.label-width;
         color: Theme.text;
         font-size: Type.body;
         vertical-alignment: center;

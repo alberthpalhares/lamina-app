@@ -4,8 +4,9 @@
 
 use std::path::PathBuf;
 
+use lamina_editor::forms::short_path;
 use lamina_editor::new_project::{
-    CANNOT_WRITE, NO_PHOTOS_HERE, can_write, documents_dir, empty_album, free_file,
+    CANNOT_WRITE, NO_PHOTOS_HERE, StepThreeState, can_write, documents_dir, empty_album, free_file,
     suggested_folder,
 };
 use lamina_editor::{
@@ -18,6 +19,9 @@ use crate::state::App;
 use crate::{AppWindow, NewProjectUi};
 
 type Shared = std::rc::Rc<std::cell::RefCell<App>>;
+
+/// Quantas letras do arquivo cabem na linha "Onde salvar" (spec DD, regra 17).
+const SHORT_FILE: usize = 44;
 
 /// Etapa 3 vazia: sem pasta de fotos, nome padrão e o arquivo sugerido.
 pub fn reset(app: &mut App) {
@@ -92,6 +96,7 @@ pub fn refresh(app: &App) {
     let name = ui.get_name().trim().to_owned();
     let file = target(app, &name);
     ui.set_file(file.display().to_string().into());
+    ui.set_file_short(short_path(&file.display().to_string(), SHORT_FILE).into());
     let spec = app.wizard.as_ref().and_then(|w| w.size.spec().ok());
     let limits = crate::new_project::limits(app).unwrap_or_default();
     let with_photos = !ui.get_no_photos();
@@ -109,15 +114,12 @@ pub fn refresh(app: &App) {
             error = error.or(Some(e.human().line()));
         }
     }
-    if with_photos && app.new_photos == 0 {
-        error = error.or(Some(
-            "Escolha a pasta das fotos ou comece sem fotos.".to_owned(),
-        ));
-    }
     if !can_write(file.parent().unwrap_or(&file)) {
         error = error.or(Some(CANNOT_WRITE.to_owned()));
     }
-    ui.set_create_error(error.unwrap_or_default().into());
+    let state = StepThreeState::new(error, with_photos && app.new_photos == 0);
+    ui.set_create_hint(state.hint.into());
+    ui.set_create_error(state.error.into());
 }
 
 /// "Escolher pasta…": conta as fotos e sugere o nome e as lâminas.

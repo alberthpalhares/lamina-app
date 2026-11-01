@@ -1,8 +1,10 @@
 // Painel de histórico (spec HI): o começo e um passo por linha; o atual destacado, os desfeitos
-// apagados e o marcador "salvo". Clique leva o álbum àquele passo.
+// apagados e o marcador "salvo". Clique leva o álbum àquele passo. Pelo teclado (spec DD, regra 28),
+// a lista é uma parada de Tab: ↑ ↓ andam sem mudar o álbum, e Enter leva ao passo marcado.
 
 import { ListView } from "std-widgets.slint";
-import { Theme, Type, Radius } from "theme.slint";
+import { Theme, Type, Radius, Space } from "theme.slint";
+import { FocusRing } from "widgets.slint";
 
 export struct HistoryItem {
     label: string,
@@ -15,7 +17,14 @@ export component HistoryPanel inherits VerticalLayout {
     in property <[HistoryItem]> items;
     in property <int> position;
     callback go(int);
-    spacing: 6px;
+    property <length> row-height: 30px;
+    // A linha marcada pelo teclado; começa no passo atual.
+    property <int> mark;
+    function step(delta: int) {
+        root.mark = max(0, min(root.items.length - 1, root.mark + delta));
+        steps.content-y = max(min(steps.content-y, -root.mark * root.row-height), steps.visible-height - (root.mark + 1) * root.row-height);
+    }
+    spacing: Space.s1;
 
     Text {
         text: "Clique num passo para voltar a ele. Os apagados ainda podem ser refeitos.";
@@ -23,33 +32,68 @@ export component HistoryPanel inherits VerticalLayout {
         font-size: Type.small;
         wrap: word-wrap;
     }
-    ListView {
+    Rectangle {
         vertical-stretch: 1;
-        for item[i] in root.items: Rectangle {
-            height: 30px;
-            border-radius: Radius.small;
-            background: i == root.position ? Theme.press : touch.has-hover ? Theme.hover : transparent;
-            HorizontalLayout {
-                padding-left: 8px;
-                padding-right: 8px;
-                spacing: 6px;
-                Text {
-                    text: item.label;
-                    color: item.undone ? Theme.text-disabled : i == root.position ? Theme.text-strong : Theme.text;
-                    font-weight: i == root.position ? Type.semibold : Type.regular;
-                    font-size: Type.small;
-                    vertical-alignment: center;
-                    overflow: elide;
-                    horizontal-stretch: 1;
+        accessible-role: AccessibleRole.list;
+        accessible-label: "Histórico";
+        steps := ListView {
+            for item[i] in root.items: Rectangle {
+                height: root.row-height;
+                border-radius: Radius.small;
+                background: i == root.position ? Theme.press : touch.has-hover ? Theme.hover : transparent;
+                HorizontalLayout {
+                    padding-left: Space.s2;
+                    padding-right: Space.s2;
+                    spacing: Space.s1;
+                    Text {
+                        text: item.label;
+                        color: item.undone ? Theme.text-disabled : i == root.position ? Theme.text-strong : Theme.text;
+                        font-weight: i == root.position ? Type.semibold : Type.regular;
+                        font-size: Type.small;
+                        vertical-alignment: center;
+                        overflow: elide;
+                        horizontal-stretch: 1;
+                    }
+                    if item.saved: Text {
+                        text: "salvo";
+                        color: Theme.warning;
+                        font-size: Type.caption;
+                        vertical-alignment: center;
+                    }
                 }
-                if item.saved: Text {
-                    text: "salvo";
-                    color: Theme.warning;
-                    font-size: Type.caption;
-                    vertical-alignment: center;
+                touch := TouchArea { clicked => { root.go(i); } }
+                FocusRing {
+                    x: 0;
+                    y: 0;
+                    width: parent.width;
+                    height: parent.height;
+                    shown: keys.has-focus && i == root.mark;
                 }
             }
-            touch := TouchArea { clicked => { root.go(i); } }
+        }
+        keys := FocusScope {
+            x: 0;
+            width: 0;
+            changed has-focus => {
+                if (self.has-focus) {
+                    root.mark = root.position;
+                }
+            }
+            key-pressed(e) => {
+                if (e.text == Key.UpArrow) {
+                    root.step(-1);
+                    return accept;
+                }
+                if (e.text == Key.DownArrow) {
+                    root.step(1);
+                    return accept;
+                }
+                if (e.text == Key.Return) {
+                    root.go(root.mark);
+                    return accept;
+                }
+                reject
+            }
         }
     }
 }

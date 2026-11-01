@@ -65,6 +65,7 @@ export component BarButton inherits Rectangle {
     // O foco do teclado, para uma lista rolar até o botão (página de novidades, spec PV, regra 12).
     out property <bool> focused: focus.has-focus;
     callback clicked();
+    forward-focus: focus;
     accessible-role: button;
     accessible-label: root.text;
     accessible-enabled: root.enabled;
@@ -232,8 +233,50 @@ export component IconTextButton inherits Rectangle {
 // Botão dos diálogos: com contorno fino; com `primary`, é o principal em ciano (spec DF,
 // correção 1: os botões padrão do Slint seguem a cor de destaque do sistema).
 export component DialogButton inherits BarButton {
+    // Recebe o foco quando o diálogo abre (spec DD, regra 7).
+    in property <bool> takes-focus;
     outlined: true;
     pad: 16px;
     least-width: 80px;
     min-height: 32px;
+    max-height: 32px;
+    init => {
+        if (root.takes-focus) {
+            self.focus();
+        }
+    }
+}
+
+// O foco de algo que se clica e não é botão, como um cartão ou uma amostra de cor (spec DD, regra
+// 11). Vai dentro do que se clica: Tab para aqui, e Espaço ou Enter acionam.
+export component FocusStop inherits Rectangle {
+    in property <bool> enabled: true;
+    in property <length> radius: Radius.small;
+    in property <bool> takes-focus;
+    callback activated();
+    focus := FocusScope {
+        x: 0;
+        width: 0;
+        enabled: root.enabled;
+        key-pressed(e) => {
+            if (e.text == Key.Space || e.text == Key.Return) {
+                root.activated();
+                return accept;
+            }
+            return reject;
+        }
+    }
+    init => {
+        if (root.takes-focus) {
+            focus.focus();
+        }
+    }
+    FocusRing {
+        x: -3px;
+        y: -3px;
+        width: parent.width + 6px;
+        height: parent.height + 6px;
+        radius: root.radius;
+        shown: focus.has-focus;
+    }
 }

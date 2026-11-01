@@ -1,41 +1,51 @@
 // Janelas sobre a janela principal: pergunta antes de sair, erro e andamento. O novo álbum fica em
 // `new_project.slint`.
 
-import { TextEdit } from "std-widgets.slint";
-import { Theme, Type } from "theme.slint";
-import { Shade, Panel, DialogButton } from "widgets.slint";
+import { ScrollView } from "std-widgets.slint";
+import { Theme, Type, Radius, Line, Space } from "theme.slint";
+import { Dialog, DialogSize, DialogBody, DialogFooter, DialogGap, DialogButton } from "widgets.slint";
 
-export component ConfirmDialog inherits Shade {
+export component ConfirmDialog inherits Dialog {
     in property <string> name;
     callback answer(int);
-    Panel {
-        width: 440px;
-        height: 170px;
-        VerticalLayout {
-            padding: 24px;
-            spacing: 16px;
-            Text {
-                text: "Salvar as alterações em \"" + root.name + "\"?";
-                font-size: Type.title;
-                font-weight: Type.semibold;
-                color: Theme.text;
-                wrap: word-wrap;
-            }
-            Text { text: "Sem salvar, as alterações do álbum se perdem. Os arquivos já exportados continuam na pasta."; color: Theme.text-2; wrap: word-wrap; }
-            HorizontalLayout {
-                alignment: end;
-                spacing: 8px;
-                DialogButton { text: "Cancelar"; clicked => { root.answer(2); } }
-                DialogButton { text: "Não salvar"; clicked => { root.answer(1); } }
-                DialogButton { text: "Salvar"; primary: true; clicked => { root.answer(0); } }
-            }
+    title: "Salvar as alterações em \"" + root.name + "\"?";
+    child-focus: true;
+    dismissed => { root.answer(2); }
+    Text { text: "Sem salvar, as alterações do álbum se perdem. Os arquivos já exportados continuam na pasta."; color: Theme.text-2; wrap: word-wrap; }
+    DialogFooter {
+        DialogButton { text: "Cancelar"; clicked => { root.answer(2); } }
+        DialogButton { text: "Não salvar"; clicked => { root.answer(1); } }
+        DialogButton { text: "Salvar"; primary: true; takes-focus: true; clicked => { root.answer(0); } }
+    }
+}
+
+// A caixa dos detalhes do erro: a altura do texto, até 200 px; passando disso, rola (achado 30).
+component DetailsBox inherits Rectangle {
+    in property <string> text;
+    height: min(content.preferred-height + 2 * Space.s2, 200px);
+    border-radius: Radius.small;
+    border-width: Line.thin;
+    border-color: Theme.line;
+    background: Theme.field;
+    ScrollView {
+        x: Space.s2;
+        y: Space.s1;
+        width: parent.width - 2 * Space.s2;
+        height: parent.height - 2 * Space.s1;
+        content-height: content.preferred-height;
+        content := TextInput {
+            text: root.text;
+            read-only: true;
+            single-line: false;
+            wrap: word-wrap;
+            color: Theme.text-2;
+            font-size: Type.small;
         }
     }
 }
 
-export component MessageDialog inherits Shade {
+export component MessageDialog inherits Dialog {
     // Erro: a frase (title), o que fazer (message) e o detalhe técnico, recolhido (spec EH).
-    in property <string> title;
     in property <string> message;
     in property <string> details;
     // Pasta para o botão "Abrir a pasta" (resumo da exportação, spec EI); vazia = sem botão.
@@ -44,45 +54,34 @@ export component MessageDialog inherits Shade {
     callback close();
     callback open-folder();
     callback send-problem();
-    Panel {
-        width: 560px;
-        height: root.expanded ? 440px : 250px;
-        VerticalLayout {
-            padding: 24px;
-            spacing: 12px;
-            Text { text: root.title; font-size: Type.title; font-weight: Type.semibold; color: Theme.text; wrap: word-wrap; }
-            Text { text: root.message; color: Theme.text; wrap: word-wrap; vertical-stretch: root.expanded ? 0 : 1; }
-            if root.expanded: TextEdit { text: root.details; read-only: true; wrap: word-wrap; vertical-stretch: 1; }
-            HorizontalLayout {
-                spacing: 8px;
-                if root.details != "": DialogButton {
-                    text: root.expanded ? "Esconder detalhes" : "Mostrar detalhes";
-                    clicked => { root.expanded = !root.expanded; }
-                }
-                Rectangle { horizontal-stretch: 1; }
-                if root.details != "": DialogButton { text: "Enviar problema…"; clicked => { root.send-problem(); } }
-                if root.folder != "": DialogButton { text: "Abrir a pasta"; clicked => { root.open-folder(); } }
-                DialogButton { text: "OK"; primary: true; clicked => { root.close(); } }
-            }
+    size: DialogSize.form;
+    child-focus: true;
+    dismissed => { root.close(); }
+    DialogBody {
+        Text { text: root.message; color: Theme.text; wrap: word-wrap; }
+        if root.expanded: DetailsBox { text: root.details; }
+    }
+    DialogFooter {
+        if root.details != "": DialogButton {
+            text: root.expanded ? "Esconder detalhes" : "Mostrar detalhes";
+            clicked => { root.expanded = !root.expanded; }
         }
+        DialogGap { }
+        if root.details != "": DialogButton { text: "Enviar problema…"; clicked => { root.send-problem(); } }
+        if root.folder != "": DialogButton { text: "Abrir a pasta"; clicked => { root.open-folder(); } }
+        DialogButton { text: "OK"; primary: true; takes-focus: true; clicked => { root.close(); } }
     }
 }
 
-export component BusyOverlay inherits Shade {
+// O andamento: fica por cima de tudo e segura as teclas, sem nada para cancelar (regra 9).
+export component BusyOverlay inherits Dialog {
     in property <string> text;
-    Panel {
-        width: 380px;
-        height: 90px;
-        Text {
-            text: root.text;
-            color: Theme.text;
-            font-size: Type.title;
-        }
-    }
+    title: root.text;
+    escape: false;
 }
 
 // A cópia de segurança (spec CS, regra 4): o álbum que ficou sem salvar numa queda. A pergunta vem
-// do Rust (`src/backup.rs`).
+// do Rust (`src/backup.rs`). A resposta é obrigatória: Esc não fecha (regra 9).
 export global RecoverUi {
     in-out property <bool> show;
     in property <string> question;
@@ -90,21 +89,13 @@ export global RecoverUi {
     callback discard();
 }
 
-export component RecoverDialog inherits Shade {
-    Panel {
-        width: 480px;
-        height: 190px;
-        VerticalLayout {
-            padding: 24px;
-            spacing: 12px;
-            Text { text: RecoverUi.question; font-size: Type.title; font-weight: Type.semibold; color: Theme.text; wrap: word-wrap; }
-            Text { text: "Recuperar abre o álbum como estava, ainda sem salvar. Descartar apaga a cópia; o arquivo do álbum fica como foi salvo pela última vez."; color: Theme.text-2; wrap: word-wrap; }
-            HorizontalLayout {
-                alignment: end;
-                spacing: 8px;
-                DialogButton { text: "Descartar"; clicked => { RecoverUi.discard(); } }
-                DialogButton { text: "Recuperar"; primary: true; clicked => { RecoverUi.recover(); } }
-            }
-        }
+export component RecoverDialog inherits Dialog {
+    title: RecoverUi.question;
+    child-focus: true;
+    escape: false;
+    Text { text: "Recuperar abre o álbum como estava, ainda sem salvar. Descartar apaga a cópia; o arquivo do álbum fica como foi salvo pela última vez."; color: Theme.text-2; wrap: word-wrap; }
+    DialogFooter {
+        DialogButton { text: "Descartar"; danger: true; clicked => { RecoverUi.discard(); } }
+        DialogButton { text: "Recuperar"; primary: true; takes-focus: true; clicked => { RecoverUi.recover(); } }
     }
 }

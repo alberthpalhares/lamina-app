@@ -9,6 +9,7 @@ import { Motion } from "motion.slint";
 import { StripTheme } from "strip_header.slint";
 import { DragUi } from "drag.slint";
 import { RollUi } from "roll.slint";
+import { FocusRing } from "widgets.slint";
 
 export component SpreadStrip inherits Rectangle {
     in property <[SpreadData]> spreads;
@@ -166,6 +167,15 @@ export component SpreadStrip inherits Rectangle {
         root.follow(max(strip-scroll.visible-width - strip.preferred-width, min(0px, base + dy)));
     }
 
+    // Uma parada de Tab (spec DD, regra 28): o anel fica na lâmina atual, e ← → seguem até a janela,
+    // que já troca de lâmina.
+    accessible-role: AccessibleRole.list;
+    accessible-label: "Lâminas";
+    keys := FocusScope {
+        x: 0;
+        width: 0;
+    }
+
     strip-scroll := ScrollView {
         // Arrastar com o botão apertado é para mover a lâmina, não para rolar a faixa.
         mouse-drag-pan-enabled: false;
@@ -302,6 +312,13 @@ export component SpreadStrip inherits Rectangle {
                 }
                 Text { text: " "; font-size: Type.small; }
             }
+        }
+        if keys.has-focus: FocusRing {
+            x: 10px + root.current-index * root.item - 3px;
+            y: 8px - 3px;
+            width: root.thumb / max(0.01, root.current-aspect) + 6px + 6px;
+            height: root.thumb + 6px + 6px;
+            shown: true;
         }
         // Fotos soltas entre duas lâminas: o marcador no vão da lâmina nova (regra 7).
         if root.photo-gap >= 0 && root.photo-gap < root.spreads.length: Rectangle {

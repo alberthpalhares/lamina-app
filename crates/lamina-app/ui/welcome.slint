@@ -4,7 +4,7 @@
 
 import { LineEdit, ScrollView } from "std-widgets.slint";
 import { Theme, Type, Radius } from "theme.slint";
-import { Shade, Panel, DialogButton } from "widgets.slint";
+import { Dialog, DialogFooter, DialogButton } from "widgets.slint";
 
 export struct RecentCard {
     index: int,
@@ -215,22 +215,14 @@ export component WelcomeScreen inherits VerticalLayout {
 }
 
 // "Limpar recentes não fixados…" pede confirmação (regra 7).
-export component ClearRecentsDialog inherits Shade {
+export component ClearRecentsDialog inherits Dialog {
     callback closed();
-    Panel {
-        width: 440px;
-        height: 170px;
-        VerticalLayout {
-            padding: 24px;
-            spacing: 12px;
-            Text { text: "Limpar os álbuns recentes?"; font-size: Type.heading; font-weight: Type.semibold; color: Theme.text; }
-            Text { text: "Os fixados ficam na lista. Os arquivos dos álbuns não são apagados."; color: Theme.text-2; wrap: word-wrap; }
-            HorizontalLayout {
-                alignment: end;
-                spacing: 8px;
-                DialogButton { text: "Cancelar"; clicked => { RecentsUi.show-clear = false; root.closed(); } }
-                DialogButton { text: "Limpar"; primary: true; clicked => { RecentsUi.show-clear = false; RecentsUi.clear-confirmed(); root.closed(); } }
-            }
-        }
+    title: "Limpar os álbuns recentes?";
+    child-focus: true;
+    dismissed => { RecentsUi.show-clear = false; root.closed(); }
+    Text { text: "Os fixados ficam na lista. Os arquivos dos álbuns não são apagados."; color: Theme.text-2; wrap: word-wrap; }
+    DialogFooter {
+        DialogButton { text: "Cancelar"; takes-focus: true; clicked => { RecentsUi.show-clear = false; root.closed(); } }
+        DialogButton { text: "Limpar"; danger: true; clicked => { RecentsUi.show-clear = false; RecentsUi.clear-confirmed(); root.closed(); } }
     }
 }

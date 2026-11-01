@@ -1,31 +1,29 @@
-// Novo projeto em três etapas (spec NP): 1, Tamanho; 2, Montagem e aparência; 3, Fotos e
-// arquivo. Só desenho: os campos, o resumo, os erros e as prévias vêm do lamina-editor, pelo
-// Rust (`src/new_project.rs`). O estado fica num global, como o dos presets.
+// Novo projeto em três etapas (specs NP e DD): 1, Tamanho; 2, Montagem e aparência; 3, Fotos e
+// arquivo. Cabe sem rolar numa janela de 1366 × 668: o que se escolhe à esquerda, o resultado à
+// direita. Só desenho: os campos, o resumo, os erros e as prévias vêm do lamina-editor, pelo Rust
+// (`src/new_project.rs`). O estado fica num global, como o dos presets.
 
-import { ComboBox, LineEdit, SpinBox, ScrollView } from "std-widgets.slint";
+import { ComboBox, LineEdit, SpinBox } from "std-widgets.slint";
 import { NumberField } from "number_field.slint";
-import { Theme, Fixed, Type, Radius } from "theme.slint";
-import { Shade, Panel, DialogButton, CheckRow } from "widgets.slint";
-import { NewProjectUi, FormatCard, DrawData, ColorChoice } from "new_project_ui.slint";
-import { StepOne } from "new_project_size.slint";
+import { Theme, Type, Radius, Line, Space } from "theme.slint";
+import { Icons } from "icons.slint";
+import { Dialog, DialogSize, DialogBody, DialogFooter, DialogGap, DialogButton, CheckRow, FirstLineEdit, FocusStop, PathLabel } from "widgets.slint";
+import { NewProjectUi, FormatCard, DrawData } from "new_project_ui.slint";
+import { StepOne, SizeSummary, Disclosure } from "new_project_size.slint";
+import { ColorSwatch, OtherColor } from "new_project_color.slint";
 export { NewProjectUi, FormatCard, DrawData }
-
-component Label inherits Text {
-    color: Theme.text-2;
-    font-size: Type.small;
-    vertical-alignment: center;
-}
-
-component Title inherits Text {
-    color: Theme.text;
-    font-size: Type.title;
-    font-weight: Type.semibold;
-}
 
 component Hint inherits Text {
     color: Theme.text-2;
     font-size: Type.small;
     wrap: word-wrap;
+}
+
+// O rótulo de uma linha, na mesma coluna em todas.
+component RowLabel inherits Text {
+    width: 120px;
+    color: Theme.text;
+    vertical-alignment: center;
 }
 
 // Um cartão de escolha: título e explicação; o escolhido fica marcado.
@@ -39,242 +37,235 @@ component Choice inherits Rectangle {
     in property <bool> chosen;
     callback clicked();
     horizontal-stretch: 1;
-    min-height: 92px;
+    min-height: 72px;
     border-radius: Radius.medium;
-    background: root.chosen ? Theme.accent-soft : (touch.has-hover ? Theme.g6 : Theme.g4);
-    border-width: root.chosen ? 2px : 1px;
+    background: root.chosen ? Theme.accent-soft : (touch.has-hover ? Theme.hover : Theme.strip);
+    border-width: root.chosen ? Line.focus : Line.thin;
     border-color: root.chosen ? Theme.accent : Theme.press;
     VerticalLayout {
-        padding: 10px;
-        spacing: 4px;
+        padding: Space.s2;
+        spacing: Space.s1;
+        alignment: start;
         Text { text: root.title; color: Theme.text; font-weight: Type.semibold; }
         Hint { text: root.text; }
     }
     touch := TouchArea { clicked => { root.clicked(); } }
+    FocusStop { radius: Radius.medium; activated => { root.clicked(); } }
 }
 
-// O seletor de cor: amostras prontas, o quadro de cores para clicar e o código, se quiser.
-component ColorPicker inherits VerticalLayout {
-    in property <int> which;
-    in-out property <string> hex;
-    in property <color> current;
-    spacing: 6px;
-    HorizontalLayout {
-        spacing: 8px;
-        Rectangle { width: 28px; height: 28px; border-radius: Radius.small; background: root.current; border-width: 1px; border-color: Theme.overlay; }
-        LineEdit { text <=> root.hex; width: 100px; edited => { NewProjectUi.mount-changed(); } }
-        Hint { text: "ou clique numa cor"; vertical-alignment: center; }
-    }
-    Rectangle {
-        height: 2 * 26px;
-        for c[i] in NewProjectUi.palette: Rectangle {
-            x: mod(i, 6) * 30px;
-            y: floor(i / 6) * 26px;
-            width: 24px;
-            height: 22px;
-            border-radius: Radius.small;
-            background: c.c;
-            border-width: c.hex == root.hex ? 2px : 1px;
-            border-color: c.hex == root.hex ? Theme.text-strong : Theme.press;
-            TouchArea { clicked => { root.hex = c.hex; NewProjectUi.mount-changed(); } }
-        }
-    }
-    // Matiz na horizontal; do branco (topo) à cor pura (meio) e ao preto (embaixo).
-    area := Rectangle {
-        height: 70px;
-        width: 176px;
-        border-radius: Radius.small;
-        clip: true;
-        background: @linear-gradient(90deg, Fixed.red 0%, Fixed.yellow 17%, Fixed.lime 33%, Fixed.cyan 50%, Fixed.blue 67%, Fixed.pink 83%, Fixed.red 100%);
-        Rectangle { background: @linear-gradient(180deg, Fixed.paper 0%, Fixed.white-clear 50%, Fixed.black-clear 50%, Fixed.ink 100%); }
-        TouchArea {
-            mouse-cursor: crosshair;
-            clicked => { NewProjectUi.color-at(root.which, self.mouse-x / area.width, self.mouse-y / area.height); }
-        }
-    }
-}
-
-component StepTwo inherits VerticalLayout {
-    spacing: 10px;
-    Title { text: "Como as fotos entram nas lâminas"; }
-    CheckRow { text: "As fotos podem atravessar o meio do álbum aberto"; checked <=> NewProjectUi.lay-flat; toggled => { NewProjectUi.mount-changed(); } }
-    Hint { text: "Ligue para álbuns que abrem totalmente planos (lay-flat). Se a encadernação tem um vinco no meio, deixe desligado: nenhuma foto fica na dobra."; }
-    Text { text: "Quanto o Lamina pode cortar das suas fotos"; color: Theme.text; }
-    HorizontalLayout {
-        spacing: 8px;
-        Choice {
-            title: "Nada";
-            text: "Fotos sempre inteiras. Pode sobrar um pouco mais de fundo em volta.";
-            chosen: NewProjectUi.crop == 0;
-            clicked => { NewProjectUi.crop = 0; NewProjectUi.mount-changed(); }
-        }
-        Choice {
-            title: "Pouco";
-            text: "Corta no máximo 15% de uma foto, só para tudo encaixar melhor.";
-            chosen: NewProjectUi.crop == 1;
-            clicked => { NewProjectUi.crop = 1; NewProjectUi.mount-changed(); }
-        }
-        Choice {
-            title: "Livre (recomendado)";
-            text: "Pode cortar até 35% para uma foto grande encher a página.";
-            chosen: NewProjectUi.crop == 2;
-            clicked => { NewProjectUi.crop = 2; NewProjectUi.mount-changed(); }
-        }
-    }
-    Text { text: "Arranjos que enchem a página"; color: Theme.text; }
-    if NewProjectUi.crop == 0: Hint { text: "Com as fotos sempre inteiras, estes arranjos ficam desligados, porque eles cortam um pouco as fotos."; }
-    CheckRow { text: "Layouts sem borda"; checked <=> NewProjectUi.bleed-page; enabled: NewProjectUi.crop != 0; toggled => { NewProjectUi.mount-changed(); } }
-    Hint { text: "As fotos cobrem a página ou a lâmina até a borda do papel (o que a gráfica chama de sangria)."; }
-    CheckRow { text: "Mosaicos"; checked <=> NewProjectUi.mosaics; enabled: NewProjectUi.crop != 0; toggled => { NewProjectUi.mount-changed(); } }
-    Hint { text: "Várias fotos encostadas umas nas outras, formando um painel que enche a página."; }
-    HorizontalLayout {
-        spacing: 8px;
-        Text { text: "Variedade dos desenhos"; color: Theme.text; vertical-alignment: center; width: 170px; }
-        ComboBox { model: ["Muita variedade", "Equilibrado", "Mais uniforme"]; current-index <=> NewProjectUi.reuse; selected => { NewProjectUi.mount-changed(); } }
-    }
-    Hint { text: "Quanto o Lamina repete o mesmo desenho de página ao longo do álbum: \"Mais uniforme\" deixa o álbum com cara de coleção; \"Muita variedade\" muda a cada lâmina."; }
-
-    if NewProjectUi.mode == 2: Hint { text: "Vale para as próximas sugestões de layout; as lâminas prontas ficam como estão. A aparência de um álbum pronto muda na aba Aparência, ao lado da lâmina."; }
-    if NewProjectUi.mode != 2: Title { text: "Aparência"; }
-    if NewProjectUi.mode != 2: HorizontalLayout {
-        spacing: 24px;
+// Etapa 2, opção A do dono: o que a maioria não mexe fica em "Mais opções", recolhido (regra 14).
+component StepTwo inherits HorizontalLayout {
+    property <bool> more-open;
+    spacing: Space.s5;
+    VerticalLayout {
+        horizontal-stretch: 1;
+        spacing: Space.s3;
+        alignment: start;
         VerticalLayout {
-            spacing: 6px;
-            Text { text: "Cor do fundo das lâminas"; color: Theme.text; }
-            ColorPicker { which: 0; hex <=> NewProjectUi.background; current: NewProjectUi.background-color; }
-        }
-        VerticalLayout {
-            spacing: 6px;
-            Text { text: "Borda das fotos"; color: Theme.text; }
+            spacing: Space.s1;
+            // Com `alignment: start`, a largura fixa da caixa não aperta a coluna inteira.
             HorizontalLayout {
-                spacing: 8px;
-                Hint { text: "Espessura (mm, 0 = sem borda)"; vertical-alignment: center; width: 170px; }
-                NumberField { text <=> NewProjectUi.border; width: 70px; minimum: 0; edited => { NewProjectUi.mount-changed(); } }
+                alignment: start;
+                CheckRow { text: "As fotos podem atravessar o meio do álbum aberto"; takes-focus: true; checked <=> NewProjectUi.lay-flat; toggled => { NewProjectUi.mount-changed(); } }
             }
-            ColorPicker { which: 1; hex <=> NewProjectUi.border-color; current: NewProjectUi.border-swatch; }
+            Hint { text: "Para álbuns que abrem planos (lay-flat). Com vinco no meio, deixe desligado."; }
+        }
+        Text { text: "Quanto o Lamina pode cortar das suas fotos"; color: Theme.text; }
+        HorizontalLayout {
+            spacing: Space.s2;
+            Choice {
+                title: "Nada";
+                text: "Fotos sempre inteiras.";
+                chosen: NewProjectUi.crop == 0;
+                clicked => { NewProjectUi.crop = 0; NewProjectUi.mount-changed(); }
+            }
+            Choice {
+                title: "Pouco";
+                text: "Corta até 15%, só para encaixar.";
+                chosen: NewProjectUi.crop == 1;
+                clicked => { NewProjectUi.crop = 1; NewProjectUi.mount-changed(); }
+            }
+            Choice {
+                title: "Livre (recomendado)";
+                text: "Corta até 35% para encher a página.";
+                chosen: NewProjectUi.crop == 2;
+                clicked => { NewProjectUi.crop = 2; NewProjectUi.mount-changed(); }
+            }
+        }
+        if NewProjectUi.mode == 2: Hint { text: "Vale para as próximas sugestões de layout; as lâminas prontas ficam como estão. A aparência de um álbum pronto muda na aba Aparência, ao lado da lâmina."; }
+        if NewProjectUi.mode != 2: HorizontalLayout {
+            spacing: Space.s1;
+            alignment: start;
+            RowLabel { text: "Fundo das lâminas"; }
+            for c in NewProjectUi.palette: ColorSwatch {
+                y: (parent.height - self.height) / 2;
+                shade: c.c;
+                hex: c.hex;
+                current: c.hex == NewProjectUi.background;
+                picked => { NewProjectUi.background = c.hex; NewProjectUi.mount-changed(); }
+            }
+            OtherColor { which: 0; hex <=> NewProjectUi.background; }
+        }
+        if NewProjectUi.mode != 2: HorizontalLayout {
+            spacing: Space.s2;
+            alignment: start;
+            RowLabel { text: "Borda das fotos"; }
+            NumberField { accessible-label: "Espessura da borda, em milímetros"; text <=> NewProjectUi.border; width: 72px; minimum: 0; edited => { NewProjectUi.mount-changed(); } }
+            Hint { text: "mm"; vertical-alignment: center; }
+            ColorSwatch {
+                y: (parent.height - self.height) / 2;
+                shade: NewProjectUi.border-swatch;
+                hex: NewProjectUi.border-color;
+                current: true;
+            }
+            OtherColor { which: 1; hex <=> NewProjectUi.border-color; }
+        }
+        if NewProjectUi.mode != 2: HorizontalLayout {
+            spacing: Space.s2;
+            alignment: start;
+            RowLabel { text: "Espaço entre fotos"; }
+            NumberField { accessible-label: "Espaço entre as fotos, em milímetros"; text <=> NewProjectUi.gap; width: 72px; minimum: 0; edited => { NewProjectUi.mount-changed(); } }
+            Hint { text: "mm"; vertical-alignment: center; }
+            Rectangle { width: Space.s4; }
+            Text { text: "Cantos"; color: Theme.text; vertical-alignment: center; }
+            NumberField { accessible-label: "Cantos arredondados, em milímetros"; text <=> NewProjectUi.radius; width: 72px; minimum: 0; edited => { NewProjectUi.mount-changed(); } }
+            Hint { text: "mm"; vertical-alignment: center; }
+        }
+        if NewProjectUi.look-error != "": Text { text: NewProjectUi.look-error; color: Theme.warning; wrap: word-wrap; }
+        Disclosure {
+            text: "Mais opções";
+            note: "layouts sem borda, mosaicos e variedade";
+            open <=> root.more-open;
+        }
+        if root.more-open && NewProjectUi.crop == 0: Hint { text: "Com as fotos sempre inteiras, estes arranjos ficam desligados, porque eles cortam um pouco as fotos."; }
+        if root.more-open: HorizontalLayout {
+            spacing: Space.s4;
+            alignment: start;
+            CheckRow { text: "Layouts sem borda"; checked <=> NewProjectUi.bleed-page; enabled: NewProjectUi.crop != 0; toggled => { NewProjectUi.mount-changed(); } }
+            CheckRow { text: "Mosaicos"; checked <=> NewProjectUi.mosaics; enabled: NewProjectUi.crop != 0; toggled => { NewProjectUi.mount-changed(); } }
+        }
+        if root.more-open: HorizontalLayout {
+            spacing: Space.s2;
+            Text { text: "Variedade dos desenhos"; color: Theme.text; vertical-alignment: center; }
+            ComboBox { model: ["Muita variedade", "Equilibrado", "Mais uniforme"]; current-index <=> NewProjectUi.reuse; selected => { NewProjectUi.mount-changed(); } }
         }
     }
-    if NewProjectUi.mode != 2: HorizontalLayout {
-        spacing: 24px;
-        HorizontalLayout {
-            spacing: 8px;
-            Text { text: "Espaço entre as fotos (mm)"; color: Theme.text; vertical-alignment: center; }
-            NumberField { text <=> NewProjectUi.gap; width: 70px; minimum: 0; edited => { NewProjectUi.mount-changed(); } }
-        }
-        HorizontalLayout {
-            spacing: 8px;
-            Text { text: "Cantos arredondados (mm, 0 = retos)"; color: Theme.text; vertical-alignment: center; }
-            NumberField { text <=> NewProjectUi.radius; width: 70px; minimum: 0; edited => { NewProjectUi.mount-changed(); } }
-        }
-    }
-    if NewProjectUi.look-error != "": Text { text: NewProjectUi.look-error; color: Theme.warning; }
-    Text { text: "Prévia com fotos de exemplo (em cinza)"; color: Theme.text; }
-    HorizontalLayout {
-        spacing: 10px;
-        height: 150px;
-        for img in NewProjectUi.previews: Image { accessible-role: none; source: img; image-fit: contain; horizontal-stretch: 1; }
+    VerticalLayout {
+        width: 320px;
+        spacing: Space.s2;
+        alignment: start;
+        Hint { text: "Prévia com fotos de exemplo"; }
+        for img in NewProjectUi.previews: Image { accessible-role: none; source: img; image-fit: contain; height: 120px; }
     }
 }
 
-component StepThree inherits VerticalLayout {
-    spacing: 10px;
-    HorizontalLayout {
-        spacing: 8px;
-        Label { text: "Nome do álbum"; width: 150px; }
-        LineEdit { text <=> NewProjectUi.name; edited => { NewProjectUi.file-changed(); } }
+// Etapa 3: campos com a altura normal, e a lâmina escolhida à vista. A falta da pasta é dica; âmbar,
+// só para erro de verdade (regra 16).
+component StepThree inherits HorizontalLayout {
+    spacing: Space.s5;
+    VerticalLayout {
+        horizontal-stretch: 1;
+        spacing: Space.s3;
+        alignment: start;
+        HorizontalLayout {
+            spacing: Space.s2;
+            RowLabel { text: "Nome do álbum"; }
+            FirstLineEdit {
+                text <=> NewProjectUi.name;
+                edited => { NewProjectUi.file-changed(); }
+                accepted => {
+                    if (NewProjectUi.create-error == "" && NewProjectUi.create-hint == "") {
+                        NewProjectUi.create();
+                    }
+                }
+            }
+        }
+        HorizontalLayout {
+            spacing: Space.s2;
+            RowLabel { text: "Fotos"; }
+            DialogButton { text: "Escolher pasta…"; enabled: !NewProjectUi.no-photos; clicked => { NewProjectUi.pick-folder(); } }
+            Text { text: NewProjectUi.photos-text; color: Theme.text-2; vertical-alignment: center; overflow: elide; horizontal-stretch: 1; }
+        }
+        HorizontalLayout {
+            spacing: Space.s2;
+            alignment: start;
+            RowLabel { }
+            CheckRow { text: "Começar sem fotos (importo depois)"; checked <=> NewProjectUi.no-photos; toggled => { NewProjectUi.file-changed(); } }
+        }
+        if !NewProjectUi.no-photos && NewProjectUi.photos > 0: HorizontalLayout {
+            spacing: Space.s2;
+            alignment: start;
+            RowLabel { }
+            CheckRow { text: NewProjectUi.build-text; checked <=> NewProjectUi.build; toggled => { NewProjectUi.file-changed(); } }
+        }
+        if !NewProjectUi.no-photos && NewProjectUi.photos > 0 && NewProjectUi.build: HorizontalLayout {
+            spacing: Space.s2;
+            RowLabel { text: "Número de lâminas"; }
+            SpinBox { value <=> NewProjectUi.spreads; minimum: 1; maximum: max(1, NewProjectUi.photos); edited => { NewProjectUi.file-changed(); } }
+            Text { text: NewProjectUi.suggestion; color: Theme.text-2; vertical-alignment: center; }
+        }
+        HorizontalLayout {
+            spacing: Space.s2;
+            min-height: 32px;
+            RowLabel { text: "Onde salvar"; }
+            PathLabel { short: NewProjectUi.file-short; full: NewProjectUi.file; }
+            DialogButton { text: "Alterar…"; clicked => { NewProjectUi.change-file(); } }
+        }
+        if NewProjectUi.create-hint != "": HorizontalLayout {
+            spacing: Space.s2;
+            RowLabel { }
+            Hint { text: NewProjectUi.create-hint; horizontal-stretch: 1; }
+        }
+        if NewProjectUi.create-error != "": Text { text: NewProjectUi.create-error; color: Theme.warning; wrap: word-wrap; }
     }
-    HorizontalLayout {
-        spacing: 8px;
-        Label { text: "Fotos"; width: 150px; }
-        DialogButton { text: "Escolher pasta…"; enabled: !NewProjectUi.no-photos; clicked => { NewProjectUi.pick-folder(); } }
-        Text { text: NewProjectUi.photos-text; color: Theme.text-2; vertical-alignment: center; overflow: elide; horizontal-stretch: 1; }
-    }
-    HorizontalLayout {
-        spacing: 8px;
-        Rectangle { width: 150px; }
-        CheckRow { text: "Começar sem fotos (importo depois)"; checked <=> NewProjectUi.no-photos; toggled => { NewProjectUi.file-changed(); } }
-    }
-    if !NewProjectUi.no-photos && NewProjectUi.photos > 0: HorizontalLayout {
-        spacing: 8px;
-        Rectangle { width: 150px; }
-        CheckRow { text: NewProjectUi.build-text; checked <=> NewProjectUi.build; toggled => { NewProjectUi.file-changed(); } }
-    }
-    if !NewProjectUi.no-photos && NewProjectUi.photos > 0 && NewProjectUi.build: HorizontalLayout {
-        spacing: 8px;
-        Label { text: "Número de lâminas"; width: 150px; }
-        SpinBox { value <=> NewProjectUi.spreads; minimum: 1; maximum: max(1, NewProjectUi.photos); edited => { NewProjectUi.file-changed(); } }
-        Text { text: NewProjectUi.suggestion; color: Theme.text-2; vertical-alignment: center; }
-    }
-    HorizontalLayout {
-        spacing: 8px;
-        Label { text: "Onde salvar"; width: 150px; }
-        Text { text: NewProjectUi.file; color: Theme.text; vertical-alignment: center; overflow: elide; horizontal-stretch: 1; }
-        DialogButton { text: "Alterar…"; clicked => { NewProjectUi.change-file(); } }
-    }
-    if NewProjectUi.create-error != "": Text { text: NewProjectUi.create-error; color: Theme.warning; wrap: word-wrap; }
+    SizeSummary { }
 }
 
-export component NewProjectDialog inherits Shade {
+export component NewProjectDialog inherits Dialog {
     callback closed();
-    keys := FocusScope {
-        key-pressed(event) => {
-            if (event.text == Key.Escape) {
-                NewProjectUi.cancel();
-                root.closed();
-                return accept;
-            }
-            if (event.text == Key.Return && NewProjectUi.mode == 0 && NewProjectUi.step < 3) {
-                NewProjectUi.next();
-                return accept;
-            }
-            reject
+    title: NewProjectUi.mode == 1 ? "Especificação do álbum" : NewProjectUi.mode == 2 ? "Montagem do álbum" : "Novo álbum";
+    note: NewProjectUi.mode != 0 ? "" : "Etapa " + NewProjectUi.step + " de 3 · " + (NewProjectUi.step == 1 ? "Tamanho" : NewProjectUi.step == 2 ? "Montagem e aparência" : "Fotos e arquivo");
+    // O mesmo tamanho nas três etapas, para os botões não mudarem de lugar (regra 12).
+    size: DialogSize.wizard;
+    fixed-height: DialogSize.wizard-height;
+    child-focus: true;
+    dismissed => {
+        NewProjectUi.cancel();
+        root.closed();
+    }
+    confirmed => {
+        if (NewProjectUi.mode == 0 && NewProjectUi.step == 1 && NewProjectUi.error == "") {
+            NewProjectUi.next();
+        } else if (NewProjectUi.mode == 0 && NewProjectUi.step == 2) {
+            NewProjectUi.next();
         }
-        Panel {
-            // Cabe numa tela de 1920 × 1080 sem rolagem (spec ET, correção de 2026-10-29); a
-            // rolagem fica para janelas menores.
-            width: min(root.width - 40px, 1100px);
-            height: min(root.height - 40px, 780px);
-            VerticalLayout {
-                padding: 24px;
-                spacing: 14px;
-                HorizontalLayout {
-                    Text { text: NewProjectUi.mode == 1 ? "Especificação do álbum" : NewProjectUi.mode == 2 ? "Montagem do álbum" : "Novo álbum"; font-size: Type.heading; font-weight: Type.semibold; color: Theme.text; }
-                    Rectangle { horizontal-stretch: 1; }
-                    if NewProjectUi.mode == 0: Label { text: "Etapa " + NewProjectUi.step + " de 3 · " + (NewProjectUi.step == 1 ? "Tamanho" : NewProjectUi.step == 2 ? "Montagem e aparência" : "Fotos e arquivo"); }
-                }
-                ScrollView {
-                    vertical-stretch: 1;
-                    VerticalLayout {
-                        if NewProjectUi.step == 1: StepOne { }
-                        if NewProjectUi.step == 2: StepTwo { }
-                        if NewProjectUi.step == 3: StepThree { }
-                    }
-                }
-                HorizontalLayout {
-                    spacing: 8px;
-                    DialogButton { text: "Cancelar"; clicked => { NewProjectUi.cancel(); root.closed(); } }
-                    Rectangle { horizontal-stretch: 1; }
-                    if NewProjectUi.mode != 0: DialogButton {
-                        text: "Aplicar";
-                        primary: true;
-                        enabled: NewProjectUi.mode != 1 || NewProjectUi.error == "";
-                        clicked => { NewProjectUi.apply(); root.closed(); }
-                    }
-                    if NewProjectUi.mode == 0 && NewProjectUi.step > 1: DialogButton { text: "Voltar"; clicked => { NewProjectUi.back(); } }
-                    if NewProjectUi.mode == 0 && NewProjectUi.step < 3: DialogButton {
-                        text: "Próximo";
-                        primary: true;
-                        enabled: NewProjectUi.step != 1 || NewProjectUi.error == "";
-                        clicked => { NewProjectUi.next(); }
-                    }
-                    if NewProjectUi.mode == 0 && NewProjectUi.step == 3: DialogButton {
-                        text: "Criar";
-                        primary: true;
-                        enabled: NewProjectUi.create-error == "";
-                        clicked => { NewProjectUi.create(); }
-                    }
-                }
-            }
+    }
+    DialogBody {
+        gap: 0px;
+        if NewProjectUi.step == 1: StepOne { }
+        if NewProjectUi.step == 2: StepTwo { }
+        if NewProjectUi.step == 3: StepThree { }
+    }
+    DialogFooter {
+        DialogButton { text: "Cancelar"; clicked => { NewProjectUi.cancel(); root.closed(); } }
+        if NewProjectUi.mode != 0: DialogButton {
+            text: "Aplicar";
+            primary: true;
+            enabled: NewProjectUi.mode != 1 || NewProjectUi.error == "";
+            clicked => { NewProjectUi.apply(); root.closed(); }
+        }
+        if NewProjectUi.mode == 0 && NewProjectUi.step > 1: DialogButton { text: "Voltar"; clicked => { NewProjectUi.back(); } }
+        if NewProjectUi.mode == 0 && NewProjectUi.step < 3: DialogButton {
+            text: "Próximo";
+            primary: true;
+            enabled: NewProjectUi.step != 1 || NewProjectUi.error == "";
+            clicked => { NewProjectUi.next(); }
+        }
+        if NewProjectUi.mode == 0 && NewProjectUi.step == 3: DialogButton {
+            text: "Criar";
+            primary: true;
+            enabled: NewProjectUi.create-error == "" && NewProjectUi.create-hint == "";
+            clicked => { NewProjectUi.create(); }
         }
     }
 }

@@ -9,14 +9,14 @@ use lamina_editor::motion::{CrossHit, cross_target};
 use lamina_editor::motion::{
     Roll, RollHit, RollMove, SPREAD_BAR_COMMANDS, TIMELINE, Transition, edge_speed, pill, reorder,
     roll_gap, roll_hit, roll_move, roll_shown, roll_width, spread_badge, timeline_rows,
-    timeline_run,
+    timeline_run, timeline_step,
 };
 use lamina_editor::{Command, CrossTarget, DropPlace, PxRect};
-use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
+use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
 
 use crate::roll::{QUIET, RollState, physical};
 use crate::state::App;
-use crate::{AppWindow, RollButton, RollHitData, RollUi, SpreadData};
+use crate::{AppWindow, RollButton, RollHitData, RollUi, SpreadData, TimelineStep};
 
 type Shared = Rc<RefCell<App>>;
 
@@ -262,11 +262,39 @@ pub fn refresh_line(app: &mut App) {
     }
 }
 
+/// A foto marcada pelo teclado na linha do tempo (spec DD, regra 28). A decisão é do editor.
+fn line_step(app: &App, row: i32, delta: i32) -> TimelineStep {
+    let none = TimelineStep {
+        row: -1,
+        x: 0.0,
+        spread: -1,
+    };
+    let Some(session) = app.session() else {
+        return none;
+    };
+    let rows = timeline_rows(session.album());
+    let from = usize::try_from(row).ok();
+    let Some(i) = timeline_step(&rows, from, delta > 0, session.current()) else {
+        return none;
+    };
+    app.lists
+        .line
+        .model()
+        .row_data(i)
+        .map_or(none, |t| TimelineStep {
+            row: t.row,
+            x: t.x,
+            spread: t.spread,
+        })
+}
+
 pub fn connect(window: &AppWindow, app: &Shared) {
     let ui = window.global::<RollUi>();
     ui.set_cells(app.borrow().roll.cells.model());
     window.set_timeline(app.borrow().roll.line.model());
     window.set_slots(app.borrow().slot_rows.model());
+    let a = app.clone();
+    ui.on_line_step(move |row, delta| line_step(&a.borrow(), row, delta));
     let a = app.clone();
     ui.on_line_window(move |start, width| {
         let mut app = a.borrow_mut();

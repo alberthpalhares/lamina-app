@@ -66,8 +66,8 @@ fn campos_da_exportacao_e_a_pergunta() {
     let options = all.options(false);
     assert_eq!((options.quality, options.range), (1, None));
     let question = replace_question(1, Path::new("saida"));
-    assert!(question.starts_with("Já existem 1 arquivo desta exportação em saida."));
-    assert!(replace_question(3, Path::new("x")).starts_with("Já existem 3 arquivos"));
+    assert!(question.starts_with("A pasta saida já tem 1 arquivo deste álbum."));
+    assert!(replace_question(3, Path::new("x")).starts_with("A pasta x já tem 3 arquivos"));
 }
 
 #[test]

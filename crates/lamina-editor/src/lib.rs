@@ -98,6 +98,7 @@ pub mod rulers;
 pub mod screens;
 pub mod sequence;
 pub mod session;
+mod short_path;
 pub mod shortcuts;
 pub mod sliders;
 pub mod snap;

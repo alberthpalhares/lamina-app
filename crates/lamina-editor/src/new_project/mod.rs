@@ -18,8 +18,8 @@ pub use choices::{
 };
 pub use colors::picker_color;
 pub use create::{
-    CANNOT_WRITE, NO_PHOTOS_HERE, apply_look, can_write, documents_dir, empty_album, free_file,
-    put_style, suggested_folder,
+    CANNOT_WRITE, NO_PHOTOS_HERE, PICK_PHOTOS, StepThreeState, apply_look, can_write,
+    documents_dir, empty_album, free_file, put_style, suggested_folder,
 };
 pub use formats::{Format, formats};
 pub use preview::{Drawing, PREVIEW_SIDE, drawing, mount_preview};

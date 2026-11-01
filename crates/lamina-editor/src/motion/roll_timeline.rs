@@ -60,6 +60,28 @@ pub fn timeline_run(rows: &[(TimelineKey, usize)], spread: usize, s: TimelineSiz
     (a, b - a)
 }
 
+/// A foto marcada pelo teclado na linha do tempo (spec DD, regra 28): a partir da linha `from`, anda
+/// uma foto para `forward`, pulando os cortes, e fica na ponta. Sem marca (`from` vazio), é a
+/// primeira foto da lâmina `spread`, ou a primeira depois dela, se ela não tiver fotos.
+pub fn timeline_step(
+    rows: &[(TimelineKey, usize)],
+    from: Option<usize>,
+    forward: bool,
+    spread: usize,
+) -> Option<usize> {
+    let is_photo = |i: &usize| matches!(rows[*i].0, TimelineKey::Photo(..));
+    let Some(from) = from else {
+        let first = (0..rows.len()).find(|&i| is_photo(&i) && rows[i].1 >= spread);
+        return first.or_else(|| (0..rows.len()).rev().find(is_photo));
+    };
+    let next = if forward {
+        (from + 1..rows.len()).find(is_photo)
+    } else {
+        (0..from.min(rows.len())).rev().find(is_photo)
+    };
+    next.or(Some(from).filter(|i| *i < rows.len()))
+}
+
 /// O deslocamento da linha do tempo que deixa o meio do trecho `run` no meio da faixa visível
 /// (`view` de largura), sem passar das pontas do conteúdo (`content` de largura).
 pub fn timeline_scroll(run: (f64, f64), view: f64, content: f64) -> f64 {
