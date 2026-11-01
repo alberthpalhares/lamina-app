@@ -88,6 +88,7 @@ mod pf_rapido;
 mod pf_selecao;
 mod pn;
 mod pr;
+mod pv;
 mod rc;
 mod rf;
 mod rl;

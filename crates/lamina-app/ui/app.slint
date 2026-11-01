@@ -49,12 +49,13 @@ import { TopBar, NoticeBar, PageMeterData } from "topbar.slint";
 import { Stage } from "stage.slint";
 import { BottomStrips } from "bottom.slint";
 import { ShortcutsUi, ShortcutsDialog, ShortcutGroup, ShortcutRow } from "shortcuts.slint";
-import { NewsUi, NewsDialog, NewsEntryData } from "news.slint";
+import { NewsUi, NewsEntryData, NewsCardData, NewsFilterData } from "news.slint";
+import { NewsPage } from "news_page.slint";
 import { RollUi, RollCell, RollButton, RollHitData } from "roll.slint";
 import { Gallery } from "gallery.slint";
 
 export { BuildUi }
-export { PageMeterData, CalibrateUi, SpreadData, FrameData, BoxData, LayoutItem, BandUi, Swatch, HistoryItem, PhotoData, TimelineItem, PresetUi, LookUi, FrameUi, FontUi, FontRowUi, ModelUi, RecentsUi, ClearUi, RelinkUi, RelinkRowUi, RecentCard, RecentItem, Motion, GhostData, OrganizeUi, MarkData, TickData, BarRow, ContextUi, ContextRow, PaletteUi, PhotoUi, DetailRow, NewProjectUi, FormatCard, DrawData, ImportUi, ShortcutsUi, RecoverUi, ShortcutGroup, ShortcutRow, NewsUi, NewsEntryData, RollUi, RollCell, RollButton, RollHitData }
+export { PageMeterData, CalibrateUi, SpreadData, FrameData, BoxData, LayoutItem, BandUi, Swatch, HistoryItem, PhotoData, TimelineItem, PresetUi, LookUi, FrameUi, FontUi, FontRowUi, ModelUi, RecentsUi, ClearUi, RelinkUi, RelinkRowUi, RecentCard, RecentItem, Motion, GhostData, OrganizeUi, MarkData, TickData, BarRow, ContextUi, ContextRow, PaletteUi, PhotoUi, DetailRow, NewProjectUi, FormatCard, DrawData, ImportUi, ShortcutsUi, RecoverUi, ShortcutGroup, ShortcutRow, NewsUi, NewsEntryData, NewsCardData, NewsFilterData, Theme, RollUi, RollCell, RollButton, RollHitData }
 
 export component AppWindow inherits Window {
     title: root.window-title;
@@ -669,7 +670,7 @@ export component AppWindow inherits Window {
         closed => { root.focus-main(); }
     }
     // Abaixo da mensagem de erro: um erro ao reabrir o álbum fica por cima (spec NV, regra 6).
-    if NewsUi.show: NewsDialog {
+    if NewsUi.show: NewsPage {
         closed => { root.focus-main(); }
         send-feedback => { root.command("ajuda.enviar-sugestao"); }
         try-now(name) => {

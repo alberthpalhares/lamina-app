@@ -41,6 +41,7 @@ mod models;
 mod mounting;
 mod moving;
 mod neutral;
+mod news;
 mod organize;
 mod organize_cmd;
 mod organize_moves;

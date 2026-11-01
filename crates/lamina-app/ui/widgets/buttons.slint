@@ -62,6 +62,8 @@ export component BarButton inherits Rectangle {
     in property <length> least-width;
     // O mouse em cima, para quem põe um balão de dica no botão (Exportar, spec JE).
     out property <bool> hovered: touch.has-hover;
+    // O foco do teclado, para uma lista rolar até o botão (página de novidades, spec PV, regra 12).
+    out property <bool> focused: focus.has-focus;
     callback clicked();
     accessible-role: button;
     accessible-label: root.text;

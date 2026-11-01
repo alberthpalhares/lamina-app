@@ -9,6 +9,7 @@ fn good() -> Palette {
         line-strong: #858585, text: #e6e6e6, text-2: #a6a6a6, text-3: #858585,\n\
         accent: #19acc9, accent-hover: #3dbbd4, on-accent: #111111, focus: #19acc9, link: #2ebcd8,\n\
         warning: #e3b341, error: #ef7d75, success: #5cc283,\n\
+        tag-new-bg: #6b6b6b, tag-bg: #4a4a4a, tag-text: #ffffff,\n\
     };\n";
     palettes(text).remove("dark").unwrap()
 }
@@ -115,5 +116,38 @@ fn df_b8_superficies_valem_nos_dois_temas() {
     assert_eq!(
         surface_problems("light", &p),
         ["light: stage e strip não se distinguem (mínimo 1,1:1)"]
+    );
+}
+
+#[test]
+fn pv_b15_as_etiquetas_passam_no_contraste_nos_dois_temas() {
+    let text = include_str!("../../../crates/lamina-app/ui/theme/palette.slint");
+    let all = palettes(text);
+    for theme in ["dark", "light"] {
+        let p = &all[theme];
+        for bg in ["tag-new-bg", "tag-bg"] {
+            assert!(p.contains_key(bg), "{theme}: falta {bg}");
+            assert!(
+                ratio(p["tag-text"], p[bg]) >= 4.5,
+                "{theme}: tag-text sobre {bg}"
+            );
+        }
+    }
+    assert!(alpha_problems(text).is_empty());
+
+    let mut bad = good();
+    bad.insert("tag-text".into(), [0x80, 0x80, 0x80]);
+    let found = problems("dark", &bad, CYAN_DARK);
+    assert!(
+        found
+            .iter()
+            .any(|f| f.starts_with("dark: tag-text sobre tag-new-bg"))
+    );
+
+    let translucent =
+        "out property <Colors> dark: {\n tag-new-bg: #6b6b6b80, tag-bg: #4a4a4a,\n};\n";
+    assert_eq!(
+        alpha_problems(translucent),
+        ["dark: tag-new-bg tem alfa: o fundo da etiqueta precisa ser opaco"]
     );
 }

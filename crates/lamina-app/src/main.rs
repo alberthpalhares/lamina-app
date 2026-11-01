@@ -28,6 +28,9 @@ mod frame_panel;
 mod ghost;
 mod grid;
 mod hand;
+#[cfg(any(test, feature = "filmagem"))]
+#[cfg_attr(not(test), allow(dead_code))]
+mod headless;
 mod help;
 mod history;
 mod images;
@@ -115,6 +118,10 @@ fn connect(window: &AppWindow, app: &Shared) {
     input::connect(window, app);
     shortcuts::connect(window);
     news::connect(window);
+    let a = app.clone();
+    window.global::<NewsUi>().on_open_video(move |address| {
+        help::open_video(&a.borrow(), &address);
+    });
     let a = app.clone();
     window.on_go_to(move |index| {
         let Ok(index) = usize::try_from(index) else {
