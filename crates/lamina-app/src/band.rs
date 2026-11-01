@@ -87,7 +87,7 @@ fn apply(app: &Shared, i: i32) {
     }
     app.borrow_mut().timed(
         "Aplicar o layout da faixa",
-        |app| app.editor.apply_option(Part::Spread, i),
+        |app| app.editor.choose_option(Part::Spread, i),
         |app| {
             app.refresh_strip();
             app.refresh_current();

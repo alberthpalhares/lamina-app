@@ -12,6 +12,7 @@
 //! - [`commands`] e [`keys`]: o registro de comandos, com nome, rótulo e atalho.
 //! - [`suggestions`]: as sugestões de layout da lâmina, trocar e espelhar (spec TL).
 //! - [`prefs_store`]: favoritos e rejeitados no arquivo de preferências do fotógrafo.
+//! - [`learned_store`]: o arquivo do aprendizado de layouts e a fila que grava (spec AL).
 //! - [`text`]: nome das famílias e nota explicada, para o painel de layouts.
 //! - [`view`]: a lâmina em pixels da tela, igual à impressão.
 //! - [`photos`]: o painel de fotos (as abas e os usos de cada foto).
@@ -65,6 +66,7 @@ pub mod human;
 pub mod importing;
 pub mod keys;
 pub mod lab_presets;
+pub mod learned_store;
 pub mod leaving;
 mod look_form;
 pub mod magnets;
@@ -122,7 +124,8 @@ pub use bar_tips::{BAR_COMMANDS, bar_tip};
 pub use cache::Cache;
 pub use commands::{Command, Menu};
 pub use editor::{
-    CrossTarget, DropPlace, Editor, Leave, MAX_ALBUM_NAME, Panel, TextChange, clean_album_name,
+    CrossTarget, DropPlace, Editor, LEARNED_QUESTION, LEARNED_QUESTION_DETAIL, Leave,
+    MAX_ALBUM_NAME, NOTHING_LEARNED, Panel, TextChange, clean_album_name,
 };
 pub use error::EditorError;
 pub use error_log::ErrorLog;
@@ -135,6 +138,7 @@ pub use feedback::{FEEDBACK_FORM, feedback_address};
 pub use human::{Human, HumanMessage, guarded};
 pub use keys::{Key, Platform, Shortcut};
 pub use lamina_render::text_image;
+pub use learned_store::{LEARNED_FILE, LearnedJob, LearnedStore};
 pub use models::{MODELS_FILE, ModelError, ModelsStore, model_from_spread};
 pub use photos::{
     Filter, PhotoInfo, PhotoItem, photo_info, photo_list, same_photo_list, used_photos,

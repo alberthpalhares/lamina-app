@@ -146,6 +146,8 @@ pub struct NewAlbum {
     pub reuse: Reuse,
     /// Favoritos e rejeitados do fotógrafo (spec TL, regra 8); vazio = escolha de sempre.
     pub preferences: Preferences,
+    /// O que o fotógrafo mais escolhe (spec AL, regra 5); vazio = escolha de sempre.
+    pub learned: lamina_layout::Learned,
     /// Modelos do fotógrafo que o Auto Build pode usar (spec MD, regra 9).
     pub models: Vec<lamina_layout::SpreadModel>,
     /// Faixa de páginas e exportação do preset (spec PR); padrão = sem limite, JPEG em sRGB.
@@ -298,6 +300,7 @@ pub fn create_album(
     let options = BuildOptions {
         reuse: new.reuse,
         preferences: new.preferences.clone(),
+        learned: new.learned.clone(),
         models: new.models.clone(),
         ..BuildOptions::default()
     };

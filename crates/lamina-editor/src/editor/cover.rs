@@ -302,9 +302,12 @@ impl Editor {
         self.exit_crop();
         self.gesture = None;
         self.selected_frame = None;
-        self.session
+        let done = self
+            .session
             .as_mut()
-            .is_some_and(crate::Session::go_to_cover)
+            .is_some_and(crate::Session::go_to_cover);
+        self.settle_visit();
+        done
     }
 
     /// Sai da capa, antes do que só vale no álbum (montar, limpar, tirar foto do álbum).

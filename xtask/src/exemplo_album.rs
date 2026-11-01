@@ -34,6 +34,7 @@ pub fn build(dir: &Path) -> Result<(), String> {
         spreads: Some(SPREADS),
         reuse: lamina_layout::Reuse::Medium,
         preferences: lamina_layout::Preferences::default(),
+        learned: lamina_layout::Learned::default(),
         models: Vec::new(),
         limits: lamina_core::PageLimits::default(),
         export: lamina_core::ExportPrefs::default(),

@@ -72,8 +72,10 @@ impl Editor {
         true
     }
 
-    /// Guarda a lâmina em que parou (fechar, abrir outro e sair do Lamina).
+    /// Guarda a lâmina em que parou (fechar, abrir outro e sair do Lamina). Sair do álbum também
+    /// fecha a visita da lâmina (spec AL, regra 10).
     pub fn remember_current(&mut self) {
+        self.close_visit();
         let Some((file, current)) = self
             .session
             .as_ref()

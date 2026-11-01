@@ -408,6 +408,8 @@ export component AppWindow inherits Window {
             MenuItem { title: "Favoritar layout  (F)"; enabled: root.has-project; activated => { root.command("layout.favoritar"); } }
             MenuItem { title: "Rejeitar layout  (X)"; enabled: root.has-project; activated => { root.command("layout.rejeitar"); } }
             MenuItem { title: BandUi.list == 1 ? "Mostrar na ordem  (R)" : "Mostrar reordenadas  (R)"; enabled: root.has-project; activated => { root.command("layout.reordenadas"); } }
+            MenuSeparator { }
+            MenuItem { title: "Apagar o aprendizado de layouts…"; activated => { root.command("layout.apagar-aprendizado"); } }
         }
         Menu {
             title: "Visualizar";

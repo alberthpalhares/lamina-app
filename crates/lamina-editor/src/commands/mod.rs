@@ -49,6 +49,7 @@ pub enum Command {
     Mirror,
     Favorite,
     Reject,
+    DeleteLearned,
     ToggleReordered,
     ClearFrame,
     RemoveFromAlbum,

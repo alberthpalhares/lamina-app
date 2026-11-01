@@ -35,6 +35,7 @@ fn jp_b13_abrir_e_navegar_rapido() {
         spreads: Some(10),
         reuse: Reuse::Medium,
         preferences: lamina_layout::Preferences::default(),
+        learned: lamina_layout::Learned::default(),
         models: Vec::new(),
         limits: lamina_core::PageLimits::default(),
         export: lamina_core::ExportPrefs::default(),

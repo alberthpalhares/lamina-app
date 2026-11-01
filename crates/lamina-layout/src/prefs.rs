@@ -7,7 +7,8 @@ use std::collections::BTreeSet;
 use lamina_core::{Orientation, PageSide};
 
 use crate::layouts::{
-    Align, Arrangement, Family, FullBleed, LayoutCandidate, PageLayout, Scope, SupportSide,
+    Align, Arrangement, Breathing, Family, FullBleed, LayoutCandidate, PageLayout, Scope,
+    SupportSide,
 };
 
 /// Pontos que um favorito ganha na escolha do Auto Build (regra 8).
@@ -52,12 +53,26 @@ pub struct Preferred {
 
 /// Identificador do desenho: "HHV|paginas:E=L2;D=L1|m0c".
 pub fn design_key(candidate: &LayoutCandidate, aspects: &[f64]) -> String {
+    design_key_of(
+        &candidate.family,
+        candidate.breathing,
+        &candidate.order,
+        aspects,
+    )
+}
+
+/// O mesmo identificador, pelas partes de um candidato ainda não montado (spec AL, seção 11).
+pub(crate) fn design_key_of(
+    family: &Family,
+    b: Breathing,
+    order: &[usize],
+    aspects: &[f64],
+) -> String {
     // O modelo tem chave pelo nome: renomear leva as marcas junto (spec MD, regra 5).
-    if let Family::Model { name, mirrored } = &candidate.family {
+    if let Family::Model { name, mirrored } = family {
         return model_key(name, *mirrored);
     }
-    let orientations: String = candidate
-        .order
+    let orientations: String = order
         .iter()
         .map(
             |&i| match aspects.get(i).map(|a| Orientation::from_aspect_ratio(*a)) {
@@ -67,7 +82,6 @@ pub fn design_key(candidate: &LayoutCandidate, aspects: &[f64]) -> String {
             },
         )
         .collect();
-    let b = candidate.breathing;
     let align = match b.align {
         Align::Center => 'c',
         Align::Start => 's',
@@ -75,7 +89,7 @@ pub fn design_key(candidate: &LayoutCandidate, aspects: &[f64]) -> String {
     };
     format!(
         "{orientations}|{}|m{}{align}",
-        family_text(&candidate.family),
+        family_text(family),
         b.margin_level
     )
 }

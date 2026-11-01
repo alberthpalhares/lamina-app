@@ -4,7 +4,7 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use lamina_editor::Command;
+use lamina_editor::{Command, LEARNED_QUESTION, LEARNED_QUESTION_DETAIL, NOTHING_LEARNED};
 use slint::ComponentHandle;
 
 use crate::state::App;
@@ -49,6 +49,25 @@ pub fn ask(app: &App, command: Command) {
     ui.set_title(title.into());
     ui.set_message(message.into());
     ui.set_action(action.into());
+    ui.set_show(true);
+}
+
+/// "Apagar o aprendizado de layouts…": a mesma caixa; sem nada aprendido, o aviso no lugar dela (spec
+/// AL, regra 18).
+pub fn ask_learned(app: &mut App) {
+    if app.editor.nothing_learned() {
+        NOTHING_LEARNED.clone_into(&mut app.notice);
+        app.refresh_current();
+        return;
+    }
+    let Some(w) = app.window.upgrade() else {
+        return;
+    };
+    ASKED.set(Some(Command::DeleteLearned));
+    let ui = w.global::<ClearUi>();
+    ui.set_title(LEARNED_QUESTION.into());
+    ui.set_message(LEARNED_QUESTION_DETAIL.into());
+    ui.set_action("Apagar".into());
     ui.set_show(true);
 }
 

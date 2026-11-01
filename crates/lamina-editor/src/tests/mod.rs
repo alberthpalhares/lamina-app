@@ -4,6 +4,9 @@
 mod af;
 mod af_neutro;
 mod af_painel;
+mod al;
+mod al_arquivo;
+mod al_contagem;
 mod ap;
 mod at;
 mod at_busca;

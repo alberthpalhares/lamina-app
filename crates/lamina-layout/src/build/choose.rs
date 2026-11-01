@@ -5,6 +5,7 @@ use crate::plan::{SpreadPlan, SpreadRole};
 use crate::prefs::FAVORITE_BONUS;
 
 use super::Reuse;
+use super::window::Boost;
 
 /// A escolhida (posição na lista) e o motivo.
 pub struct Pick {
@@ -13,10 +14,10 @@ pub struct Pick {
 }
 
 /// Escolhe entre as sugestões `list` da lâmina, sabendo o que já foi usado no álbum (`used`, na
-/// ordem das lâminas) e quais são favoritas (`favorite`, mesma ordem de `list`).
+/// ordem das lâminas) e o que cada uma ganha do fotógrafo (`boost`, mesma ordem de `list`).
 pub fn pick(
     list: &[LayoutCandidate],
-    favorite: &[bool],
+    boost: &[Boost],
     spread: &SpreadPlan,
     used: &[Family],
     reuse: Reuse,
@@ -29,9 +30,15 @@ pub fn pick(
     let repeats_previous = |c: &LayoutCandidate| {
         reuse != Reuse::High && used.last().is_some_and(|p| p.same_outline(&c.family))
     };
-    let is_favorite = |i: usize| favorite.get(i).copied().unwrap_or(false);
+    let is_favorite = |i: usize| boost.get(i).is_some_and(|b| b.favorite);
+    let learned = |i: usize| boost.get(i).map_or(0.0, |b| b.learned);
+    // O favorito fica com os pontos dele, sem somar o aprendido (spec AL, regra 4).
     let value = |i: usize, c: &LayoutCandidate| {
-        let bonus = if is_favorite(i) { FAVORITE_BONUS } else { 0.0 };
+        let bonus = if is_favorite(i) {
+            FAVORITE_BONUS
+        } else {
+            learned(i)
+        };
         adjusted(c, uses(used, &c.family), reuse) + bonus
     };
     // Depois de duas lâminas até a borda, uma mais calma (spec SB, regra 8).
@@ -55,6 +62,8 @@ pub fn pick(
     }
     if is_favorite(index) {
         parts.insert(0, "desenho favorito".to_owned());
+    } else if learned(index) > 0.0 {
+        parts.insert(0, "desenho que você costuma usar".to_owned());
     }
     if parts.is_empty() {
         parts.push(if index == 0 {
@@ -201,6 +210,51 @@ mod tests {
             role,
             photos: Vec::new(),
         }
+    }
+
+    fn learned(value: f64) -> Boost {
+        Boost {
+            favorite: false,
+            learned: value,
+        }
+    }
+
+    #[test]
+    fn al_b7_o_bonus_muda_a_escolha_e_o_motivo() {
+        let list = [option(per_page(), 90.0), option(whole(), 85.0)];
+        let dense = spread(SpreadRole::Dense);
+        let boost = [learned(0.0), learned(6.4)];
+        let p = pick(&list, &boost, &dense, &[], Reuse::Medium);
+        assert_eq!(p.index, 1);
+        assert!(
+            p.reason.contains("desenho que você costuma usar"),
+            "{}",
+            p.reason
+        );
+        // Mais de 6,4 pontos atrás, ele não passa.
+        let far = [option(per_page(), 90.0), option(whole(), 80.0)];
+        assert_eq!(pick(&far, &boost, &dense, &[], Reuse::Medium).index, 0);
+        // Repetir a lâmina anterior ainda pesa mais que o bônus.
+        let used = [whole()];
+        assert_eq!(pick(&list, &boost, &dense, &used, Reuse::Medium).index, 0);
+    }
+
+    #[test]
+    fn al_b8_favorito_nao_soma_com_o_aprendizado() {
+        let list = [option(per_page(), 80.0), option(whole(), 93.0)];
+        let both = Boost {
+            favorite: true,
+            learned: 6.4,
+        };
+        let boost = [both, learned(0.0)];
+        // 80 + 10 fica atrás de 93; com o bônus somado, passaria.
+        let dense = spread(SpreadRole::Dense);
+        assert_eq!(pick(&list, &boost, &dense, &[], Reuse::Medium).index, 1);
+        let near = [option(per_page(), 80.0), option(whole(), 89.0)];
+        let p = pick(&near, &boost, &dense, &[], Reuse::Medium);
+        assert_eq!(p.index, 0);
+        assert!(p.reason.contains("desenho favorito"), "{}", p.reason);
+        assert!(!p.reason.contains("costuma usar"), "{}", p.reason);
     }
 
     #[test]

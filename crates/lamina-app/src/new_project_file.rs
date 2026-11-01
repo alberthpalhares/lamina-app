@@ -203,6 +203,7 @@ fn create(app: &mut App) {
         spreads: usize::try_from(ui.get_spreads()).ok(),
         reuse: wizard.reuse,
         preferences: app.editor.preferences().clone(),
+        learned: app.editor.learned().clone(),
         models: app.editor.models().to_vec(),
         limits,
         export: app.new_export,

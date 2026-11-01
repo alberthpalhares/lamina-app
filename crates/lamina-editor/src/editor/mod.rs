@@ -36,6 +36,7 @@ mod group_gesture;
 mod hand;
 mod hand_frames;
 mod layouts;
+mod learning;
 mod leave_album;
 mod models;
 mod mounting;
@@ -65,6 +66,7 @@ pub use details::{Details, album_rows, album_sections};
 pub use dropping::DropPlace;
 pub use group_fields::{Field, GROUP_NOT_A_NUMBER};
 pub use layouts::Panel;
+pub use learning::{LEARNED_QUESTION, LEARNED_QUESTION_DETAIL, NOTHING_LEARNED};
 pub use moving::CrossTarget;
 pub use neutral::AdjustControl;
 pub use organize::{DoubleClick, PaletteTool, SidePanel};
@@ -96,6 +98,8 @@ pub struct Editor {
     guide_hidden: bool,
     reordered: bool,
     prefs: PrefsStore,
+    /// O que o fotógrafo mais escolhe (spec AL); só a janela preenche.
+    learning: learning::Learning,
     lists: RefCell<HashMap<ListsKey, LayoutLists>>,
     notice: Option<String>,
     /// A página do último clique direito no fundo da lâmina (spec PB).
@@ -178,6 +182,7 @@ impl Editor {
             guide_hidden: false,
             reordered: false,
             prefs,
+            learning: learning::Learning::default(),
             lists: RefCell::new(HashMap::new()),
             notice,
             context_side: None,
@@ -276,6 +281,7 @@ impl Editor {
         self.clipboard = None;
         // A faixa mostrava as opções de uma lâmina do álbum anterior (spec FL).
         self.band = band::BandState::default();
+        self.forget_visits();
     }
 
     /// Passa a usar o estado das faixas de `store` (lido de `janela.json`). O aviso de leitura,
@@ -369,7 +375,9 @@ impl Editor {
         self.exit_crop();
         self.gesture = None;
         self.selected_frame = None;
-        self.session.as_mut().is_some_and(|s| s.go_to(index))
+        let done = self.session.as_mut().is_some_and(|s| s.go_to(index));
+        self.settle_visit();
+        done
     }
 
     /// Fechar, abrir outro ou criar outro precisa perguntar antes?
@@ -386,7 +394,10 @@ impl Editor {
                 self.received = None;
                 Ok(false)
             }
-            Leave::DontSave => Ok(true),
+            Leave::DontSave => {
+                self.discard_visit();
+                Ok(true)
+            }
             Leave::Save => {
                 let session = self.session.as_ref().ok_or(EditorError::NoProject)?;
                 if session.file().is_none() && save_to.is_none() {

@@ -15,6 +15,8 @@ use super::fill::crop_of;
 use super::rotation::rotate;
 use super::score::score;
 use super::{FamilyKind, LayoutCandidate, Score};
+use crate::learned::Learned;
+use crate::prefs::design_key_of;
 
 /// Largura mínima de um quadro sobre a lombada, em fração da largura da página.
 const GUTTER_MIN_SHARE: f64 = 0.25;
@@ -40,6 +42,8 @@ pub struct Sequence {
 pub struct Limits<'a> {
     pub max: usize,
     pub exclude: &'a HashSet<u64>,
+    /// O que o fotógrafo mais escolhe; só muda a ordem (spec AL, regra 1).
+    pub learned: &'a Learned,
 }
 
 /// Versão leve de um candidato.
@@ -59,7 +63,7 @@ pub fn finish(
     sort: Sort,
     limits: &Limits,
 ) -> Vec<LayoutCandidate> {
-    let mut entries = entries(ctx, aspects, sequences, sort);
+    let mut entries = entries(ctx, aspects, sequences, sort, limits.learned);
     entries.sort_by(|a, b| {
         b.value
             .total_cmp(&a.value)
@@ -93,7 +97,20 @@ pub fn finish(
 }
 
 /// Versão leve de todos os candidatos, calculada em paralelo.
-fn entries(ctx: &Ctx, aspects: &[f64], sequences: &[Sequence], sort: Sort) -> Vec<Entry> {
+fn entries(
+    ctx: &Ctx,
+    aspects: &[f64],
+    sequences: &[Sequence],
+    sort: Sort,
+    learned: &Learned,
+) -> Vec<Entry> {
+    // Sem nada aprendido, as chaves nem são montadas (spec AL, regra 3).
+    let bonus = |order: &[usize], r: &Raw| {
+        if learned.is_empty() {
+            return 0.0;
+        }
+        learned.bonus(&design_key_of(&r.family, r.breathing, order, aspects))
+    };
     let pairs: Vec<(usize, usize)> = sequences
         .iter()
         .enumerate()
@@ -106,7 +123,8 @@ fn entries(ctx: &Ctx, aspects: &[f64], sequences: &[Sequence], sort: Sort) -> Ve
             let m = measure(ctx, aspects, &sequence.order, r)?;
             let value = match sort {
                 Sort::Coverage => m.coverage,
-                Sort::Score => m.score.total,
+                // O bônus só ordena; a nota da opção continua pura (spec AL, regra 1).
+                Sort::Score => m.score.total + bonus(&sequence.order, r),
             };
             Some(Entry {
                 value: (value * 1e6).round() / 1e6,

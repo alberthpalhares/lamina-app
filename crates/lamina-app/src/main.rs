@@ -87,8 +87,9 @@ use std::time::Duration;
 
 use lamina_editor::backup::{BACKUP_FOLDER, Backups};
 use lamina_editor::{
-    Cache, Editor, Install, MODELS_FILE, ModelsStore, PREFS_FILE, PRESETS_FILE, PrefsStore,
-    PresetsStore, RECENTS_FILE, RecentsStore, STRIPS_FILE, StripsStore, config_dir,
+    Cache, Editor, Install, LEARNED_FILE, LearnedStore, MODELS_FILE, ModelsStore, PREFS_FILE,
+    PRESETS_FILE, PrefsStore, PresetsStore, RECENTS_FILE, RecentsStore, STRIPS_FILE, StripsStore,
+    config_dir,
 };
 use slint::{CloseRequestResponse, ComponentHandle, Timer};
 
@@ -267,6 +268,9 @@ fn main() -> anyhow::Result<()> {
     ));
     editor.set_recents(RecentsStore::load(&config_dir().join(RECENTS_FILE)));
     editor.set_log(help::error_log());
+    // Só a janela aprende: a IA e a linha de comando não leem este arquivo (spec AL, regra 17).
+    editor.set_learned_store(LearnedStore::load(&config_dir().join(LEARNED_FILE)));
+    editor.start_learned_worker();
     editor.set_backups(Backups::new(config_dir().join(BACKUP_FOLDER)));
     let app: Shared = Rc::new(RefCell::new(App::new(&window, Cache::system(), editor, tx)));
     // Ligada por `LAMINA_TEMPOS=1`; o temporizador precisa viver até a janela fechar.
@@ -336,6 +340,7 @@ fn main() -> anyhow::Result<()> {
     // Sair do Lamina guarda a lâmina em que o fotógrafo parou (spec TI, regra 3) e não deixa
     // cópia de segurança: a pergunta de salvar já foi respondida (spec CS, regra 3).
     app.borrow_mut().editor.remember_current();
+    app.borrow_mut().editor.flush_learned();
     app.borrow_mut().editor.finish_backups();
     updates::on_exit(&app.borrow());
     Ok(())

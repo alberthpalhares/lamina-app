@@ -122,6 +122,8 @@ impl Agent {
             spreads: a.laminas,
             reuse: Reuse::Medium,
             preferences: editor.preferences().clone(),
+            // A IA não lê o aprendizado (spec AL, regra 17).
+            learned: lamina_layout::Learned::default(),
             models: editor.models().to_vec(),
             limits,
             export,

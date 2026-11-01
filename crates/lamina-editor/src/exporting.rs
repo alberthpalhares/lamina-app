@@ -89,6 +89,10 @@ impl Editor {
         if !session.go_to(index) {
             return false;
         }
+        self.settle_visit();
+        let Some(session) = self.session_mut() else {
+            return false;
+        };
         let frames = session
             .album()
             .spreads
