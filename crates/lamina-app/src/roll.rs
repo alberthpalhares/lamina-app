@@ -118,12 +118,12 @@ pub fn edited(app: &mut App, rows: &[(SpreadId, StripRow)]) {
     let Some(session) = app.editor.session() else {
         return;
     };
-    let project = session.project();
+    let project = session.album();
     let changed = app.roll.revisions.update(rows, &project.spec);
     let count_changed = app.roll.warned.len() != rows.len();
     app.roll.warned = rows.iter().map(|(_, r)| r.warned).collect();
     if !changed.is_empty() || count_changed || app.roll.project.is_none() {
-        app.roll.project = Some(session.project_shared());
+        app.roll.project = Some(session.album_shared());
         app.roll.missing = Arc::new(session.missing().to_vec());
         app.roll.edited_at = app.clock.now();
         crate::mailbox::later(QUIET + Duration::from_millis(20), quiet);

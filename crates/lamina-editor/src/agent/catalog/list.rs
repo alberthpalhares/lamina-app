@@ -1,10 +1,10 @@
 //! A lista das ferramentas, na ordem da spec IA (seção 3): as do IA-M1 e depois as do IA-M2.
 
 use super::super::calls::{
-    ApplyLayout, BlankPageCall, BuildAlbumCall, BuildSpread, ExportCall, FrameArg, LeaveAlbum,
-    ListPhotos, MovePhoto, MoveSpread, NewAlbumCall, NewSpreadCall, NoArgs, OpenAlbum, PlacePhoto,
-    RenameAlbum, RunCommand, SaveAlbum, SpreadArg, Steps, SuggestLayouts, SwapPhotos, ViewPhotos,
-    ViewSpread,
+    ApplyLayout, BlankPageCall, BuildAlbumCall, BuildSpread, CoverCall, ExportCall, FrameArg,
+    LeaveAlbum, ListPhotos, MovePhoto, MoveSpread, NewAlbumCall, NewSpreadCall, NoArgs, OpenAlbum,
+    PlacePhoto, RenameAlbum, RunCommand, SaveAlbum, SpreadArg, Steps, SuggestLayouts, SwapPhotos,
+    ViewPhotos, ViewSpread,
 };
 use super::super::params::{
     AddText, CropCall, EditText, LookCall, RelinkCall, RespecCall, SaveModel, UseModel,
@@ -109,6 +109,15 @@ fn first_part() -> Vec<ToolInfo> {
         info::<NewSpreadCall>(
             "nova_lamina",
             "Cria uma lâmina vazia; com em_branco: true, as páginas dela ficam em branco.",
+        ),
+        info::<CoverCall>(
+            "criar_capa",
+            "Cria a capa fotográfica do álbum, vazia; sem medidas, usa as calculadas pelo álbum. Depois use \
+             capa: true em colocar_foto, adicionar_texto e nas outras.",
+        ),
+        info::<CoverCall>(
+            "medidas_da_capa",
+            "Muda as medidas da capa; o que você não informar fica como está. As fotos acompanham.",
         ),
         info::<BlankPageCall>(
             "pagina_em_branco",

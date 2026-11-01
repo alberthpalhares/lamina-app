@@ -85,6 +85,11 @@ pub enum ToolError {
     TooManyPhotos(usize),
     #[error("Escolha pelo menos uma foto.")]
     NoPhotosChosen,
+    /// Pediu a capa num álbum sem capa (spec CA, regra 15).
+    #[error("O álbum ainda não tem capa. Use criar_capa.")]
+    NoCover,
+    #[error("Use capa ou lamina, não os dois.")]
+    CoverAndSpread,
     /// O lado pedido não existe naquela ponta (spec PB, regra 12).
     #[error("A lâmina {spread} {verb} só com a página {only}.")]
     MissingPage {

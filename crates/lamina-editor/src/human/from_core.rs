@@ -43,6 +43,10 @@ impl Human for CoreError {
                  contraste, de −100 a 100."
                     .to_owned(),
             ),
+            CoreError::InvalidCover { .. } => (
+                "A capa deste álbum tem medidas inválidas.".to_owned(),
+                "Abra uma cópia de segurança do álbum.".to_owned(),
+            ),
             CoreError::InvalidOpacity { value, spread } => (
                 format!("Um quadro da lâmina {spread} tem uma opacidade inválida ({value}%)."),
                 "Abra uma cópia de segurança do álbum. A opacidade vai de 0 a 100%.".to_owned(),

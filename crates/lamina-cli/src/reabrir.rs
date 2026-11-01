@@ -48,6 +48,7 @@ pub fn run(args: &ReopenArgs) -> Result<()> {
         format,
         crop_marks,
         space: args.saida_formato.space_with(prefs),
+        cover: lamina_export::CoverExport::default(),
     };
     let spreads = match &options.range {
         Some(text) => parse_range(text, project.spreads.len())?,

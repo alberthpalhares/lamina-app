@@ -118,7 +118,7 @@ pub struct StripRow {
 
 /// As linhas da faixa de lâminas, pela lâmina.
 pub fn strip_rows(session: &Session) -> Vec<(SpreadId, StripRow)> {
-    let project = session.project();
+    let project = session.album();
     let count = project.spreads.len();
     let missing = session.missing();
     project
@@ -129,7 +129,7 @@ pub fn strip_rows(session: &Session) -> Vec<(SpreadId, StripRow)> {
             let row = StripRow {
                 spread: s.clone(),
                 active: project.spec.edges().active_pages(i, count),
-                warned: !session.warnings_for(i).is_empty(),
+                warned: !session.spread_warnings(i).is_empty(),
                 missing: photos_in(s).any(|id| missing.contains(&id)),
                 adjusts: photos_in(s)
                     .filter_map(|id| project.photo(id).ok().map(|p| p.adjust))

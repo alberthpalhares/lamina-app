@@ -10,6 +10,7 @@ import { Icons } from "icons.slint";
 import { BarButton, FilterTab, IconTextButton } from "widgets.slint";
 import { OrganizeUi } from "organize.slint";
 import { StripHeader, StripTheme } from "strip_header.slint";
+import { CoverTile, CoverUi } from "cover.slint";
 import { SpreadStrip } from "spread_strip.slint";
 import { TimelineStrip, TimelineItem } from "timeline.slint";
 import { PhotoGrid, PhotoData, PhotoGridUi } from "photo_strip.slint";
@@ -166,7 +167,14 @@ export component BottomStrips inherits VerticalLayout {
             triggered => { root.header-clicked(1); }
         }
     }
+    HorizontalLayout {
+    cover-tile := CoverTile {
+        visible: root.has-project && root.spreads-open;
+        height: self.visible ? root.strip-height : 0px;
+        thumb: root.strip-height - 44px;
+    }
     spread-strip := SpreadStrip {
+        horizontal-stretch: 1;
         visible: root.has-project && root.spreads-open;
         height: self.visible ? root.strip-height : 0px;
         thumb: root.strip-height - 44px;
@@ -180,6 +188,7 @@ export component BottomStrips inherits VerticalLayout {
         go-to(i) => { root.go-to(i); }
         move-spread(from, to) => { root.move-spread(from, to); }
         focus-main => { root.focus-main(); }
+    }
     }
     // No modo organizar, a linha do tempo e as fotos deslizam para fora e voltam ao sair, na
     // altura de cada uma (spec ZR, regra 12); faixas recolhidas continuam recolhidas.
@@ -234,7 +243,9 @@ export component BottomStrips inherits VerticalLayout {
                 photo-pressed(i, ctrl, shift) => { root.photo-pressed(i, ctrl, shift); }
                 dropped => {
                     // Sobre a faixa de lâminas, uma lâmina nova no vão (spec IM, regra 7).
-                    if (spread-strip.visible && spread-strip.photo-gap >= 0) {
+                    if (cover-tile.visible && cover-tile.photos-over) {
+                        CoverUi.tile-dropped(DragUi.from);
+                    } else if (spread-strip.visible && spread-strip.photo-gap >= 0) {
                         root.drop-photos-gap(DragUi.from, spread-strip.photo-gap);
                     } else {
                         root.photos-dropped();

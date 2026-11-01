@@ -8,10 +8,10 @@ use serde_json::Value;
 
 use super::ToolError;
 use super::calls::{
-    ApplyLayout, BlankPageCall, BuildAlbumCall, BuildSpread, ExportCall, FrameArg, LeaveAlbum,
-    ListPhotos, MovePhoto, MoveSpread, NewAlbumCall, NewSpreadCall, NoArgs, OpenAlbum, PlacePhoto,
-    RenameAlbum, RunCommand, SaveAlbum, SpreadArg, Steps, SuggestLayouts, SwapPhotos, ViewPhotos,
-    ViewSpread,
+    ApplyLayout, BlankPageCall, BuildAlbumCall, BuildSpread, CoverCall, ExportCall, FrameArg,
+    LeaveAlbum, ListPhotos, MovePhoto, MoveSpread, NewAlbumCall, NewSpreadCall, NoArgs, OpenAlbum,
+    PlacePhoto, RenameAlbum, RunCommand, SaveAlbum, SpreadArg, Steps, SuggestLayouts, SwapPhotos,
+    ViewPhotos, ViewSpread,
 };
 use super::params::{
     AddText, CropCall, EditText, LookCall, RelinkCall, RespecCall, SaveModel, UseModel,
@@ -67,6 +67,10 @@ pub enum ToolCall {
     NewSpread(NewSpreadCall),
     #[serde(rename = "pagina_em_branco")]
     BlankPage(BlankPageCall),
+    #[serde(rename = "criar_capa")]
+    CreateCover(CoverCall),
+    #[serde(rename = "medidas_da_capa")]
+    CoverMeasures(CoverCall),
     #[serde(rename = "apagar_lamina")]
     DeleteSpread(SpreadArg),
     #[serde(rename = "mover_lamina")]

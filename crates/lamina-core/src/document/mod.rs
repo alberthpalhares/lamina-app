@@ -9,6 +9,9 @@ mod adjust_tests;
 #[cfg(test)]
 mod blank_tests;
 mod content;
+mod cover;
+#[cfg(test)]
+mod cover_tests;
 mod crop;
 mod ids;
 mod migration;
@@ -26,6 +29,10 @@ mod turn;
 mod turn_tests;
 
 pub use content::{BlankPages, Border, Frame, FrameContent, Rgb, Spread};
+pub use cover::{
+    Cover, CoverGuide, CoverMeasures, CoverOrigin, DEFAULT_COVER_SAFE, DEFAULT_SHEET, DEFAULT_WRAP,
+    Spine,
+};
 pub use crop::{Crop, PixelRegion};
 pub use ids::{FrameId, PhotoId, SpreadId};
 pub use mounting::{AlbumLook, CropLevel, LIGHT_MAX_CROP, Mounting};
@@ -35,7 +42,7 @@ pub use photo::{Orientation, Photo, PhotoAdjust};
 pub use print::{ExportPrefs, OutputFormat, PageLimits};
 pub use project::{CURRENT_SCHEMA_VERSION, DEFAULT_GAP, Project};
 pub use text::{
-    DEFAULT_FONT, LINE_SPACING, MAX_TEXT_CHARS, TEXT_SIZE_PT, TextAlign, TextBox, TextVAlign,
-    clean_text,
+    DEFAULT_FONT, LINE_SPACING, MAX_TEXT_CHARS, TEXT_SIZE_PT, TextAlign, TextBox, TextRotation,
+    TextVAlign, clean_text,
 };
 pub use turn::{cover_factor, screen_to_photo, turned_box};

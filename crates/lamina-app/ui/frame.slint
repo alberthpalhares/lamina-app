@@ -31,6 +31,7 @@ export global FrameUi {
     in property <color> color;
     in property <int> align;
     in property <int> valign;
+    in property <int> rotation;
     in-out property <string> spacing;
     in property <string> spacing-error;
     // Sobe a cada pedido de pôr o cursor no texto (T e duplo clique num texto).
@@ -43,6 +44,7 @@ export global FrameUi {
     callback color-picked(int);
     callback align-picked(int);
     callback valign-picked(int);
+    callback rotation-picked(int);
     callback spacing-accepted(string);
 }
 
@@ -166,6 +168,12 @@ export component FramePanel inherits ScrollView {
             labels: ["Topo", "Meio", "Base"];
             chosen: FrameUi.valign;
             picked(i) => { FrameUi.valign-picked(i); root.done(); }
+        }
+        if FrameUi.is-text: Label { text: "Girar texto"; }
+        if FrameUi.is-text: Choice {
+            labels: ["Deitado", "Para cima", "Para baixo"];
+            chosen: FrameUi.rotation;
+            picked(i) => { FrameUi.rotation-picked(i); root.done(); }
         }
         if FrameUi.is-text: HorizontalLayout {
             spacing: 8px;

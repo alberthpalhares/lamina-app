@@ -33,6 +33,9 @@ pub struct Project {
     pub gap: Mm,
     pub photos: Vec<Photo>,
     pub spreads: Vec<Spread>,
+    /// A capa fotográfica, fora das lâminas e da numeração (spec CA; formato 8).
+    #[serde(rename = "capa", default, skip_serializing_if = "Option::is_none")]
+    pub cover: Option<super::Cover>,
     /// Mínimo e máximo de páginas do laboratório (spec PR; opcional no arquivo).
     #[serde(default, skip_serializing_if = "PageLimits::is_empty")]
     pub page_limits: PageLimits,
@@ -46,7 +49,7 @@ pub struct Project {
     #[serde(rename = "aparencia", default)]
     pub look: AlbumLook,
     /// Próximo identificador livre (compartilhado por fotos, lâminas e quadros).
-    next_id: u64,
+    pub(super) next_id: u64,
 }
 
 impl Project {
@@ -61,6 +64,7 @@ impl Project {
             gap,
             photos,
             spreads,
+            cover,
             page_limits,
             export: _,
             mounting,
@@ -76,6 +80,7 @@ impl Project {
             && mounting == &other.mounting
             && look == &other.look
             && spreads == &other.spreads
+            && cover == &other.cover
             && photos == &other.photos
     }
 
@@ -104,6 +109,7 @@ impl Project {
             gap: DEFAULT_GAP,
             photos: Vec::new(),
             spreads: Vec::new(),
+            cover: None,
             page_limits: PageLimits::default(),
             export: ExportPrefs::default(),
             mounting: Mounting::default(),
@@ -258,6 +264,19 @@ impl Project {
     /// Confere todas as invariantes. Chamado ao carregar um arquivo.
     pub fn validate(&self) -> Result<(), CoreError> {
         self.spec.validate()?;
+        if let Some(cover) = &self.cover {
+            cover.measures.validate()?;
+            for frame in &cover.content.frames {
+                if !frame.opacity.is_valid() {
+                    return Err(CoreError::InvalidCover {
+                        field: "opacidade",
+                        value: f64::from(frame.opacity.get()),
+                    });
+                }
+                frame.rect.validate()?;
+                self.check_content(&frame.content)?;
+            }
+        }
         if let Some(bad) = self.photos.iter().find(|p| !p.adjust.is_valid()) {
             let name = bad.path.file_name().unwrap_or(bad.path.as_os_str());
             return Err(CoreError::InvalidAdjust {

@@ -42,11 +42,22 @@ pub enum WarningKind {
     MissingChar { char: char },
     /// A fonte do projeto não é do Lamina nem está neste computador; o texto sai na padrão (spec FS).
     UnknownFont { font: String },
+    /// O texto da capa entra na dobra (spec CA, regra 14).
+    TextOnWrap,
+    /// A lombada foi fixada para outro número de páginas.
+    SpineOutdated { fixed_for: usize, pages: usize },
+    /// A face da capa é menor que a página.
+    SmallFace { face: Mm, page: Mm },
 }
 
 impl fmt::Display for Warning {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let n = self.spread;
+        // A capa fica fora da numeração: é a "lâmina 0" dos avisos (spec CA, regra 14).
+        let at = if self.spread == 0 {
+            "Capa".to_owned()
+        } else {
+            format!("Lâmina {}", self.spread)
+        };
         match &self.kind {
             WarningKind::Enlarged {
                 photo,
@@ -54,33 +65,46 @@ impl fmt::Display for Warning {
                 effective_dpi,
             } => write!(
                 f,
-                "Lâmina {n}: a foto {photo} está ampliada {percent}% ({effective_dpi} DPI efetivo)."
+                "{at}: a foto {photo} está ampliada {percent}% ({effective_dpi} DPI efetivo)."
             ),
-            WarningKind::EmptyFrame => write!(f, "Lâmina {n}: quadro vazio."),
+            WarningKind::EmptyFrame => write!(f, "{at}: quadro vazio."),
             WarningKind::NearCut { photo, distance } => write!(
                 f,
-                "Lâmina {n}: a foto {photo} está fora da zona segura, a {} mm do corte.",
+                "{at}: a foto {photo} está fora da zona segura, a {} mm do corte.",
                 millimeters(distance.get())
             ),
             WarningKind::TextOverflow { text } => {
-                write!(f, "Lâmina {n}: o texto \"{text}\" não cabe no quadro.")
+                write!(f, "{at}: o texto \"{text}\" não cabe no quadro.")
             }
             WarningKind::TextOutsideSafe { text } => {
-                write!(
-                    f,
-                    "Lâmina {n}: o texto \"{text}\" está fora da zona segura."
-                )
+                write!(f, "{at}: o texto \"{text}\" está fora da zona segura.")
             }
             WarningKind::MissingChar { char } => {
-                write!(f, "Lâmina {n}: a fonte não tem o caractere \"{char}\".")
+                write!(f, "{at}: a fonte não tem o caractere \"{char}\".")
             }
             WarningKind::UnknownFont { font } => write!(
                 f,
-                "Lâmina {n}: a fonte \"{font}\" não está neste computador; o texto usa {}.",
+                "{at}: a fonte \"{font}\" não está neste computador; o texto usa {}.",
                 lamina_core::DEFAULT_FONT
+            ),
+            WarningKind::TextOnWrap => write!(f, "{at}: texto sobre a dobra."),
+            WarningKind::SpineOutdated { fixed_for, pages } => write!(
+                f,
+                "{at}: o álbum tinha {fixed_for} páginas quando a lombada foi fixada; agora tem {pages}."
+            ),
+            WarningKind::SmallFace { face, page } => write!(
+                f,
+                "{at}: a face ({} cm) é menor que a página ({} cm).",
+                centimeters(face.get()),
+                centimeters(page.get())
             ),
         }
     }
+}
+
+/// "29,0", sempre com uma casa.
+fn centimeters(mm: f64) -> String {
+    format!("{:.1}", mm / 10.0).replace('.', ",")
 }
 
 /// "2" para 2,0 e "1,5" para 1,5.
@@ -111,7 +135,7 @@ pub fn preflight(project: &Project, spreads: &[usize]) -> Vec<Warning> {
     out
 }
 
-fn check(project: &Project, frame: &Frame) -> Vec<WarningKind> {
+pub(crate) fn check(project: &Project, frame: &Frame) -> Vec<WarningKind> {
     let photo = match &frame.content {
         FrameContent::Photo { photo, .. } => photo,
         FrameContent::Text(text) => {

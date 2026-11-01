@@ -13,8 +13,7 @@ pub fn used_in_spreads(project: &Project, photos: &[PhotoId]) -> usize {
         .iter()
         .filter(|id| {
             project
-                .spreads
-                .iter()
+                .all_content()
                 .any(|s| s.frames.iter().any(|f| holds(&f.content, **id)))
         })
         .count()
@@ -37,6 +36,13 @@ pub fn remove_from_album(project: &mut Project, photos: &[PhotoId]) -> Result<()
         if !frames.is_empty() {
             remove_photos(project, index, &frames)?;
         }
+    }
+    // Na capa, o quadro sai com a foto: o arquivo não pode citar uma foto que saiu do álbum.
+    if let Some(cover) = project.cover.as_mut() {
+        cover
+            .content
+            .frames
+            .retain(|f| !photos.iter().any(|id| holds(&f.content, *id)));
     }
     project.photos.retain(|p| !photos.contains(&p.id));
     Ok(())

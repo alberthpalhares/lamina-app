@@ -64,8 +64,12 @@ pub struct SaveAlbum {
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ViewSpread {
-    /// Número da lâmina, a partir de 1.
+    /// Número da lâmina, a partir de 1 (use capa: true para ver a capa).
+    #[serde(default)]
     pub lamina: usize,
+    /// Ver a capa em vez de uma lâmina.
+    #[serde(default)]
+    pub capa: bool,
     /// Mandar a prévia da lâmina em PNG (padrão: sim, se as imagens estiverem ligadas).
     #[serde(default = "yes")]
     pub imagem: bool,
@@ -157,7 +161,11 @@ pub struct SpreadArg {
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PlacePhoto {
+    #[serde(default)]
     pub lamina: usize,
+    /// Na capa em vez de numa lâmina.
+    #[serde(default)]
+    pub capa: bool,
     /// Número do quadro na lâmina, como em ver_lamina.
     pub quadro: usize,
     /// Número da foto, como em listar_fotos.
@@ -197,6 +205,9 @@ pub struct FrameArg {
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct BuildSpread {
+    /// Arranjar as fotos na capa, em vez de criar uma lâmina.
+    #[serde(default)]
+    pub capa: bool,
     /// Números das fotos da lâmina nova, na ordem.
     pub fotos: Vec<u64>,
     /// Posição da lâmina nova (padrão: no fim).
@@ -219,6 +230,25 @@ pub struct NewSpreadCall {
     /// A lâmina nasce com as páginas em branco (padrão: não).
     #[serde(default)]
     pub em_branco: bool,
+}
+
+/// Medidas da capa, em centímetros; o que faltar fica como está ou com o padrão (spec CA,
+/// regra 15).
+#[derive(Debug, Clone, Default, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct CoverCall {
+    /// Largura de um lado da capa fechada, em cm.
+    pub face_largura_cm: Option<f64>,
+    /// Altura de um lado da capa fechada, em cm.
+    pub face_altura_cm: Option<f64>,
+    /// Lombada fixa, em cm. Sem ela, a lombada é calculada pelas páginas do álbum.
+    pub lombada_cm: Option<f64>,
+    /// Espessura de cada folha, em mm, para a lombada calculada (padrão 1).
+    pub folha_mm: Option<f64>,
+    /// A parte que vira para dentro da capa dura, em cm (padrão 1,5).
+    pub dobra_cm: Option<f64>,
+    /// Zona segura, em cm (padrão 1).
+    pub zona_segura_cm: Option<f64>,
 }
 
 /// Lado de uma lâmina, para a página em branco.
@@ -253,7 +283,7 @@ pub struct Steps {
     pub passos: Option<usize>,
 }
 
-pub use super::export::{ColorArg, ExportCall, FormatArg};
+pub use super::export::{ColorArg, CoverArg, ExportCall, FormatArg};
 
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

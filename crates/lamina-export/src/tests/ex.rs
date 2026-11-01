@@ -109,7 +109,7 @@ pub fn three() -> Album {
     album
 }
 
-fn names(dir: &Path) -> Vec<String> {
+pub fn names(dir: &Path) -> Vec<String> {
     let mut out: Vec<String> = std::fs::read_dir(dir)
         .unwrap()
         .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())

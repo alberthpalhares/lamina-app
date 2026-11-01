@@ -32,6 +32,12 @@ impl Agent {
             }
             photos.push(photo_id(p, n)?);
         }
+        if a.capa {
+            edit_on(editor, 0, "Montar lâmina", |p| {
+                crate::editor::cover::arrange(p, &photos)
+            })?;
+            return self.edited(editor, 0, "Capa montada.");
+        }
         let at = position(p, a.posicao)?;
         let label = format!("Montar lâmina · lâmina {}", at + 1);
         edit_on(editor, at.saturating_sub(1), &label, |p| {

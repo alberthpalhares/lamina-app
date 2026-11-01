@@ -35,7 +35,15 @@ pub struct SpreadBar {
 /// O rolo aparece: há álbum com lâminas e não está no modo organizar nem no recorte (regra 24).
 pub fn roll_shown(editor: &Editor) -> bool {
     let has_spreads = editor.session().is_some_and(|s| s.spread_count() > 0);
-    has_spreads && !editor.organizing() && editor.crop_mode().is_none()
+    has_spreads && !editor.organizing() && editor.crop_mode().is_none() && !editor.on_cover()
+}
+
+/// O atalho para a capa ao lado da lâmina 1, no rolo (spec CA, seção 4).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RollPill {
+    None,
+    GoToCover,
+    CreateCover,
 }
 
 /// A barra da lâmina `index`, ou nada quando o rolo não aparece ou a lâmina não existe (regra
@@ -58,7 +66,7 @@ pub fn spread_bar(editor: &Editor, index: usize) -> Option<SpreadBar> {
             }
         })
         .collect();
-    let edges = session.project().spec.edges();
+    let edges = session.album().spec.edges();
     Some(SpreadBar {
         badge: spread_badge(edges, index, count),
         buttons,

@@ -23,6 +23,10 @@ pub enum CoreError {
         value: f64,
     },
 
+    /// Uma medida da capa fora dos limites (spec CA, seção 6).
+    #[error("medida inválida na capa, em `{field}`: {value} mm")]
+    InvalidCover { field: &'static str, value: f64 },
+
     #[error("a zona segura não cabe na página: sobrariam {free_width} × {free_height} mm")]
     SafeMarginTooLarge { free_width: f64, free_height: f64 },
 

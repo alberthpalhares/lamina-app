@@ -76,7 +76,10 @@ pub(super) fn edit_on(
     label: &str,
     change: impl FnOnce(&mut Project) -> Result<(), EditorError>,
 ) -> Result<(), ToolError> {
-    editor.go_to_spread(index);
+    // Com a capa aberta, a edição é nela: não há lâmina para onde ir (spec CA, regra 15).
+    if !editor.on_cover() {
+        editor.go_to_spread(index);
+    }
     session_mut(editor)?.edit(label, change)?;
     Ok(())
 }

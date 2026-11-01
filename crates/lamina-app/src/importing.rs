@@ -169,7 +169,7 @@ pub fn connect(window: &AppWindow, app: &Shared) {
                         let mut app = a.borrow_mut();
                         // Soltas sobre a área de lâmina nova, viram a lâmina nova (regra 11).
                         let over = weak.upgrade().is_some_and(|w| w.get_new_spread_hover());
-                        let at = app.session().map(|s| s.spread_count()).filter(|_| over);
+                        let at = (over && app.session().is_some()).then(|| app.editor.album_end());
                         start(&mut app, paths, at);
                     });
                 }

@@ -70,16 +70,16 @@ pub fn album_rows(project: &Project, unit: &str) -> Vec<(String, String)> {
             .filter(|p| p.orientation() == o)
             .count()
     };
-    let used =
-        project
-            .photos
-            .iter()
-            .filter(|p| {
-                project.spreads.iter().flat_map(|s| &s.frames).any(
-                    |f| matches!(&f.content, FrameContent::Photo { photo, .. } if *photo == p.id),
-                )
-            })
-            .count();
+    let used = project
+        .photos
+        .iter()
+        .filter(|p| {
+            project
+                .all_content()
+                .flat_map(|s| &s.frames)
+                .any(|f| matches!(&f.content, FrameContent::Photo { photo, .. } if *photo == p.id))
+        })
+        .count();
     let adjusted = project
         .photos
         .iter()

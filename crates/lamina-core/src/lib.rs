@@ -33,7 +33,13 @@ pub use document::{
     PixelRegion, Project, Rgb, Spread, SpreadId, TextAlign, TextBox, TextVAlign, lexical_path,
     relative_path, validate_project_name,
 };
-pub use document::{DEFAULT_FONT, LINE_SPACING, MAX_TEXT_CHARS, TEXT_SIZE_PT, clean_text};
+pub use document::{
+    Cover, CoverGuide, CoverMeasures, CoverOrigin, DEFAULT_COVER_SAFE, DEFAULT_SHEET, DEFAULT_WRAP,
+    Spine,
+};
+pub use document::{
+    DEFAULT_FONT, LINE_SPACING, MAX_TEXT_CHARS, TEXT_SIZE_PT, TextRotation, clean_text,
+};
 pub use document::{cover_factor, screen_to_photo, turned_box};
 pub use error::CoreError;
 

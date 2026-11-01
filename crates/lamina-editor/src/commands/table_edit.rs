@@ -122,6 +122,11 @@ impl Command {
                 Menu::Spread,
                 None,
             ),
+            C::CreateCover => ("capa.criar", "Criar a capa…", Menu::Cover, None),
+            C::GoToCover => ("capa.ir", "Ir para a capa", Menu::Cover, None),
+            C::CoverMeasures => ("capa.medidas", "Medidas da capa…", Menu::Cover, None),
+            C::DeleteCover => ("capa.apagar", "Apagar a capa", Menu::Cover, None),
+            C::ToggleCoverGuide => ("capa.guia", "Mostrar o guia", Menu::Cover, None),
             C::DeleteSpread => (
                 "lamina.apagar",
                 "Apagar lâmina",

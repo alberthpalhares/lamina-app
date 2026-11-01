@@ -4,7 +4,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use lamina_core::{TextAlign, TextVAlign};
+use lamina_core::{TextAlign, TextRotation, TextVAlign};
 use lamina_editor::editor::TextFocus;
 use lamina_editor::frame_form::{parse_frame, parse_size, parse_spacing};
 use lamina_editor::{PALETTE, TextChange};
@@ -70,6 +70,7 @@ fn fill(app: &App, w: &AppWindow) {
     ui.set_color(Color::from_rgb_u8(t.color.r, t.color.g, t.color.b));
     ui.set_align(i32::try_from(t.align).unwrap_or(1));
     ui.set_valign(i32::try_from(t.valign).unwrap_or(1));
+    ui.set_rotation(i32::try_from(t.rotation).unwrap_or(0));
     ui.set_spacing(t.spacing.into());
     ui.set_spacing_error("".into());
 }
@@ -146,6 +147,15 @@ pub fn connect(window: &AppWindow, app: &Shared) {
     });
     let a = app.clone();
     ui.on_align_picked(move |i| change(&a, TextChange::Align(align(i))));
+    let a = app.clone();
+    ui.on_rotation_picked(move |i| {
+        let rotation = match i {
+            1 => TextRotation::Up,
+            2 => TextRotation::Down,
+            _ => TextRotation::Zero,
+        };
+        change(&a, TextChange::Rotation(rotation));
+    });
     let a = app.clone();
     ui.on_valign_picked(move |i| change(&a, TextChange::VAlign(valign(i))));
     let a = app.clone();

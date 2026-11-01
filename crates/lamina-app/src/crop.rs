@@ -112,7 +112,13 @@ pub fn refresh_spread(app: &mut App) {
         w.set_current(data);
     }
     crate::organize::refresh(app);
-    w.set_current_index(i32::try_from(index).unwrap_or(0));
+    // Com a capa aberta, nenhuma lâmina fica marcada na faixa.
+    let on_cover = app.editor.on_cover();
+    w.set_current_index(if on_cover {
+        -1
+    } else {
+        i32::try_from(index).unwrap_or(0)
+    });
     let as_i32 = |f: Option<usize>| f.and_then(|f| i32::try_from(f).ok()).unwrap_or(-1);
     w.set_selected_frame(as_i32(app.editor.selected_frame()));
     w.set_crop_frame(as_i32(app.editor.crop_mode()));

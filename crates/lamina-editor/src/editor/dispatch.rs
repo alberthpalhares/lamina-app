@@ -16,6 +16,10 @@ impl Editor {
                 Command::About | Command::SendFeedback | Command::OpenLogs
             );
         }
+        // Com a capa aberta, os comandos só de lâmina ficam desativados (spec CA, regra 5).
+        if self.on_cover() && super::cover::SPREAD_ONLY.contains(&command) {
+            return false;
+        }
         let Some(s) = &self.session else {
             return matches!(
                 command,
@@ -91,6 +95,12 @@ impl Editor {
             }
             Command::NewSpread | Command::NewBlankSpread | Command::NewBlankSpreadBefore => true,
             Command::BlankPage => self.can_toggle_blank(),
+            Command::CreateCover => !self.has_cover(),
+            Command::GoToCover => self.has_cover() && !self.on_cover(),
+            Command::CoverMeasures | Command::DeleteCover => self.has_cover(),
+            Command::ToggleCoverGuide => {
+                self.on_cover() && self.cover().is_some_and(|c| c.guide.is_some())
+            }
             Command::DeleteSpread => s.spread_count() > 1,
             Command::ClearAllPhotos => self.clear_counts().0 > 0,
             Command::DeleteAllSpreads => s.spread_count() > 0,
@@ -247,6 +257,11 @@ impl Editor {
             Command::NewBlankSpread => self.new_blank_spread(false),
             Command::NewBlankSpreadBefore => self.new_blank_spread(true),
             Command::BlankPage => self.toggle_blank_page(),
+            Command::GoToCover => self.go_to_cover(),
+            Command::DeleteCover => self.delete_cover(),
+            Command::ToggleCoverGuide => self.toggle_cover_guide(),
+            // A janela abre a caixa, que chama `create_cover` ou `set_cover_measures`.
+            Command::CreateCover | Command::CoverMeasures => false,
             Command::DeleteSpread => self.delete_current(),
             Command::ClearAllPhotos => self.clear_all_photos(),
             Command::DeleteAllSpreads => self.delete_all_spreads(),

@@ -55,7 +55,7 @@ fn refresh(app: &App) {
         return;
     };
     let spreads = usize::try_from(ui.get_spreads()).unwrap_or(0);
-    let project = session.project();
+    let project = session.album();
     match plan.check(project, spreads) {
         Ok(()) => {
             let (line, warning) = plan.result(project, spreads);
@@ -77,10 +77,10 @@ fn start(app: &mut App) {
         return;
     };
     let spreads = usize::try_from(ui.get_spreads()).unwrap_or(0);
-    if plan.check(session.project(), spreads).is_err() {
+    if plan.check(session.album(), spreads).is_err() {
         return;
     }
-    let project = session.project_shared();
+    let project = session.album_shared();
     let options = app.editor.build_options(reuse_of(ui.get_reuse()));
     let photos = plan.unused.len();
     ui.set_show(false);

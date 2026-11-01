@@ -20,6 +20,7 @@ mod building;
 mod calls;
 mod catalog;
 mod commands;
+mod cover;
 mod crop;
 mod cross;
 mod error;
@@ -46,10 +47,11 @@ mod values;
 
 pub use album::SPREADS_NEED_BUILD;
 pub use calls::{
-    ApplyLayout, BlankPageCall, BlankSide, BuildAlbumCall, BuildSpread, ColorArg, ExportCall,
-    FormatArg, FrameArg, LeaveAlbum, ListPhotos, MovePhoto, MoveSpread, NewAlbumCall,
-    NewSpreadCall, NoArgs, OpenAlbum, OrderArg, PartArg, PhotoFilter, PlacePhoto, RenameAlbum,
-    RunCommand, SaveAlbum, SpreadArg, Steps, SuggestLayouts, SwapPhotos, ViewPhotos, ViewSpread,
+    ApplyLayout, BlankPageCall, BlankSide, BuildAlbumCall, BuildSpread, ColorArg, CoverArg,
+    CoverCall, ExportCall, FormatArg, FrameArg, LeaveAlbum, ListPhotos, MovePhoto, MoveSpread,
+    NewAlbumCall, NewSpreadCall, NoArgs, OpenAlbum, OrderArg, PartArg, PhotoFilter, PlacePhoto,
+    RenameAlbum, RunCommand, SaveAlbum, SpreadArg, Steps, SuggestLayouts, SwapPhotos, ViewPhotos,
+    ViewSpread,
 };
 pub use catalog::{ToolCall, ToolInfo, tools};
 pub use error::ToolError;
@@ -129,7 +131,15 @@ impl Agent {
         if let Some(s) = editor.session_mut() {
             s.set_label_prefix(AI_LABEL);
         }
-        let result = self.dispatch(editor, call, progress);
+        // Só ler o álbum não tira o fotógrafo da capa aberta.
+        let back_to_cover = editor.on_cover() && cover::only_reads(&call);
+        let result = match cover::prepare(editor, call) {
+            Ok(call) => self.dispatch(editor, call, progress),
+            Err(e) => Err(e),
+        };
+        if back_to_cover {
+            editor.go_to_cover();
+        }
         if let Some(s) = editor.session_mut() {
             s.set_label_prefix("");
         }
@@ -164,6 +174,8 @@ impl Agent {
             ToolCall::BuildAlbum(a) => self.build_album(editor, &a, progress),
             ToolCall::NewSpread(a) => self.new_spread(editor, &a),
             ToolCall::BlankPage(a) => self.blank_page(editor, &a),
+            ToolCall::CreateCover(a) => self.create_cover(editor, &a),
+            ToolCall::CoverMeasures(a) => self.cover_measures(editor, &a),
             ToolCall::DeleteSpread(a) => self.delete_spread(editor, a.lamina),
             ToolCall::MoveSpread(a) => self.move_spread(editor, &a),
             ToolCall::Undo(a) => spreads::undo_redo(editor, a.passos, true),

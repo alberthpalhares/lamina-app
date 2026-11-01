@@ -59,6 +59,7 @@ impl Human for ExportError {
                 format!("Exporte de novo. {REPORT}"),
             ),
             ExportError::Render(e) => return e.human(),
+            ExportError::Cover(e) => return e.human(),
             ExportError::Stopped { done, source } => return stopped(done.len(), source, details),
         };
         HumanMessage::new(title, what, details)

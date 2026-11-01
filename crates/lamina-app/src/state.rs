@@ -55,6 +55,13 @@ pub struct App {
     pub notice: String,
     /// A conferência da janela Exportar aberta (avisos que sobraram e arquivos que já existem).
     pub export_check: Option<ExportCheck>,
+    /// A caixa da capa aberta, com as fotos que nascem nela (spec CA).
+    pub cover_form: Option<(
+        lamina_editor::cover_form::CoverForm,
+        Vec<lamina_core::PhotoId>,
+    )>,
+    /// O guia da capa já lido: o caminho e a imagem reduzida.
+    pub cover_guide: Option<(std::path::PathBuf, Option<Image>)>,
     /// Presets (spec PR) e o que eles trazem para o "Novo álbum" e a "Especificação do álbum".
     pub presets: lamina_editor::PresetsStore,
     pub new_export: lamina_core::ExportPrefs,
@@ -124,6 +131,8 @@ impl App {
             new_files: Vec::new(),
             notice: String::new(),
             export_check: None,
+            cover_form: None,
+            cover_guide: None,
             presets: lamina_editor::PresetsStore::default(),
             new_export: lamina_core::ExportPrefs::default(),
             spec_export: lamina_core::ExportPrefs::default(),
@@ -263,13 +272,14 @@ impl App {
         };
         let rows = strip_rows(session);
         let warned: Vec<bool> = rows.iter().map(|(_, r)| r.warned).collect();
-        let (project, missing) = (session.project_shared(), session.missing().to_vec());
+        let (project, missing) = (session.album_shared(), session.missing().to_vec());
         let images = self.thumbs(&project);
         crate::roll::edited(self, &rows);
         self.lists.strip.sync(rows, |i| {
             let warning = warned.get(i).copied().unwrap_or(false);
             strip_data(&project, i, &missing, &images, warning)
         });
+        crate::cover::refresh_tile(self);
         crate::drops::refresh_timeline(self);
     }
 
@@ -282,7 +292,7 @@ impl App {
         let Some(session) = self.session() else {
             return;
         };
-        let project = session.project_shared();
+        let project = session.album_shared();
         let title = photos_title(session, self.editor.selection().len());
         let filter = self.editor.photo_filter();
         let missing = session.missing().to_vec();

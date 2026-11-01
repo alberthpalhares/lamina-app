@@ -67,6 +67,7 @@ impl App {
         w.set_album_name(session.title().into());
         w.set_counter(session.counter().into());
         // O álbum em branco: a lâmina vazia no formato e no fundo do álbum (spec BR).
+        w.set_empty_album(self.editor.is_blank());
         let project = session.project();
         let canvas = project.spec.canvas_rect();
         let aspect = canvas.height.get() / canvas.width.get().max(1.0);
@@ -101,11 +102,17 @@ impl App {
         let project = session.project_shared();
         let count = session.spread_count();
         let frames = project.spreads.get(index).map_or(0, |s| s.frames.len());
-        w.set_info_album(album_info(&project).into());
+        w.set_info_album(album_info(session.album()).into());
         let manual = project.spreads.get(index).is_some_and(|s| s.manual);
-        w.set_info_spread(lamina_editor::naming::spread_line(index, count, frames, manual).into());
+        let line = if session.on_cover() {
+            "Capa".to_owned()
+        } else {
+            lamina_editor::naming::spread_line(index, count, frames, manual)
+        };
+        w.set_info_spread(line.into());
         w.set_info_warnings(warnings.join("\n").into());
 
+        crate::cover::refresh(self);
         crate::roll_connect::refresh(self);
         crate::crop::refresh_spread(self);
         if let Some(notice) = self.editor.take_notice() {

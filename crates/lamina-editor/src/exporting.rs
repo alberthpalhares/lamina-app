@@ -4,7 +4,7 @@
 use std::path::Path;
 
 use lamina_core::Project;
-pub use lamina_export::{DEFAULT_QUALITY, ExportFormat, ExportOptions, Warning};
+pub use lamina_export::{CoverExport, DEFAULT_QUALITY, ExportFormat, ExportOptions, Warning};
 use lamina_export::{ExportReport, export};
 use lamina_media::original_source_in;
 
@@ -90,7 +90,7 @@ impl Editor {
             return false;
         }
         let frames = session
-            .project()
+            .album()
             .spreads
             .get(index)
             .map_or(0, |s| s.frames.len());

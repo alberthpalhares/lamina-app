@@ -9,6 +9,8 @@ use lamina_core::{ColorSpace, FrameContent, Project};
 use lamina_render::PhotoSource;
 
 use crate::clean::remove_leftovers;
+use crate::cover::{self, CoverExport};
+use crate::cover_preflight;
 use crate::in_order::in_order;
 use crate::jobs::{SpreadJob, plan};
 use crate::preflight::{Warning, preflight};
@@ -49,6 +51,8 @@ pub struct ExportOptions {
     /// Espaço de cor da saída (spec CT). A fonte de fotos passada a [`export`] tem que entregar as
     /// fotos já nele (`lamina_media::original_source_in`).
     pub space: ColorSpace,
+    /// A capa, num álbum que tem capa: junto, só ela ou sem ela (spec CA, regra 13).
+    pub cover: CoverExport,
 }
 
 impl Default for ExportOptions {
@@ -61,6 +65,7 @@ impl Default for ExportOptions {
             format: ExportFormat::Jpeg,
             crop_marks: false,
             space: ColorSpace::Srgb,
+            cover: CoverExport::default(),
         }
     }
 }
@@ -87,8 +92,14 @@ pub fn export(
     let started = Instant::now();
     let in_space = colors_in(project, options.space);
     let project = in_space.as_ref();
-    let jobs = plan(project, options)?;
-    let names = names_of(project, options, &jobs);
+    let canvas = cover::canvas_of(project, options.cover)?;
+    let only = cover_alone(project, options, canvas.as_ref());
+    let jobs = if only {
+        check_options(options)?
+    } else {
+        plan(project, options)?
+    };
+    let names = all_names(project, canvas.as_ref(), options, &jobs);
     if !options.overwrite {
         refuse_existing(&names, folder)?;
     }
@@ -104,12 +115,22 @@ pub fn export(
         space: options.space,
         format: options.format,
     };
-    let files = match options.format {
-        ExportFormat::Pdf => vec![pdf::write(&ctx, &jobs, options, progress)?],
-        _ => write_all(&ctx, &jobs, progress)?,
+    // A contagem do andamento vale para tudo: as lâminas e depois a capa.
+    let pages: usize = jobs.iter().map(|j| j.names().len()).sum();
+    let total = pages + usize::from(canvas.is_some());
+    let album_progress = |done: usize, _: usize| progress(done, total);
+    let mut files = match (options.format, only) {
+        (_, true) => Vec::new(),
+        (ExportFormat::Pdf, false) => vec![pdf::write(&ctx, &jobs, options, &album_progress)?],
+        (_, false) => write_all(&ctx, &jobs, &album_progress)?,
     };
+    if let Some(canvas) = &canvas {
+        let cover_progress = |done: usize, _: usize| progress(pages + done, total);
+        files.extend(write_cover(canvas, &ctx, options, &cover_progress)?);
+    }
     // A limpeza só vale para os JPEGs e TIFFs (spec PD, regra 7; spec CT, regra 6).
-    let removed = if options.overwrite && options.format != ExportFormat::Pdf {
+    // "Só a capa" não apaga as lâminas da exportação anterior: elas continuam valendo.
+    let removed = if options.overwrite && options.format != ExportFormat::Pdf && !only {
         let ext = if options.format == ExportFormat::Tiff {
             ".tif"
         } else {
@@ -119,10 +140,17 @@ pub fn export(
     } else {
         Vec::new()
     };
+    let mut removed = removed;
+    removed.extend(remove_old_cover_pdf(
+        project,
+        options,
+        canvas.is_some(),
+        folder,
+    )?);
     let spreads: Vec<usize> = jobs.iter().map(|j| j.spread).collect();
     Ok(ExportReport {
         files,
-        warnings: preflight(project, &spreads),
+        warnings: all_warnings(project, options, &spreads),
         removed,
         elapsed: started.elapsed(),
     })
@@ -135,7 +163,8 @@ fn colors_in(project: &Project, space: ColorSpace) -> Cow<'_, Project> {
         return Cow::Borrowed(project);
     }
     let mut copy = project.clone();
-    for spread in &mut copy.spreads {
+    let cover = copy.cover.as_mut().map(|c| &mut c.content);
+    for spread in copy.spreads.iter_mut().chain(cover) {
         spread.background = space.from_srgb(spread.background);
         spread.background_right = spread.background_right.map(|c| space.from_srgb(c));
         for frame in &mut spread.frames {
@@ -154,8 +183,97 @@ pub fn output_names(
     project: &Project,
     options: &ExportOptions,
 ) -> Result<Vec<String>, ExportError> {
-    let jobs = plan(project, options)?;
-    Ok(names_of(project, options, &jobs))
+    let canvas = cover::canvas_of(project, options.cover)?;
+    let only = cover_alone(project, options, canvas.as_ref());
+    let jobs = if only {
+        check_options(options)?
+    } else {
+        plan(project, options)?
+    };
+    Ok(all_names(project, canvas.as_ref(), options, &jobs))
+}
+
+/// Sai só a capa: pedido, ou porque o álbum ainda não tem lâminas.
+fn cover_alone(project: &Project, options: &ExportOptions, canvas: Option<&Project>) -> bool {
+    canvas.is_some() && (options.cover == CoverExport::Only || project.spreads.is_empty())
+}
+
+/// "Só a capa": confere as opções, sem lâminas (spec CA, regra 13).
+fn check_options(options: &ExportOptions) -> Result<Vec<SpreadJob>, ExportError> {
+    if !(1..=100).contains(&options.quality) {
+        return Err(ExportError::Quality(options.quality));
+    }
+    Ok(Vec::new())
+}
+
+/// Os nomes das lâminas e os da capa.
+fn all_names(
+    project: &Project,
+    canvas: Option<&Project>,
+    options: &ExportOptions,
+    jobs: &[SpreadJob],
+) -> Vec<String> {
+    let only = cover_alone(project, options, canvas);
+    let mut names = if only {
+        Vec::new()
+    } else {
+        names_of(project, options, jobs)
+    };
+    if let Some(canvas) = canvas {
+        names.extend(names_of(canvas, options, &[cover::job(options.format)]));
+    }
+    names
+}
+
+/// Grava a capa pela projeção, com as mesmas opções das lâminas (spec CA, regra 13).
+fn write_cover(
+    canvas: &Project,
+    album: &Ctx,
+    options: &ExportOptions,
+    progress: &dyn Fn(usize, usize),
+) -> Result<Vec<PathBuf>, ExportError> {
+    let ctx = Ctx {
+        project: canvas,
+        folder: album.folder,
+        photos: album.photos,
+        quality: album.quality,
+        space: album.space,
+        format: album.format,
+    };
+    let jobs = [cover::job(options.format)];
+    match options.format {
+        ExportFormat::Pdf => Ok(vec![pdf::write(&ctx, &jobs, options, progress)?]),
+        _ => write_all(&ctx, &jobs, progress),
+    }
+}
+
+/// Substituir sem gravar a capa apaga o `<nome>-capa.pdf` da exportação anterior (CA-B10).
+fn remove_old_cover_pdf(
+    project: &Project,
+    options: &ExportOptions,
+    wrote_cover: bool,
+    folder: &Path,
+) -> Result<Vec<PathBuf>, ExportError> {
+    let old = folder.join(format!("{}.pdf", cover::pdf_project_name(project)));
+    let stale = options.overwrite && !wrote_cover;
+    if !stale || !old.exists() {
+        return Ok(Vec::new());
+    }
+    std::fs::remove_file(&old).map_err(|e| ExportError::Folder {
+        folder: folder.display().to_string(),
+        reason: e.to_string(),
+    })?;
+    Ok(vec![old])
+}
+
+/// Os avisos do que saiu: os da capa antes dos das lâminas (spec CA, regra 14).
+fn all_warnings(project: &Project, options: &ExportOptions, spreads: &[usize]) -> Vec<Warning> {
+    let mut warnings = Vec::new();
+    if options.cover != CoverExport::Without {
+        warnings.extend(cover_preflight(project));
+    }
+    warnings.extend(preflight(project, spreads));
+    warnings
 }
 
 /// Os arquivos de saída: os JPEGs de cada lâmina, ou o PDF do álbum.

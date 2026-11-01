@@ -45,6 +45,7 @@ pub mod building;
 pub mod cache;
 pub mod calibration;
 pub mod commands;
+pub mod cover_form;
 pub mod editor;
 pub mod edits;
 pub mod edits_cross;
@@ -127,8 +128,8 @@ pub use error::EditorError;
 pub use error_log::ErrorLog;
 pub use example::{EXAMPLE_COPY, EXAMPLE_DIR, EXAMPLE_FILE, example_target, prepare_example};
 pub use exporting::{
-    DEFAULT_QUALITY, ExportCheck, ExportFormat, ExportOptions, Warning, export_progress,
-    export_project, export_summary,
+    CoverExport, DEFAULT_QUALITY, ExportCheck, ExportFormat, ExportOptions, Warning,
+    export_progress, export_project, export_summary,
 };
 pub use feedback::{FEEDBACK_FORM, feedback_address};
 pub use human::{Human, HumanMessage, guarded};

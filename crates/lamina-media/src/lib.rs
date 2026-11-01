@@ -13,6 +13,8 @@
 //! - [`import`]: tudo junto, em paralelo.
 
 pub mod camera;
+mod density;
+pub use density::image_dpi;
 pub mod catalog;
 pub mod color;
 pub mod decode;

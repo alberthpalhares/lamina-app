@@ -28,6 +28,9 @@ pub struct Session {
     /// o mesmo passo (spec LV, regra 1).
     saved: Option<Arc<Project>>,
     current: usize,
+    /// A projeção da capa, enquanto a capa está aberta (spec CA, regra 5). `project` e `current`
+    /// passam a falar dela, e as dezenas de lugares que leem lâmina e índice valem sem mudar.
+    canvas: Option<Arc<Project>>,
     missing: Vec<PhotoId>,
     /// A janela "Algumas fotos mudaram de lugar" já abriu nesta abertura (spec RF, regra 2).
     relink_asked: bool,
@@ -68,6 +71,7 @@ impl Session {
             history,
             file,
             current: 0,
+            canvas: None,
             missing,
             relink_asked: false,
             warnings,
@@ -79,13 +83,58 @@ impl Session {
         }
     }
 
+    /// O que está sendo editado: o álbum, ou a projeção da capa quando a capa está aberta.
     pub fn project(&self) -> &Project {
-        self.history.present()
+        self.canvas
+            .as_deref()
+            .unwrap_or_else(|| self.history.present())
     }
 
     /// O projeto compartilhado, para guardar sem copiar o álbum (spec LV, regra 1).
     pub fn project_shared(&self) -> Arc<Project> {
+        self.canvas
+            .clone()
+            .unwrap_or_else(|| self.history.present_shared())
+    }
+
+    /// O álbum inteiro, com a capa aberta ou não: contagens, fotos usadas, gravar e exportar.
+    pub fn album(&self) -> &Project {
+        self.history.present()
+    }
+
+    /// O álbum inteiro, compartilhado.
+    pub fn album_shared(&self) -> Arc<Project> {
         self.history.present_shared()
+    }
+
+    /// A capa está aberta? (spec CA, regra 5)
+    pub fn on_cover(&self) -> bool {
+        self.canvas.is_some()
+    }
+
+    /// Abre a capa; `false` se o álbum não tem capa ou as medidas dela não fecham.
+    pub fn go_to_cover(&mut self) -> bool {
+        self.merge = None;
+        self.canvas = self
+            .history
+            .present()
+            .cover_canvas()
+            .ok()
+            .flatten()
+            .map(Arc::new);
+        self.canvas.is_some()
+    }
+
+    /// Sai da capa, de volta à última lâmina aberta.
+    pub fn leave_cover(&mut self) {
+        self.canvas = None;
+    }
+
+    /// Refaz a projeção depois de o álbum mudar.
+    pub(crate) fn rebuild_canvas(&mut self) {
+        if self.canvas.is_some() {
+            self.go_to_cover();
+        }
     }
 
     pub fn file(&self) -> Option<&Path> {
@@ -100,7 +149,7 @@ impl Session {
         };
         saved.export != self.export
             || !(Arc::ptr_eq(saved, &self.history.present_shared())
-                || saved.same_except_export(self.project()))
+                || saved.same_except_export(self.album()))
     }
 
     /// O álbum recuperado de uma cópia de segurança (spec CS, regra 5): o projeto da cópia, o
@@ -121,7 +170,7 @@ impl Session {
 
     /// O projeto como vai para o arquivo: o atual com as preferências de exportação.
     pub(crate) fn for_disk(&self) -> Project {
-        let mut project = self.project().clone();
+        let mut project = self.album().clone();
         project.export = self.export;
         project
     }
@@ -137,9 +186,8 @@ impl Session {
 
     /// "O álbum tem 18 páginas; o mínimo é 20." fora da faixa do laboratório (spec PR, regra 4).
     pub fn page_warning(&self) -> Option<String> {
-        let project = self.project();
-        let pages = project.spec.edges().page_count(project.spreads.len());
-        project.page_limits.warning(pages)
+        let project = self.album();
+        project.page_limits.warning(project.page_count())
     }
 
     /// O medidor de páginas da barra de cima (spec DJ, regra 13); sem limites, nenhum.
@@ -154,6 +202,11 @@ impl Session {
 
     /// Lâmina atual, contada a partir de 0.
     pub fn current(&self) -> usize {
+        if self.on_cover() { 0 } else { self.current }
+    }
+
+    /// A última lâmina aberta, com a capa aberta ou não: reabrir o álbum volta para ela.
+    pub fn last_spread(&self) -> usize {
         self.current
     }
 
@@ -163,9 +216,10 @@ impl Session {
 
     /// Vai para a lâmina `index`; `false` (e nada muda) se ela não existe.
     pub fn go_to(&mut self, index: usize) -> bool {
-        if index >= self.spread_count() {
+        if index >= self.album().spreads.len() {
             return false;
         }
+        self.canvas = None;
         self.current = index;
         true
     }
@@ -177,9 +231,9 @@ impl Session {
 
     /// "3 lâminas (6 páginas) · 12 de 12 fotos usadas".
     pub fn counter(&self) -> String {
-        let project = self.project();
+        let project = self.album();
         let spreads = project.spreads.len();
-        let pages = project.spec.edges().page_count(spreads);
+        let pages = project.page_count();
         let (s, p) = (plural(spreads, "lâmina"), plural(pages, "página"));
         let used = used_photos(project);
         let total = project.photos.len();
@@ -218,10 +272,30 @@ impl Session {
 
     /// Avisos de pré-impressão da lâmina `index` (contada a partir de 0).
     pub fn warnings_for(&self, index: usize) -> Vec<&Warning> {
+        // Na capa, os avisos dela (lâmina 0, fora da numeração).
+        let wanted = if self.on_cover() { 0 } else { index + 1 };
+        self.warnings
+            .iter()
+            .filter(|w| w.spread == wanted)
+            .collect()
+    }
+
+    /// Avisos da lâmina `index` do álbum, com a capa aberta ou não (a faixa de lâminas).
+    pub fn spread_warnings(&self, index: usize) -> Vec<&Warning> {
         self.warnings
             .iter()
             .filter(|w| w.spread == index + 1)
             .collect()
+    }
+
+    /// Avisos da capa, com a capa aberta ou não (lâmina 0, fora da numeração).
+    pub fn cover_warnings(&self) -> Vec<&Warning> {
+        self.warnings.iter().filter(|w| w.spread == 0).collect()
+    }
+
+    /// A capa tem avisos? (o selo da capa na faixa)
+    pub fn cover_warned(&self) -> bool {
+        self.warnings.iter().any(|w| w.spread == 0)
     }
 
     /// Salva no arquivo da sessão.
@@ -237,7 +311,7 @@ impl Session {
         let name = file_name(&file);
         let disk = self.for_disk();
         let saved = save_project(&disk, folder, &name)?;
-        self.saved = Some(if disk.export == self.project().export {
+        self.saved = Some(if disk.export == self.album().export {
             self.history.present_shared()
         } else {
             Arc::new(disk)
@@ -285,7 +359,9 @@ fn missing_of(project: &Project) -> Vec<PhotoId> {
 /// Avisos de pré-impressão de todas as lâminas.
 fn warnings_of(project: &Project) -> Vec<Warning> {
     let all: Vec<usize> = (0..project.spreads.len()).collect();
-    preflight(project, &all)
+    let mut warnings = lamina_export::cover_preflight(project);
+    warnings.extend(preflight(project, &all));
+    warnings
 }
 
 fn plural(n: usize, word: &str) -> String {

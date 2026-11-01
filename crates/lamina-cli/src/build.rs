@@ -102,6 +102,7 @@ pub fn run(args: &BuildArgs) -> Result<()> {
         format,
         crop_marks,
         space: args.saida_formato.space_with(prefs),
+        cover: lamina_export::CoverExport::default(),
     };
     // Tudo validado antes de gravar qualquer coisa (regra 5): nomes de saída e opções.
     let file = project_file_name(&built.project.name)?;

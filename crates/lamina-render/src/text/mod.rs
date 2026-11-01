@@ -88,8 +88,14 @@ pub fn check_text(text: &TextBox, size_mm: (f64, f64)) -> TextCheck {
             }
         }
     }
+    // Em pé, a largura do texto é a altura do quadro (spec CA, regra 9).
+    let upright = if text.rotation.is_zero() {
+        size_mm
+    } else {
+        (size_mm.1, size_mm.0)
+    };
     TextCheck {
-        overflow: lay_out(text, size_mm).overflow,
+        overflow: lay_out(text, upright).overflow,
         missing,
         unknown_font,
     }
@@ -101,6 +107,14 @@ pub(crate) fn text_pixmap(text: &TextBox, size_mm: (f64, f64), px: (u32, u32)) -
     if text.is_blank() || size_mm.0 <= 0.0 {
         return None;
     }
+    if !text.rotation.is_zero() {
+        let upright = TextBox {
+            rotation: lamina_core::TextRotation::Zero,
+            ..text.clone()
+        };
+        let flat = text_pixmap(&upright, (size_mm.1, size_mm.0), (px.1, px.0))?;
+        return turned(&flat, text.rotation);
+    }
     let mut pixmap = Pixmap::new(px.0, px.1)?;
     let laid = lay_out(text, size_mm);
     // Pixels por ponto, pela largura (a altura tem a mesma escala, a menos do arredondamento).
@@ -108,6 +122,26 @@ pub(crate) fn text_pixmap(text: &TextBox, size_mm: (f64, f64), px: (u32, u32)) -
     let k = (f64::from(px.0) / pt(size_mm.0)) as f32;
     draw::draw(&mut pixmap, &laid, text.color, k);
     Some(pixmap)
+}
+
+/// O bloco pronto girado 90°: `Up` para a esquerda (lê de baixo para cima), `Down` para a direita.
+fn turned(flat: &Pixmap, rotation: lamina_core::TextRotation) -> Option<Pixmap> {
+    let (w, h) = (flat.width() as usize, flat.height() as usize);
+    let mut out = Pixmap::new(flat.height(), flat.width())?;
+    let source = flat.data();
+    let target = out.data_mut();
+    for y in 0..h {
+        for x in 0..w {
+            let (tx, ty) = match rotation {
+                lamina_core::TextRotation::Up => (y, w - 1 - x),
+                _ => (h - 1 - y, x),
+            };
+            let from = (y * w + x) * 4;
+            let to = (ty * h + tx) * 4;
+            target[to..to + 4].copy_from_slice(&source[from..from + 4]);
+        }
+    }
+    Some(out)
 }
 
 /// Como [`text_pixmap`], numa `RgbaImage` (cores pré-multiplicadas), para a janela.

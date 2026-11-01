@@ -303,9 +303,9 @@ fn write(
 /// Os títulos das três faixas, com o resumo atual (regra 1): "Lâminas · 4 lâminas (8 páginas)",
 /// "Sequência · …" e "Fotografias · 12 de 12 usadas" (nomes da spec FX, regra 12).
 pub fn strip_titles(session: &Session) -> [String; 3] {
-    let project = session.project();
+    let project = session.album();
     let spreads = project.spreads.len();
-    let pages = project.spec.edges().page_count(spreads);
+    let pages = project.page_count();
     let plural = |n: usize, word: &str| {
         if n == 1 {
             format!("{n} {word}")
@@ -327,7 +327,7 @@ pub fn strip_titles(session: &Session) -> [String; 3] {
 /// O título do painel de fotos com a seleção (spec PF, regra 12): "Fotografias · 4 de 10 usadas ·
 /// 3 selecionadas"; sem seleção, sem a última parte.
 pub fn photos_title(session: &Session, selected: usize) -> String {
-    let project = session.project();
+    let project = session.album();
     let title = format!(
         "Fotografias · {} de {} usadas",
         used_photos(project),

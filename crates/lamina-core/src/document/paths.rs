@@ -113,6 +113,12 @@ impl Project {
                 photo.path = PathBuf::from(rel);
             }
         }
+        // O guia da capa acompanha o álbum, como as fotos (spec CA, regra 18).
+        if let Some(guide) = self.cover.as_mut().and_then(|c| c.guide.as_mut())
+            && let Some(rel) = relative_path(base, &guide.path)
+        {
+            guide.path = PathBuf::from(rel);
+        }
     }
 
     /// Resolve os caminhos relativos a partir de `base` (a pasta do arquivo do projeto); os
@@ -122,6 +128,11 @@ impl Project {
             if photo.path.is_relative() {
                 photo.path = lexical_path(&base.join(&photo.path));
             }
+        }
+        if let Some(guide) = self.cover.as_mut().and_then(|c| c.guide.as_mut())
+            && guide.path.is_relative()
+        {
+            guide.path = lexical_path(&base.join(&guide.path));
         }
     }
 

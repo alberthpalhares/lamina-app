@@ -18,6 +18,7 @@ pub enum TextChange {
     Align(TextAlign),
     VAlign(TextVAlign),
     LineSpacing(f64),
+    Rotation(lamina_core::TextRotation),
 }
 
 impl TextChange {
@@ -31,6 +32,7 @@ impl TextChange {
             TextChange::Size(_) => ("Tamanho do texto", "tamanho"),
             TextChange::Color(_) => ("Cor do texto", "cor"),
             TextChange::Align(_) => ("Alinhamento", "alinhamento"),
+            TextChange::Rotation(_) => ("Girar texto", "giro"),
             TextChange::VAlign(_) => ("Alinhamento", "vertical"),
             TextChange::LineSpacing(_) => ("Entrelinha", "entrelinha"),
         }
@@ -54,6 +56,7 @@ impl TextChange {
             TextChange::Italic(b) => t.italic = b,
             TextChange::Color(c) => t.color = c,
             TextChange::Align(a) => t.align = a,
+            TextChange::Rotation(r) => t.rotation = r,
             TextChange::VAlign(a) => t.valign = a,
             TextChange::LineSpacing(v) => t.line_spacing = v,
         }

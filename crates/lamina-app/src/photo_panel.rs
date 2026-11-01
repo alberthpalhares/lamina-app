@@ -232,7 +232,7 @@ fn shared_note(app: &App) -> &'static str {
     let (Some(s), Some(frame)) = (app.editor.session(), app.editor.selected_frame()) else {
         return "";
     };
-    let project = s.project();
+    let project = s.album();
     let Some(FrameContent::Photo { photo, .. }) = project
         .spreads
         .get(s.current())

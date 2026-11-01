@@ -105,6 +105,7 @@ impl Agent {
     ) -> Result<ToolReply, ToolError> {
         let index = spread_index(session(editor)?.project(), a.lamina)?;
         let asked = EditText {
+            capa: false,
             lamina: a.lamina,
             quadro: 0,
             texto: Some(a.texto.clone()),
