@@ -45,6 +45,7 @@ pub mod building;
 pub mod cache;
 pub mod calibration;
 pub mod commands;
+pub mod context_nav;
 pub mod cover_form;
 pub mod editor;
 pub mod edits;

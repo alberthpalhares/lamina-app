@@ -35,7 +35,7 @@ import { PhotoData } from "photo_strip.slint";
 import { UpdateBar } from "update_bar.slint";
 import { RightPanel, PanelDivider } from "panel.slint";
 import { DragGhost, GhostData } from "ghost.slint";
-import { ContextUi, ContextMenu, ContextRow } from "context.slint";
+import { ContextUi, ContextMenu, ContextRow, MenuBoxData, MenuAnchor } from "context.slint";
 import { PaletteUi } from "palette.slint";
 import { PhotoUi } from "photo.slint";
 import { DetailRow } from "side.slint";
@@ -55,7 +55,7 @@ import { RollUi, RollCell, RollButton, RollHitData } from "roll.slint";
 import { Gallery } from "gallery.slint";
 
 export { BuildUi }
-export { PageMeterData, CalibrateUi, SpreadData, FrameData, BoxData, LayoutItem, BandUi, Swatch, HistoryItem, PhotoData, TimelineItem, PresetUi, LookUi, FrameUi, FontUi, FontRowUi, ModelUi, RecentsUi, ClearUi, RelinkUi, RelinkRowUi, RecentCard, RecentItem, Motion, GhostData, OrganizeUi, MarkData, TickData, BarRow, ContextUi, ContextRow, PaletteUi, PhotoUi, DetailRow, NewProjectUi, FormatCard, DrawData, ImportUi, ShortcutsUi, RecoverUi, ShortcutGroup, ShortcutRow, NewsUi, NewsEntryData, NewsCardData, NewsFilterData, Theme, RollUi, RollCell, RollButton, RollHitData }
+export { PageMeterData, CalibrateUi, SpreadData, FrameData, BoxData, LayoutItem, BandUi, Swatch, HistoryItem, PhotoData, TimelineItem, PresetUi, LookUi, FrameUi, FontUi, FontRowUi, ModelUi, RecentsUi, ClearUi, RelinkUi, RelinkRowUi, RecentCard, RecentItem, Motion, GhostData, OrganizeUi, MarkData, TickData, BarRow, ContextUi, ContextRow, MenuBoxData, MenuAnchor, PaletteUi, PhotoUi, DetailRow, NewProjectUi, FormatCard, DrawData, ImportUi, ShortcutsUi, RecoverUi, ShortcutGroup, ShortcutRow, NewsUi, NewsEntryData, NewsCardData, NewsFilterData, Theme, RollUi, RollCell, RollButton, RollHitData }
 
 export component AppWindow inherits Window {
     title: root.window-title;
@@ -283,6 +283,13 @@ export component AppWindow inherits Window {
     in property <bool> crop-grid-fine;
     // Clique direito na lâmina: o menu de contexto (spec EG, regra 13).
     callback context-requested <=> stage.context-requested;
+    callback context-key();
+    public function menu-anchor(frame: int) -> MenuAnchor {
+        { x: stage.menu-x(frame), y: stage.menu-y(frame) }
+    }
+    public function photos-anchor() -> MenuAnchor {
+        { x: bottom.absolute-position.x + 16px, y: bottom.absolute-position.y + bottom.height / 2 }
+    }
     // O laço do modo organizar: os dois cantos em frações da largura da lâmina e o Shift.
     callback lasso-done <=> stage.lasso-done;
     callback move-spread <=> bottom.move-spread;
@@ -291,7 +298,10 @@ export component AppWindow inherits Window {
     callback seq-drop <=> bottom.seq-drop;
 
     public function focus-main() {
-        keys.focus();
+        // Com o menu de contexto aberto, o foco fica nele; ao fechar, ele volta sozinho (spec DC, regra 7).
+        if (!ContextUi.open) {
+            keys.focus();
+        }
     }
 
     // Abre o endereço no navegador do sistema (formulário de sugestões, spec SR).
@@ -450,6 +460,12 @@ export component AppWindow inherits Window {
         key-pressed(event) => {
             if (CoverUi.open || NewProjectUi.show || root.show-confirm || root.show-message || root.show-about || root.show-export || PresetUi.show-spec || PresetUi.show-name || PresetUi.show-list || ModelUi.show-name || ModelUi.show-list || RecentsUi.show-clear || ClearUi.show || RelinkUi.show || PhotoMenuUi.show-ask || CalibrateUi.show || ShortcutsUi.show || NewsUi.show || BuildUi.show || RecoverUi.show || root.busy-text != "") {
                 return reject;
+            }
+            // A tecla Menu ou Shift+F10 abre o menu de contexto; num campo de texto, fica com o
+            // campo (spec DC, seção 3).
+            if ((event.text == Key.Menu || (event.text == Key.F10 && event.modifiers.shift)) && !TextInputInterface.text-input-focused) {
+                root.context-key();
+                return accept;
             }
             // No modo organizar, Espaço segurado é a mão (spec EG, seção 3).
             if (OrganizeUi.on && event.text == " ") {

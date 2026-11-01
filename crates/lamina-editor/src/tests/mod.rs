@@ -19,6 +19,7 @@ mod cd;
 mod common;
 mod cs;
 mod ct;
+mod dc;
 mod dj;
 mod ds;
 mod eg_arrumar;

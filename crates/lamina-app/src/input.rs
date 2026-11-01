@@ -13,6 +13,10 @@ type Shared = Rc<RefCell<App>>;
 
 /// Roda um comando do registro (menu, botões e teclado passam por aqui).
 pub fn run_command(app: &Shared, command: Command) {
+    // Um comando do menu principal muda o que vale: o menu de contexto aberto fecha (spec DC, seção 6).
+    if let Some(w) = app.borrow().window.upgrade() {
+        crate::context::close(&w);
+    }
     // As teclas de endireitar mostram a grade fina até o giro parar (spec AF, seção 4).
     if matches!(
         command,

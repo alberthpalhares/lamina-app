@@ -13,6 +13,8 @@ export global PhotoMenuUi {
     in property <string> confirm-text: "Remover do álbum";
     in-out property <bool> show-ask;
     in property <string> question;
+    // O botão direito numa foto da grade, em pixels da janela: abre o menu de contexto (spec DC).
+    callback menu-at(length, length);
     callback remove();
     callback reveal();
     callback confirm();

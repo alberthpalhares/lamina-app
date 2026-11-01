@@ -1,17 +1,33 @@
-// O menu de contexto da lâmina (spec EG, regra 13). Só desenho: o editor monta os itens a partir
-// do registro de comandos e o Rust preenche o `ContextUi`.
+// O menu de contexto (specs EG e DC): um só, na lâmina e na grade de fotos. Só desenho: o editor
+// monta os itens a partir do registro de comandos, decide por onde as setas andam e onde o menu
+// fica, e o Rust preenche o `ContextUi`. Mora num `PopupWindow`: o foco fica nele, e Esc não vaza
+// para a janela (regra 7).
 
-import { Theme, Radius } from "theme.slint";
+import { ScrollView } from "std-widgets.slint";
+import { Theme, Type, Radius, Line, Elevation, Space } from "theme.slint";
 import { Icons } from "icons.slint";
 
-// Uma linha do menu: 0 = comando, 1 = submenu (abre e fecha no lugar), 2 = separador.
+// Uma linha do menu: 0 = comando, 1 = submenu, 2 = separador.
 export struct ContextRow {
     label: string,
+    // O atalho do registro de comandos; vazio, sem nada à direita.
+    shortcut: string,
     kind: int,
     enabled: bool,
-    open: bool,
-    indent: bool,
     checked: bool,
+}
+
+// Um painel na janela: o canto e a altura. Mais alto que a janela, ele rola.
+export struct MenuBoxData {
+    x: length,
+    y: length,
+    height: length,
+}
+
+// Onde o menu abre pelo teclado, em pixels da janela.
+export struct MenuAnchor {
+    x: length,
+    y: length,
 }
 
 export global ContextUi {
@@ -20,73 +36,226 @@ export global ContextUi {
     in property <length> x;
     in property <length> y;
     in property <[ContextRow]> rows;
+    in property <[ContextRow]> sub-rows;
+    // O atual, pelo mouse ou pelas setas; −1 sem nenhum (regra 5).
+    in property <int> current: -1;
+    in property <int> sub-current: -1;
+    // A linha com o submenu aberto e a altura dela no painel; −1 sem submenu.
+    in property <int> sub-open: -1;
+    in property <length> sub-top;
     callback pick(int);
+    callback pick-sub(int);
+    callback hover(int);
+    callback hover-sub(int);
+    callback key(string);
     callback close();
+    pure callback place(length, length, length, length, length, length) -> MenuBoxData;
+    pure callback place-sub(length, length, length, length, length, length, length) -> MenuBoxData;
 }
 
-// O menu por cima da janela inteira: clicar fora fecha.
-export component ContextMenu inherits Rectangle {
-    TouchArea {
-        clicked => { ContextUi.close(); }
-        pointer-event(e) => {
-            if (e.button == PointerEventButton.right && e.kind == PointerEventKind.down) {
-                ContextUi.close();
+component MenuRow inherits Rectangle {
+    in property <ContextRow> data;
+    in property <bool> current;
+    callback picked();
+    callback hovered();
+    callback left();
+    property <bool> works: root.data.kind == 1 || (root.data.kind == 0 && root.data.enabled);
+    property <color> tone: root.works ? Theme.text : Theme.text-disabled;
+    accessible-role: AccessibleRole.list-item;
+    accessible-label: root.data.shortcut != "" ? root.data.label + ", " + root.data.shortcut : root.data.label;
+    accessible-enabled: root.works;
+    accessible-action-default => { root.picked(); }
+    height: root.data.kind == 2 ? Space.s2 : 28px;
+    preferred-width: content.preferred-width;
+    border-radius: Radius.small;
+    background: root.current ? Theme.hover : transparent;
+    if root.data.kind == 2: Rectangle {
+        y: (parent.height - self.height) / 2;
+        height: Line.thin;
+        background: Theme.line;
+    }
+    // Sem `if` no layout: a largura que o menu pede vem daqui (regra 3).
+    content := HorizontalLayout {
+        padding-left: Space.s2;
+        padding-right: Space.s2;
+        spacing: Space.s5;
+        HorizontalLayout {
+            spacing: Space.s2;
+            horizontal-stretch: 1;
+            if root.data.checked: Image {
+                accessible-role: none;
+                y: (parent.height - self.height) / 2;
+                width: 14px;
+                height: 14px;
+                source: Icons.check;
+                colorize: root.tone;
+            }
+            // Sem `if`: com ele, o Slint 1.18.1 não conta o texto na largura pedida.
+            Text {
+                text: root.data.label;
+                color: root.tone;
+                font-size: Type.body;
+                vertical-alignment: center;
+                overflow: elide;
             }
         }
+        if root.data.shortcut != "": Text {
+            text: root.data.shortcut;
+            color: root.works ? Theme.text-2 : Theme.text-disabled;
+            font-size: Type.small;
+            vertical-alignment: center;
+        }
+        if root.data.kind == 1: Image {
+            accessible-role: none;
+            y: (parent.height - self.height) / 2;
+            width: 14px;
+            height: 14px;
+            source: Icons.chevron-right;
+            colorize: Theme.text-2;
+        }
     }
-    Rectangle {
-        x: max(0px, min(ContextUi.x, root.width - self.width - 4px));
-        y: max(0px, min(ContextUi.y, root.height - self.height - 4px));
-        width: 250px;
-        height: list.preferred-height;
-        background: Theme.panel;
-        border-radius: Radius.medium;
-        border-width: 1px;
-        border-color: Theme.line;
-        drop-shadow-blur: 12px;
-        drop-shadow-color: Theme.shadow;
+    touch := TouchArea {
+        enabled: root.works;
+        clicked => { root.picked(); }
+    }
+    property <bool> over: touch.has-hover;
+    changed over => {
+        if (self.over) {
+            root.hovered();
+        } else {
+            root.left();
+        }
+    }
+}
+
+component MenuPanel inherits Rectangle {
+    in property <[ContextRow]> rows;
+    in property <int> current;
+    in property <length> least-width: 220px;
+    // O que o conteúdo pede: largura de 220 a 340 px, o que passar disso em reticências (regra 3).
+    out property <length> wanted-width: max(root.least-width, min(340px, list.preferred-width));
+    out property <length> wanted-height: list.preferred-height;
+    callback picked(int);
+    callback hovered(int);
+    callback left(int);
+    accessible-role: AccessibleRole.list;
+    accessible-label: "Menu";
+    background: Theme.raised;
+    border-radius: Radius.medium;
+    border-width: Line.thin;
+    border-color: Theme.line;
+    drop-shadow-blur: Elevation.menu-blur;
+    drop-shadow-offset-y: Elevation.menu-y;
+    drop-shadow-color: Elevation.menu-color;
+    // Cliques entre as linhas ficam no painel.
+    TouchArea { }
+    ScrollView {
+        content-height: list.preferred-height;
         list := VerticalLayout {
-            padding: 4px;
-            for r[i] in ContextUi.rows: Rectangle {
-                height: r.kind == 2 ? 9px : 26px;
-                border-radius: Radius.small;
-                background: r.kind != 2 && touch.has-hover && (r.enabled || r.kind == 1) ? Theme.hover : transparent;
-                if r.kind == 2: Rectangle {
-                    y: 4px;
-                    height: 1px;
-                    background: Theme.line;
+            padding: Space.s1;
+            alignment: start;
+            for r[i] in root.rows: MenuRow {
+                data: r;
+                current: i == root.current;
+                picked => { root.picked(i); }
+                hovered => { root.hovered(i); }
+                left => { root.left(i); }
+            }
+        }
+    }
+}
+
+// O popup nasce maior que qualquer tela, como o dos diálogos (spec DD): o clique fora dele cai no
+// fundo transparente, que fecha o menu.
+export component ContextMenu inherits Rectangle {
+    // A linha sob o mouse. O Rust espera o mouse parar nela para abrir ou fechar o submenu (regra 8):
+    // cruzar outras linhas em direção ao submenu não o fecha.
+    property <int> hover-row: -1;
+    // A janela mudou de tamanho: o menu fecha (seção 6).
+    changed width => { ContextUi.close(); }
+    changed height => { ContextUi.close(); }
+    popup := PopupWindow {
+        x: 0;
+        y: 0;
+        width: 16000px;
+        height: 16000px;
+        close-policy: no-auto-close;
+        Rectangle {
+            x: 0;
+            y: 0;
+            width: root.width;
+            height: root.height;
+            // Fecha no soltar: assim o clique direito fora não abre outro menu ao soltar (seção 6).
+            TouchArea {
+                pointer-event(e) => {
+                    if (e.kind == PointerEventKind.up) {
+                        ContextUi.close();
+                    }
                 }
-                if r.checked: Image {
-                    accessible-role: none;
-                    x: 8px;
-                    y: (parent.height - 14px) / 2;
-                    width: 14px;
-                    height: 14px;
-                    source: Icons.check;
-                    colorize: Theme.text;
+            }
+            keys := FocusScope {
+                focus-on-tab-navigation: false;
+                init => { self.focus(); }
+                // A janela perdeu o foco: o menu fecha (seção 6).
+                focus-lost(reason) => {
+                    if (reason == FocusReason.window-activation) {
+                        ContextUi.close();
+                    }
                 }
-                if r.kind != 2: Text {
-                    x: r.indent || r.checked ? 26px : 10px;
-                    height: parent.height;
-                    text: r.label;
-                    color: r.enabled || r.kind == 1 ? Theme.text : Theme.text-2;
-                    vertical-alignment: center;
+                key-pressed(e) => {
+                    if (e.text == Key.Escape) {
+                        ContextUi.key("esc");
+                    } else if (e.text == Key.UpArrow || (e.text == Key.Tab && e.modifiers.shift) || e.text == Key.Backtab) {
+                        ContextUi.key("up");
+                    } else if (e.text == Key.DownArrow || e.text == Key.Tab) {
+                        ContextUi.key("down");
+                    } else if (e.text == Key.RightArrow) {
+                        ContextUi.key("right");
+                    } else if (e.text == Key.LeftArrow) {
+                        ContextUi.key("left");
+                    } else if (e.text == Key.Return) {
+                        ContextUi.key("enter");
+                    }
+                    // Nenhuma tecla passa para a janela enquanto o menu está aberto (regra 7).
+                    accept
                 }
-                if r.kind == 1: Image {
-                    accessible-role: none;
-                    x: parent.width - 22px;
-                    y: (parent.height - 14px) / 2;
-                    width: 14px;
-                    height: 14px;
-                    source: Icons.chevron-right;
-                    colorize: Theme.text-2;
-                    transform-rotation: r.open ? 90deg : 0deg;
+                main := MenuPanel {
+                    property <MenuBoxData> spot: ContextUi.place(ContextUi.x, ContextUi.y, self.wanted-width, self.wanted-height, root.width, root.height);
+                    x: self.spot.x;
+                    y: self.spot.y;
+                    width: self.wanted-width;
+                    height: self.spot.height;
+                    rows: ContextUi.rows;
+                    current: ContextUi.current;
+                    picked(i) => { ContextUi.pick(i); }
+                    hovered(i) => {
+                        root.hover-row = i;
+                        ContextUi.hover(i);
+                    }
+                    left(i) => {
+                        if (root.hover-row == i) {
+                            root.hover-row = -1;
+                            ContextUi.hover(-1);
+                        }
+                    }
                 }
-                touch := TouchArea {
-                    enabled: r.kind == 1 || (r.kind == 0 && r.enabled);
-                    clicked => { ContextUi.pick(i); }
+                if ContextUi.sub-open >= 0: MenuPanel {
+                    property <MenuBoxData> spot: ContextUi.place-sub(main.x, main.width, main.y + ContextUi.sub-top, self.wanted-width, self.wanted-height, root.width, root.height);
+                    least-width: 150px;
+                    x: self.spot.x;
+                    y: self.spot.y;
+                    width: self.wanted-width;
+                    height: self.spot.height;
+                    rows: ContextUi.sub-rows;
+                    current: ContextUi.sub-current;
+                    picked(i) => { ContextUi.pick-sub(i); }
+                    hovered(i) => {
+                        root.hover-row = -1;
+                        ContextUi.hover-sub(i);
+                    }
                 }
             }
         }
     }
+    init => { popup.show(); }
 }

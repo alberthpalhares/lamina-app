@@ -15,6 +15,8 @@ pub enum ContextEntry {
     Item {
         command: Command,
         label: String,
+        /// O atalho do registro, para mostrar à direita; vazio, sem atalho (spec DC, regra 2).
+        shortcut: String,
         enabled: bool,
         /// O item mostra a marca (a página já está em branco; spec PB).
         checked: bool,
@@ -61,6 +63,7 @@ impl Editor {
         ContextEntry::Item {
             command,
             label: self.context_label(command),
+            shortcut: command.shortcut().map(|s| s.text()).unwrap_or_default(),
             enabled: self.available(command) && command.in_mode(self.mode()),
             checked: command == Command::BlankPage && self.context_page_is_blank(),
         }

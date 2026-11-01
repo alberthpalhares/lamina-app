@@ -54,6 +54,21 @@ export component Stage inherits Rectangle {
     callback frame-selected(int);
     callback frame-clicked(int, bool, bool);
     callback context-requested(int, length, length, float);
+    // Onde o menu abre pela tecla Menu (spec DC, seção 3): ao lado do quadro; sem quadro (−1), no
+    // centro da página da esquerda, a que o menu do fundo vale nesse caso.
+    public pure function menu-x(frame: int) -> length {
+        if (frame < 0) {
+            return big.absolute-position.x + big.width / 4;
+        }
+        let f = root.current.frames[frame];
+        big.absolute-position.x + (f.x + f.w) * big.width + 4px
+    }
+    public pure function menu-y(frame: int) -> length {
+        if (frame < 0) {
+            return big.absolute-position.y + big.height / 2;
+        }
+        big.absolute-position.y + root.current.frames[frame].y * big.width
+    }
     callback drop-frame(int, float, float);
     // O quadro onde a soltura cairia, em frações da largura da lâmina (spec MV, regra 12).
     pure callback drop-at(float, float) -> BoxData;
