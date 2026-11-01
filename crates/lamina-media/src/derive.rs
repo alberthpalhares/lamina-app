@@ -126,11 +126,7 @@ pub fn write_derived(
         save_screen(&screen_image, &screen)?;
     }
     if !thumb.exists() {
-        save_thumb(
-            &screen_image.thumbnail(THUMB_SIZE, THUMB_SIZE),
-            dirs.thumbs,
-            &thumb,
-        )?;
+        save_thumb(&screen_image.thumbnail(THUMB_SIZE, THUMB_SIZE), &thumb)?;
     }
     Ok(thumb)
 }

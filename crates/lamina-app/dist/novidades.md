@@ -16,6 +16,10 @@ todo item com `video` ou `fixada` precisa dela.
 
 ## [Não lançado]
 
+- **Foto com faixa cinza.** Logo depois de importar, uma foto da lâmina vizinha podia aparecer com uma faixa cinza embaixo, até
+  você trocar de álbum. Isso não acontece mais, e a exportação nunca foi afetada. Experimente: importe um álbum novo e passe pelas
+  lâminas.
+  <!-- tipo: melhoria -->
 - **Uma tela inicial nova.** O último álbum aberto vem grande, e um clique em "Continuar" volta para a lâmina
   em que você parou. Os outros ficam embaixo, com os fixados primeiro. Experimente: feche o álbum pelo botão
   Início e veja o álbum esperando por você.

@@ -1,9 +1,12 @@
 //! Miniaturas das fotos, já na orientação certa, guardadas como JPEG no cache.
 
+use std::fs::File;
+use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 
 use image::codecs::jpeg::JpegEncoder;
 use image::{DynamicImage, ImageDecoder, ImageFormat, ImageReader};
+use tempfile::NamedTempFile;
 
 use crate::MediaError;
 use crate::derive::{derive_file, open, read_pixels, reduced, write_derived};
@@ -106,37 +109,103 @@ pub fn ensure_derived_for(
     derive_file(path, fingerprint, dirs)
 }
 
-/// Grava a miniatura (JPEG na qualidade padrão do codificador, como sempre).
-pub(crate) fn save_thumb(
-    image: &DynamicImage,
-    dir: &Path,
+/// Grava em `target` de uma vez: o arquivo só aparece inteiro. Um JPEG cortado abre sem erro, com o
+/// resto em cinza, e quem lê as imagens só confere se o arquivo existe (a faixa cinza nas lâminas
+/// vizinhas). Dois gravando a mesma foto: fica o primeiro que terminar, e os dois são iguais.
+fn write_whole(
     target: &Path,
+    encode: impl FnOnce(&mut BufWriter<&mut File>) -> image::ImageResult<()>,
 ) -> Result<(), MediaError> {
+    let dir = target.parent().unwrap_or(Path::new("."));
     std::fs::create_dir_all(dir).map_err(MediaError::io(dir))?;
-    image
-        .to_rgb8()
-        .save_with_format(target, ImageFormat::Jpeg)
-        .map_err(MediaError::image(target))
+    let mut file = NamedTempFile::new_in(dir).map_err(MediaError::io(dir))?;
+    let mut writer = BufWriter::new(file.as_file_mut());
+    encode(&mut writer).map_err(MediaError::image(target))?;
+    writer.flush().map_err(MediaError::io(target))?;
+    drop(writer);
+    match file.persist(target) {
+        Ok(_) => Ok(()),
+        Err(_) if target.exists() => Ok(()),
+        Err(failure) => Err(MediaError::io(target)(failure.error)),
+    }
+}
+
+/// Grava a miniatura (JPEG na qualidade padrão do codificador, como sempre).
+pub(crate) fn save_thumb(image: &DynamicImage, target: &Path) -> Result<(), MediaError> {
+    write_whole(target, |writer| {
+        image.to_rgb8().write_to(writer, ImageFormat::Jpeg)
+    })
 }
 
 /// Grava a imagem de tela (até [`SCREEN_SIZE`] no lado maior; foto menor fica do tamanho dela).
 pub(crate) fn save_screen(image: &DynamicImage, target: &Path) -> Result<(), MediaError> {
-    if let Some(dir) = target.parent() {
-        std::fs::create_dir_all(dir).map_err(MediaError::io(dir))?;
-    }
-    let file = std::fs::File::create(target).map_err(MediaError::io(target))?;
-    let mut writer = std::io::BufWriter::new(file);
-    let encoder = JpegEncoder::new_with_quality(&mut writer, SCREEN_QUALITY);
-    image
-        .to_rgb8()
-        .write_with_encoder(encoder)
-        .map_err(MediaError::image(target))
+    write_whole(target, |writer| {
+        let encoder = JpegEncoder::new_with_quality(writer, SCREEN_QUALITY);
+        image.to_rgb8().write_with_encoder(encoder)
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::testutil::write_jpeg;
+
+    /// Uma foto de ruído: difícil de comprimir, para a gravação levar vários blocos.
+    fn noisy(width: u32, height: u32) -> DynamicImage {
+        let mut state = 0x02f6_e2b1_u32;
+        let image = image::RgbImage::from_fn(width, height, |_, _| {
+            state ^= state << 13;
+            state ^= state >> 17;
+            state ^= state << 5;
+            let [r, g, b, _] = state.to_le_bytes();
+            image::Rgb([r, g, b])
+        });
+        DynamicImage::ImageRgb8(image)
+    }
+
+    /// Lê `target` sem parar enquanto `save` grava, e conta as leituras que acharam o arquivo
+    /// pela metade (um JPEG termina em `FF D9`).
+    fn partial_reads(target: &Path, save: impl FnOnce()) -> usize {
+        let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let (flag, path) = (stop.clone(), target.to_path_buf());
+        let reader = std::thread::spawn(move || {
+            let mut partial = 0;
+            while !flag.load(std::sync::atomic::Ordering::SeqCst) {
+                if let Ok(bytes) = std::fs::read(&path)
+                    && !bytes.ends_with(&[0xFF, 0xD9])
+                {
+                    partial += 1;
+                }
+            }
+            partial
+        });
+        save();
+        stop.store(true, std::sync::atomic::Ordering::SeqCst);
+        reader.join().unwrap()
+    }
+
+    #[test]
+    fn a_imagem_de_tela_nunca_aparece_pela_metade() {
+        let dir = tempfile::tempdir().unwrap();
+        let image = noisy(2400, 1600);
+        for i in 0..3 {
+            let target = dir.path().join(format!("telas/{i}.jpg"));
+            let partial = partial_reads(&target, || save_screen(&image, &target).unwrap());
+            assert_eq!(partial, 0, "leu o arquivo pela metade {partial} vezes");
+            assert_eq!(image::open(&target).unwrap().width(), 2400);
+        }
+        let sobras = std::fs::read_dir(dir.path().join("telas")).unwrap().count();
+        assert_eq!(sobras, 3, "ficou arquivo temporário na pasta");
+    }
+
+    #[test]
+    fn a_miniatura_nunca_aparece_pela_metade() {
+        let dir = tempfile::tempdir().unwrap();
+        let image = noisy(2400, 1600);
+        let target = dir.path().join("a.jpg");
+        let partial = partial_reads(&target, || save_thumb(&image, &target).unwrap());
+        assert_eq!(partial, 0, "leu o arquivo pela metade {partial} vezes");
+    }
 
     #[test]
     fn miniatura_cabe_no_tamanho_maximo_e_mantem_a_proporcao() {

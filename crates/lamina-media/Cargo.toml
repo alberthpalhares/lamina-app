@@ -23,10 +23,11 @@ jpeg-decoder = { workspace = true }
 rusqlite = { workspace = true }
 blake3 = { workspace = true }
 rayon = { workspace = true }
+# Gravar as miniaturas e as imagens de tela de uma vez, sem nunca aparecerem pela metade.
+tempfile = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
-tempfile = { workspace = true }
 dhat = { workspace = true }
 
 [lints]
