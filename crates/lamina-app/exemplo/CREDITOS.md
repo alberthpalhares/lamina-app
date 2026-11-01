@@ -10,6 +10,8 @@ as montanhas e o fim de tarde.
   (https://creativecommons.org/publicdomain/zero/1.0/deed.pt-br). Cada página de origem foi
   conferida em 2026-10-19: todas dizem "Creative Commons CC0 1.0 Universal Public Domain
   Dedication", sem outra licença junto.
+- **Na tela inicial:** `crates/lamina-app/icons/exemplo-primeira-lamina.jpg` é a primeira lâmina deste
+  álbum, com as mesmas fotos e a mesma licença; `cargo xtask exemplo --imagem` a refaz.
 - **O que mudou:** as fotos foram reduzidas (lado maior de 1600 pixels) e regravadas em JPEG, sem
   os dados da câmera. O CC0 não exige crédito; ele fica aqui por respeito ao autor e para saber de
   onde veio cada foto.

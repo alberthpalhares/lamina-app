@@ -33,7 +33,6 @@ const SURFACES: &[&str] = &[
     "SpreadStrip",
     "Stage",
     "TimelineStrip",
-    "WelcomeScreen",
 ];
 
 /// Os textos entre aspas de uma linha `text:` que usam um caractere como ícone. Títulos de menu

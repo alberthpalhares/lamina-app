@@ -16,6 +16,9 @@ todo item com `video` ou `fixada` precisa dela.
 
 ## [Não lançado]
 
+- **Uma tela inicial nova.** O último álbum aberto vem grande, e um clique em "Continuar" volta para a lâmina
+  em que você parou. Os outros ficam embaixo, com os fixados primeiro. Experimente: feche o álbum pelo botão
+  Início e veja o álbum esperando por você.
 - **O modo organizar mais limpo.** No notebook, Alinhar, Igualar e Distribuir ficam à vista, e as margens de
   segurança passam a cinza, para não parecerem seleção. O fundo ganhou "Outra cor…", com um quadro para escolher a
   cor no clique. Experimente: dê dois cliques fora dos quadros de uma lâmina e abra "Outra cor…" no painel.
