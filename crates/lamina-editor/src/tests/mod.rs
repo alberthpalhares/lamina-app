@@ -19,6 +19,7 @@ mod cd;
 mod common;
 mod cs;
 mod ct;
+mod dg;
 mod di;
 mod di_capa;
 mod dj;

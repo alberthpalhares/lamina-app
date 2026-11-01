@@ -3,13 +3,13 @@
 
 import { LineEdit, ScrollView } from "std-widgets.slint";
 import { NumberField } from "number_field.slint";
-import { Theme, Fixed, Type, Radius } from "theme.slint";
+import { Theme, Fixed, Type, Radius, Space, Line, Elevation } from "theme.slint";
 import { Icons } from "icons.slint";
 import { BoxData } from "canvas.slint";
 import { LookPanel } from "look.slint";
 import { PhotoUi, PhotoSection } from "photo.slint";
-import { IconButton, NeutralSlider, Tip, DialogButton, CheckRow } from "widgets.slint";
-import { PaletteUi, Icon } from "palette.slint";
+import { FocusRing, IconButton, NeutralSlider, Tip, DialogButton, CheckRow } from "widgets.slint";
+import { PaletteUi } from "palette.slint";
 
 // Uma marca do ímã de mesmo tamanho ou de espaçamento igual: a linha e o texto, em frações da
 // largura da lâmina.
@@ -38,7 +38,7 @@ export struct BarRow {
 
 export global OrganizeUi {
     in property <bool> on;
-    // "Organizando a lâmina 3 · Esc volta".
+    // "Organizar a lâmina 3", no painel (spec DG, regra 7).
     in property <string> title;
     // "2 quadros" (vazio sem seleção).
     in property <string> count;
@@ -75,11 +75,6 @@ export global OrganizeUi {
     // A paleta: 0 = Selecionar, 1 = Quadro, 2 = Texto, 3 = Mão, 4 = Lupa. Espaço segurado também
     // é a mão.
     in-out property <int> tool;
-    // As dicas dos botões da barra: a faixa de lâminas e o painel.
-    in property <string> tip-spreads;
-    in property <string> tip-panel;
-    in property <bool> spreads-open;
-    in property <bool> panel-open;
     in-out property <bool> hand;
     // As réguas.
     in property <[TickData]> ticks-x;
@@ -113,21 +108,54 @@ export global OrganizeUi {
     callback zoom-slider(float);
 }
 
-// As linhas de um menu (ícone e nome); clicar roda o comando e fecha.
+// As linhas de um menu (ícone e nome); clicar roda o comando e fecha. Pelo teclado, as setas andam
+// pelas linhas e Enter ou Espaço rodam (spec DG, regra 5); com `tab-moves`, o Tab também, porque o menu
+// sozinho não tem para onde ir. Dentro do ⋯, o Tab passa para o próximo grupo.
 component MenuRows inherits VerticalLayout {
     in property <[BarRow]> rows;
+    in property <bool> tab-moves;
+    in-out property <int> active: -1;
     callback picked();
-    padding: 4px;
-    spacing: 2px;
-    for r in root.rows: Rectangle {
+    function run(i: int) {
+        if (root.rows[i].enabled) {
+            PaletteUi.command(root.rows[i].command);
+            root.picked();
+        }
+    }
+    function walk(step: int) {
+        root.active = mod(max(root.active, step > 0 ? -1 : 0) + step + root.rows.length, root.rows.length);
+    }
+    forward-focus: scope;
+    padding: Space.s1;
+    spacing: Space.s1;
+    scope := FocusScope {
+        width: 0;
+        height: 0;
+        key-pressed(e) => {
+            if (e.text == Key.DownArrow || (root.tab-moves && e.text == Key.Tab)) {
+                root.walk(1);
+                return accept;
+            }
+            if (e.text == Key.UpArrow || (root.tab-moves && e.text == Key.Backtab)) {
+                root.walk(-1);
+                return accept;
+            }
+            if ((e.text == Key.Return || e.text == Key.Space) && root.active >= 0) {
+                root.run(root.active);
+                return accept;
+            }
+            return reject;
+        }
+    }
+    for r[i] in root.rows: Rectangle {
         height: 28px;
         min-width: 210px;
         border-radius: Radius.small;
-        background: row-touch.has-hover && r.enabled ? Theme.press : transparent;
+        background: (row-touch.has-hover || i == root.active) && r.enabled ? Theme.press : transparent;
         HorizontalLayout {
-            padding-left: 8px;
-            padding-right: 10px;
-            spacing: 8px;
+            padding-left: Space.s2;
+            padding-right: Space.s3;
+            spacing: Space.s2;
             alignment: start;
             VerticalLayout {
                 alignment: center;
@@ -144,13 +172,12 @@ component MenuRows inherits VerticalLayout {
         accessible-role: button;
         accessible-label: r.label;
         accessible-enabled: r.enabled;
+        accessible-action-default => { root.run(i); }
         row-touch := TouchArea {
             enabled: r.enabled;
-            clicked => {
-                PaletteUi.command(r.command);
-                root.picked();
-            }
+            clicked => { root.run(i); }
         }
+        FocusRing { shown: i == root.active && scope.has-focus; x: 0; y: 0; width: parent.width; height: parent.height; }
     }
 }
 
@@ -159,17 +186,25 @@ component MenuButton inherits Rectangle {
     accessible-role: button;
     accessible-label: root.text;
     accessible-enabled: root.enabled;
+    accessible-action-default => { root.open(false); }
     in property <string> text;
     in property <string> tip;
     in property <bool> enabled;
     in property <[BarRow]> rows;
+    property <int> first: -1;
+    function open(by-keys: bool) {
+        if (root.enabled) {
+            root.first = by-keys ? 0 : -1;
+            popup.show();
+        }
+    }
     width: label.preferred-width + 34px;
-    height: 28px;
+    height: 32px;
     border-radius: Radius.small;
     background: touch.has-hover && root.enabled ? Theme.press : transparent;
     // A seta é um desenho nosso: a fonte da janela não tem o "▾" (aparecia um quadradinho).
     label := Text {
-        x: 9px;
+        x: Space.s2;
         height: parent.height;
         text: root.text;
         color: root.enabled ? Theme.text-strong : Theme.text-disabled;
@@ -177,7 +212,7 @@ component MenuButton inherits Rectangle {
     }
     Image {
         accessible-role: none;
-        x: label.x + label.preferred-width + 3px;
+        x: label.x + label.preferred-width + Space.s1;
         y: (parent.height - self.height) / 2;
         width: 12px;
         height: 12px;
@@ -185,27 +220,38 @@ component MenuButton inherits Rectangle {
         colorize: root.enabled ? Theme.text-strong : Theme.text-disabled;
     }
     touch := TouchArea {
-        clicked => {
-            if (root.enabled) {
-                popup.show();
+        clicked => { root.open(false); }
+    }
+    focus := FocusScope {
+        x: 0;
+        width: 0;
+        enabled: root.enabled;
+        key-pressed(e) => {
+            if (e.text == Key.Space || e.text == Key.Return) {
+                root.open(true);
+                return accept;
             }
+            return reject;
         }
     }
+    FocusRing { shown: focus.has-focus; x: -3px; y: -3px; width: parent.width + 6px; height: parent.height + 6px; }
     popup := PopupWindow {
-        y: parent.height + 2px;
+        forward-focus: list;
+        y: parent.height + Line.focus;
         Rectangle {
             background: Theme.raised;
             border-radius: Radius.medium;
-            border-width: 1px;
+            border-width: Line.thin;
             border-color: Theme.line;
-            drop-shadow-blur: 12px;
-            drop-shadow-color: Theme.shadow-strong;
-            MenuRows { rows: root.rows; picked => { popup.close(); } }
+            drop-shadow-blur: Elevation.menu-blur;
+            drop-shadow-offset-y: Elevation.menu-y;
+            drop-shadow-color: Elevation.menu-color;
+            list := MenuRows { rows: root.rows; tab-moves: true; active: root.first; picked => { popup.close(); } }
         }
     }
     Tip {
         x: 0px;
-        y: parent.height + 4px;
+        y: parent.height + Space.s1;
         text: root.tip;
         shown: touch.has-hover && !touch.pressed;
     }
@@ -213,72 +259,97 @@ component MenuButton inherits Rectangle {
 
 // X, Y, L, A e o cadeado de "Manter proporção" (spec BO, regra 1, item 5).
 component BarFields inherits HorizontalLayout {
-    in property <color> ink: Theme.text-strong;
-    spacing: 4px;
+    spacing: Space.s1;
     alignment: start;
-    Text { text: "X"; color: root.ink; vertical-alignment: center; }
+    Text { text: "X"; color: Theme.text-strong; vertical-alignment: center; }
     NumberField { step-accepts: true; width: 58px; text <=> OrganizeUi.gx; accepted => { OrganizeUi.field-accepted(0); } }
-    Text { text: "Y"; color: root.ink; vertical-alignment: center; }
+    Text { text: "Y"; color: Theme.text-strong; vertical-alignment: center; }
     NumberField { step-accepts: true; width: 58px; text <=> OrganizeUi.gy; accepted => { OrganizeUi.field-accepted(1); } }
-    Text { text: "L"; color: root.ink; vertical-alignment: center; }
+    Text { text: "L"; color: Theme.text-strong; vertical-alignment: center; }
     NumberField { step-accepts: true; width: 58px; text <=> OrganizeUi.gw; accepted => { OrganizeUi.field-accepted(2); } }
-    Text { text: "A"; color: root.ink; vertical-alignment: center; }
+    Text { text: "A"; color: Theme.text-strong; vertical-alignment: center; }
     NumberField { step-accepts: true; width: 58px; text <=> OrganizeUi.gh; accepted => { OrganizeUi.field-accepted(3); } }
-    Icon {
-        icon: OrganizeUi.keep ? Icons.lock : Icons.lock-open;
-        label: OrganizeUi.keep ? "Manter proporção (ligado)" : "Manter proporção (desligado)";
-        on: OrganizeUi.keep;
-        clicked => { OrganizeUi.keep = !OrganizeUi.keep; }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            icon: OrganizeUi.keep ? Icons.lock : Icons.lock-open;
+            tip: OrganizeUi.keep ? "Manter proporção (ligado)" : "Manter proporção (desligado)";
+            checked: OrganizeUi.keep;
+            clicked => { OrganizeUi.keep = !OrganizeUi.keep; }
+        }
     }
 }
 
 component Separator inherits Rectangle {
-    width: 1px;
+    width: Line.thin;
     height: 20px;
     background: Theme.line;
 }
 
-// A barra única do modo organizar (spec BO), em cima da área da lâmina: Voltar, as ferramentas, o
-// zoom, os menus, os campos e os botões de painel. O que não cabe vai para o ⋯ (regra 3).
+// A barra única do modo organizar (specs BO e DG), em cima da área da lâmina. À esquerda, o que age
+// na seleção; à direita, o que muda a vista. O que não cabe vai para o ⋯ (BO, regra 3).
 export component OrganizeBar inherits Rectangle {
-    height: 34px;
+    accessible-role: groupbox;
+    accessible-label: "Barra do modo organizar";
+    height: 40px;
     background: Theme.bar;
     init => { OrganizeUi.bar-width(self.width); }
     changed width => { OrganizeUi.bar-width(self.width); }
     property <bool> shows-fields: OrganizeUi.bar-fields && OrganizeUi.can-fields;
     property <bool> all-in: OrganizeUi.bar-fit && OrganizeUi.bar-menus && (OrganizeUi.bar-fields || !OrganizeUi.can-fields);
+    // O fio que separa da barra de cima.
+    Rectangle { y: 0; height: Line.thin; background: Theme.line; }
     HorizontalLayout {
-        padding-left: 8px;
-        padding-right: 8px;
-        spacing: 6px;
+        padding-left: Space.s2;
+        padding-right: Space.s2;
+        spacing: Space.s2;
         // Voltar no lugar de Concluir (spec ZR, regra 12): a tela anima a saída.
         VerticalLayout {
+            horizontal-stretch: 0;
             alignment: center;
-            DialogButton {
+            back := DialogButton {
                 text: "Voltar";
                 clicked => { OrganizeUi.done(); }
+                Tip { x: 0px; y: parent.height + Space.s1; text: "Voltar (Esc)"; shown: back.hovered; }
             }
         }
-        VerticalLayout { alignment: center; Separator { } }
+        VerticalLayout { horizontal-stretch: 0; alignment: center; Separator { } }
         HorizontalLayout {
-            spacing: 2px;
+            horizontal-stretch: 0;
+            spacing: Space.s1;
             alignment: start;
-            VerticalLayout { alignment: center; Icon { icon: Icons.pointer; tip: 0; on: PaletteUi.tool == 0; clicked => { PaletteUi.pick-tool(0); } } }
-            VerticalLayout { alignment: center; Icon { icon: Icons.frame; tip: 1; on: PaletteUi.tool == 1; clicked => { PaletteUi.pick-tool(1); } } }
-            VerticalLayout { alignment: center; Icon { icon: Icons.text; tip: 2; on: PaletteUi.tool == 2; clicked => { PaletteUi.pick-tool(2); } } }
-            VerticalLayout { alignment: center; Icon { icon: Icons.hand; tip: 3; on: PaletteUi.tool == 3; clicked => { PaletteUi.pick-tool(3); } } }
-            VerticalLayout { alignment: center; Icon { icon: Icons.zoom; tip: 4; on: PaletteUi.tool == 4; clicked => { PaletteUi.pick-tool(4); } } }
+            VerticalLayout { alignment: center; IconButton { icon: Icons.pointer; tip: PaletteUi.tips[0]; selected: PaletteUi.tool == 0; clicked => { PaletteUi.pick-tool(0); } } }
+            VerticalLayout { alignment: center; IconButton { icon: Icons.frame; tip: PaletteUi.tips[1]; selected: PaletteUi.tool == 1; clicked => { PaletteUi.pick-tool(1); } } }
+            VerticalLayout { alignment: center; IconButton { icon: Icons.text; tip: PaletteUi.tips[2]; selected: PaletteUi.tool == 2; clicked => { PaletteUi.pick-tool(2); } } }
+            VerticalLayout { alignment: center; IconButton { icon: Icons.hand; tip: PaletteUi.tips[3]; selected: PaletteUi.tool == 3; clicked => { PaletteUi.pick-tool(3); } } }
+            VerticalLayout { alignment: center; IconButton { icon: Icons.zoom; tip: PaletteUi.tips[4]; selected: PaletteUi.tool == 4; clicked => { PaletteUi.pick-tool(4); } } }
         }
-        VerticalLayout { alignment: center; Separator { } }
+        if OrganizeUi.bar-menus: HorizontalLayout {
+            horizontal-stretch: 0;
+            spacing: Space.s1;
+            VerticalLayout { alignment: center; Separator { } }
+            VerticalLayout { alignment: center; MenuButton { text: "Alinhar"; tip: OrganizeUi.menu-tips[0]; enabled: PaletteUi.can-align; rows: OrganizeUi.align-rows; } }
+            VerticalLayout { alignment: center; MenuButton { text: "Igualar"; tip: OrganizeUi.menu-tips[1]; enabled: PaletteUi.can-align; rows: OrganizeUi.equal-rows; } }
+            VerticalLayout { alignment: center; MenuButton { text: "Distribuir"; tip: OrganizeUi.menu-tips[2]; enabled: PaletteUi.can-distribute; rows: OrganizeUi.distribute-rows; } }
+        }
+        if root.shows-fields: HorizontalLayout {
+            horizontal-stretch: 0;
+            spacing: Space.s2;
+            VerticalLayout { alignment: center; Separator { } }
+            BarFields { }
+        }
+        // O vão entre os dois lados.
+        Rectangle { horizontal-stretch: 1; }
         // O zoom da lâmina (spec CD, regra 3): −, o controle, + e o valor.
         HorizontalLayout {
-            spacing: 2px;
+            horizontal-stretch: 0;
+            spacing: Space.s1;
             alignment: start;
-            VerticalLayout { alignment: center; Icon { icon: Icons.minus; tip: 5; clicked => { PaletteUi.command("organizar.menos-zoom"); } } }
+            VerticalLayout { alignment: center; IconButton { icon: Icons.minus; tip: PaletteUi.tips[5]; clicked => { PaletteUi.command("organizar.menos-zoom"); } } }
             VerticalLayout {
                 alignment: center;
                 NeutralSlider {
-                    width: 200px;
+                    width: 120px;
                     minimum: 0;
                     maximum: 1;
                     neutral: 0;
@@ -287,7 +358,7 @@ export component OrganizeBar inherits Rectangle {
                     reset => { PaletteUi.command("organizar.ajustar"); }
                 }
             }
-            VerticalLayout { alignment: center; Icon { icon: Icons.plus; tip: 6; clicked => { PaletteUi.command("organizar.mais-zoom"); } } }
+            VerticalLayout { alignment: center; IconButton { icon: Icons.plus; tip: PaletteUi.tips[6]; clicked => { PaletteUi.command("organizar.mais-zoom"); } } }
             Text {
                 width: 56px;
                 text: PaletteUi.zoom;
@@ -297,59 +368,47 @@ export component OrganizeBar inherits Rectangle {
             }
         }
         if OrganizeUi.bar-fit: HorizontalLayout {
-            spacing: 2px;
-            VerticalLayout { alignment: center; Icon { icon: Icons.fit; tip: 8; clicked => { PaletteUi.command("organizar.ajustar"); } } }
-            VerticalLayout { alignment: center; Icon { icon: Icons.actual-size; tip: 7; clicked => { PaletteUi.command("organizar.tamanho-real"); } } }
+            horizontal-stretch: 0;
+            spacing: Space.s1;
+            VerticalLayout { alignment: center; IconButton { icon: Icons.fit; tip: PaletteUi.tips[8]; tip-side: 1; clicked => { PaletteUi.command("organizar.ajustar"); } } }
+            VerticalLayout { alignment: center; IconButton { icon: Icons.actual-size; tip: PaletteUi.tips[7]; tip-side: 1; clicked => { PaletteUi.command("organizar.tamanho-real"); } } }
         }
-        if OrganizeUi.bar-menus: HorizontalLayout {
-            spacing: 2px;
-            VerticalLayout { alignment: center; Separator { } }
-            VerticalLayout { alignment: center; MenuButton { text: "Alinhar"; tip: OrganizeUi.menu-tips[0]; enabled: PaletteUi.can-align; rows: OrganizeUi.align-rows; } }
-            VerticalLayout { alignment: center; MenuButton { text: "Igualar"; tip: OrganizeUi.menu-tips[1]; enabled: PaletteUi.can-align; rows: OrganizeUi.equal-rows; } }
-            VerticalLayout { alignment: center; MenuButton { text: "Distribuir"; tip: OrganizeUi.menu-tips[2]; enabled: PaletteUi.can-distribute; rows: OrganizeUi.distribute-rows; } }
-        }
-        if root.shows-fields: HorizontalLayout {
-            spacing: 6px;
-            VerticalLayout { alignment: center; Separator { } }
-            VerticalLayout { alignment: center; BarFields { } }
-        }
-        Rectangle { horizontal-stretch: 1; }
-        // O que não coube (regra 3): Ajustar e 1:1, os menus e os campos, nessa ordem de volta.
+        // O que não coube (BO, regra 3): Ajustar e 1:1, os menus e os campos, nessa ordem de volta.
         if !root.all-in: VerticalLayout {
+            horizontal-stretch: 0;
             alignment: center;
-            more := Rectangle {
-                width: 30px;
-                height: 28px;
-                border-radius: Radius.small;
-                background: more-touch.has-hover ? Theme.press : transparent;
-                Image { accessible-role: none; width: 18px; height: 18px; source: Icons.more; colorize: Theme.text-strong; }
-                more-touch := TouchArea { clicked => { more-popup.show(); } }
+            IconButton {
+                icon: Icons.more;
+                tip: "Mais opções";
+                tip-side: 1;
+                clicked => { more-popup.show(); }
                 more-popup := PopupWindow {
                     x: parent.width - 260px;
-                    y: parent.height + 2px;
+                    y: parent.height + Line.focus;
                     close-policy: close-on-click-outside;
                     Rectangle {
                         width: 260px;
                         background: Theme.raised;
                         border-radius: Radius.medium;
-                        border-width: 1px;
+                        border-width: Line.thin;
                         border-color: Theme.line;
-                        drop-shadow-blur: 12px;
-                        drop-shadow-color: Theme.shadow-strong;
+                        drop-shadow-blur: Elevation.menu-blur;
+                        drop-shadow-offset-y: Elevation.menu-y;
+                        drop-shadow-color: Elevation.menu-color;
                         VerticalLayout {
-                            padding: 6px;
-                            spacing: 4px;
+                            padding: Space.s2;
+                            spacing: Space.s1;
                             if !OrganizeUi.bar-fit: HorizontalLayout {
-                                spacing: 2px;
+                                spacing: Space.s1;
                                 alignment: start;
-                                Icon { icon: Icons.fit; tip: 8; clicked => { PaletteUi.command("organizar.ajustar"); } }
-                                Icon { icon: Icons.actual-size; tip: 7; clicked => { PaletteUi.command("organizar.tamanho-real"); } }
+                                IconButton { icon: Icons.fit; tip: PaletteUi.tips[8]; clicked => { PaletteUi.command("organizar.ajustar"); } }
+                                IconButton { icon: Icons.actual-size; tip: PaletteUi.tips[7]; clicked => { PaletteUi.command("organizar.tamanho-real"); } }
                             }
                             if !OrganizeUi.bar-menus: MenuRows { rows: OrganizeUi.align-rows; picked => { more-popup.close(); } }
                             if !OrganizeUi.bar-menus: MenuRows { rows: OrganizeUi.equal-rows; picked => { more-popup.close(); } }
                             if !OrganizeUi.bar-menus: MenuRows { rows: OrganizeUi.distribute-rows; picked => { more-popup.close(); } }
                             if !OrganizeUi.bar-fields && OrganizeUi.can-fields: GridLayout {
-                                spacing: 4px;
+                                spacing: Space.s1;
                                 Row {
                                     Text { text: "X"; color: Theme.text; vertical-alignment: center; }
                                     NumberField { step-accepts: true; text <=> OrganizeUi.gx; accepted => { OrganizeUi.field-accepted(0); } }
@@ -369,31 +428,12 @@ export component OrganizeBar inherits Rectangle {
                 }
             }
         }
-        VerticalLayout {
-            alignment: center;
-            IconButton {
-                icon: Icons.strips;
-                tip: OrganizeUi.tip-spreads;
-                tip-side: 1;
-                checked: OrganizeUi.spreads-open;
-                clicked => { OrganizeUi.command("ver.faixa-laminas"); }
-            }
-        }
-        VerticalLayout {
-            alignment: center;
-            IconButton {
-                icon: Icons.panel-right;
-                tip: OrganizeUi.tip-panel;
-                tip-side: 1;
-                checked: OrganizeUi.panel-open;
-                clicked => { OrganizeUi.command("ver.painel"); }
-            }
-        }
     }
 }
 
 // As réguas, presas às bordas da área da lâmina: a de cima e a do lado acompanham o zoom e a
-// mão. `lx`, `ly` e `unit` são a posição e a largura da lâmina desenhada, na área.
+// mão. `lx`, `ly` e `unit` são a posição e a largura da lâmina desenhada, na área. O fundo é o da
+// barra, e o canto diz a unidade (spec DG, regra 11).
 export component OrganizeRulers inherits Rectangle {
     in property <length> lx;
     in property <length> ly;
@@ -404,14 +444,14 @@ export component OrganizeRulers inherits Rectangle {
         y: 0;
         width: root.width - root.size;
         height: root.size;
-        background: Theme.g2;
+        background: Theme.bar;
         clip: true;
         for t in OrganizeUi.ticks-x: Rectangle {
             x: root.lx + t.at * root.unit - top.x;
             y: t.major ? 0px : root.size * 0.6;
-            width: 1px;
+            width: Line.thin;
             height: t.major ? root.size : root.size * 0.4;
-            background: Theme.g10;
+            background: Theme.text-3;
             if t.label != "": Text {
                 x: 3px;
                 y: 0px;
@@ -426,14 +466,14 @@ export component OrganizeRulers inherits Rectangle {
         y: root.size;
         width: root.size;
         height: root.height - root.size;
-        background: Theme.g2;
+        background: Theme.bar;
         clip: true;
         for t in OrganizeUi.ticks-y: Rectangle {
             x: t.major ? 0px : root.size * 0.6;
             y: root.ly + t.at * root.unit - side.y;
             width: t.major ? root.size : root.size * 0.4;
-            height: 1px;
-            background: Theme.g10;
+            height: Line.thin;
+            background: Theme.text-3;
             if t.label != "": Text {
                 x: 1px;
                 y: 2px;
@@ -448,7 +488,14 @@ export component OrganizeRulers inherits Rectangle {
         height: root.size;
         x: 0;
         y: 0;
-        background: Theme.g2;
+        background: Theme.bar;
+        Text {
+            text: OrganizeUi.unit;
+            color: Theme.text-2;
+            font-size: Type.micro;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
     }
 }
 
@@ -582,13 +629,9 @@ export component OrganizePanel inherits ScrollView {
     callback done();
     VerticalLayout {
     width: root.visible-width;
-    spacing: 8px;
-    Text { text: "Organizar"; color: Theme.text; font-weight: Type.semibold; }
-    Text {
-        text: OrganizeUi.count == "" ? "Clique num quadro; Ctrl+clique soma; arraste no vazio para o laço." : OrganizeUi.count;
-        color: Theme.text-2;
-        wrap: word-wrap;
-    }
+    spacing: Space.s2;
+    Text { text: OrganizeUi.title; color: Theme.text; font-weight: Type.semibold; }
+    if OrganizeUi.count != "": Text { text: OrganizeUi.count; color: Theme.text-2; wrap: word-wrap; }
     if OrganizeUi.field-error != "": Text { text: OrganizeUi.field-error; color: Theme.error; wrap: word-wrap; }
     if PhotoUi.has-photo: PhotoSection { }
     LookPanel {

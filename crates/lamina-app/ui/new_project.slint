@@ -4,8 +4,8 @@
 
 import { ComboBox, LineEdit, SpinBox, ScrollView } from "std-widgets.slint";
 import { NumberField } from "number_field.slint";
-import { Theme, Fixed, Type, Radius } from "theme.slint";
-import { Shade, Panel, DialogButton, CheckRow } from "widgets.slint";
+import { Theme, Type, Radius } from "theme.slint";
+import { ColorArea, Shade, Panel, DialogButton, CheckRow } from "widgets.slint";
 import { NewProjectUi, FormatCard, DrawData, ColorChoice } from "new_project_ui.slint";
 import { StepOne } from "new_project_size.slint";
 export { NewProjectUi, FormatCard, DrawData }
@@ -79,19 +79,7 @@ component ColorPicker inherits VerticalLayout {
             TouchArea { clicked => { root.hex = c.hex; NewProjectUi.mount-changed(); } }
         }
     }
-    // Matiz na horizontal; do branco (topo) à cor pura (meio) e ao preto (embaixo).
-    area := Rectangle {
-        height: 70px;
-        width: 176px;
-        border-radius: Radius.small;
-        clip: true;
-        background: @linear-gradient(90deg, Fixed.red 0%, Fixed.yellow 17%, Fixed.lime 33%, Fixed.cyan 50%, Fixed.blue 67%, Fixed.pink 83%, Fixed.red 100%);
-        Rectangle { background: @linear-gradient(180deg, Fixed.paper 0%, Fixed.white-clear 50%, Fixed.black-clear 50%, Fixed.ink 100%); }
-        TouchArea {
-            mouse-cursor: crosshair;
-            clicked => { NewProjectUi.color-at(root.which, self.mouse-x / area.width, self.mouse-y / area.height); }
-        }
-    }
+    ColorArea { picked(x, y) => { NewProjectUi.color-at(root.which, x, y); } }
 }
 
 component StepTwo inherits VerticalLayout {

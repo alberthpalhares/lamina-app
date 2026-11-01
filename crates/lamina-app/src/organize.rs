@@ -8,7 +8,7 @@ use std::rc::Rc;
 use lamina_editor::editor::{Field, PaletteTool};
 use lamina_editor::marks::mark_views;
 use lamina_editor::rulers::{Tick, rulers};
-use lamina_editor::{Area, Command, PxRect, bar_tip, spread_view};
+use lamina_editor::{Area, Command, PxRect, spread_view};
 use slint::ComponentHandle;
 
 use crate::convert::{boxed, model};
@@ -136,20 +136,6 @@ fn view(app: &App, ui: &OrganizeUi) {
     ui.set_pan_x(f(x));
     ui.set_pan_y(f(y));
     ui.set_tool(app.editor.tool().index());
-    let strips = app.editor.strips();
-    ui.set_spreads_open(strips.spreads);
-    ui.set_panel_open(app.editor.panel_shown());
-    let open = if strips.spreads {
-        "Esconder"
-    } else {
-        "Mostrar"
-    };
-    let key = Command::ToggleSpreads
-        .shortcut()
-        .map(|k| k.text())
-        .unwrap_or_default();
-    ui.set_tip_spreads(format!("{open} a faixa de lâminas ({key})").into());
-    ui.set_tip_panel(bar_tip(Command::TogglePanel, app.editor.panel_shown()).into());
     if !app.editor.organizing() {
         ui.set_hand(false);
         return;
