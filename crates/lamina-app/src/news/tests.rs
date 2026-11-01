@@ -122,6 +122,19 @@ fn pv_b12_abrir_a_pagina_nao_decodifica_tudo() {
     assert!(loaded().0 <= covers::MAX_COVERS, "{} capas", loaded().0);
 }
 
+/// Na abertura de verdade, depois de atualizar, a página abre antes de `connect` (`main.rs`).
+#[test]
+fn a_pagina_que_abre_antes_de_ligar_a_janela_mostra_a_lista() {
+    let screen = headless::open(WIDE.0, WIDE.1).unwrap();
+    screen.app.global::<Motion>().set_on(false);
+    open_notes(&screen, &notes_with(3), false);
+    connect(&screen.app);
+    settle(&screen);
+    let ui = screen.app.global::<NewsUi>();
+    assert_eq!(ui.get_entries().row_count(), 3);
+    assert!(loaded().0 > 0, "as linhas da tela pediram a capa");
+}
+
 #[test]
 fn pv_b13_uma_animacao_por_vez_e_nada_toca_sozinho() {
     let screen = open_window(WIDE);

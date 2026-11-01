@@ -7,9 +7,9 @@ use super::{SHOWN, Shown, covers, refresh, rows, use_page};
 use crate::news_player;
 use crate::{AppWindow, NewsUi};
 
+/// Liga a página à janela. Na abertura depois de atualizar, ela já abriu (`news::on_start`, antes
+/// daqui): nada do que está mostrando pode se perder.
 pub fn connect(window: &AppWindow) {
-    news_player::stop(window);
-    SHOWN.set(Shown::default());
     let ui = window.global::<NewsUi>();
     SHOWN.with_borrow(|s| {
         ui.set_entries(ModelRc::from(s.rows.clone()));

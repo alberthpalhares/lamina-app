@@ -78,6 +78,7 @@ impl Covers {
     pub fn clear(&mut self) {
         self.loaded.clear();
         self.queue.clear();
+        self.pumping = false;
     }
 
     #[cfg(test)]

@@ -2,8 +2,8 @@
 //! as capturas para conferir.
 
 use lamina_editor::updates::Version;
-use slint::platform::WindowEvent;
-use slint::{Model, Rgb8Pixel};
+use slint::platform::{PointerEventButton, WindowEvent};
+use slint::{LogicalPosition, Model, Rgb8Pixel};
 
 use super::tests::{WIDE, animations, open_notes, open_window, settle};
 use super::*;
@@ -80,6 +80,48 @@ fn o_teclado_rola_a_lista_e_esc_fecha_a_pagina() {
     press(&screen, slint::platform::Key::Escape);
     assert!(!ui.get_show());
     assert_eq!(ui.get_entries().row_count(), 0);
+}
+
+fn click(screen: &Screen, x: f32, y: f32) {
+    let position = LogicalPosition::new(x, y);
+    let button = PointerEventButton::Left;
+    screen
+        .window
+        .dispatch_event(WindowEvent::PointerMoved { position });
+    screen
+        .window
+        .dispatch_event(WindowEvent::PointerPressed { position, button });
+    screen
+        .window
+        .dispatch_event(WindowEvent::PointerReleased { position, button });
+    settle(screen);
+}
+
+/// As coordenadas são as do desenho em 1366×668, com a barra de menus do desenho por software.
+#[test]
+fn o_mouse_chega_na_capa_no_filtro_e_no_fechar() {
+    let screen = open_window(WIDE);
+    let ui = screen.app.global::<NewsUi>();
+    let image = animations()[0];
+    let notes = format!(
+        "## [0.1.0-beta.9] - 2026-11-12\n\n\
+         - **Novo.** Um. <!-- imagem: {image}; tipo: novo -->\n\
+         - **Melhor.** Dois. <!-- imagem: {image}; tipo: melhoria -->\n"
+    );
+    open_notes(&screen, &notes, false);
+    settle(&screen);
+
+    click(&screen, 1198.0, 240.0);
+    assert_eq!(crate::news_player::playing(), Some(0), "a capa toca");
+    click(&screen, 1198.0, 240.0);
+    assert_eq!(crate::news_player::playing(), None, "e para");
+
+    click(&screen, 150.0, 112.0);
+    assert_eq!(ui.get_filter(), 1, "Novos recursos");
+    assert_eq!(ui.get_entries().row_count(), 1);
+
+    click(&screen, 1302.0, 72.0);
+    assert!(!ui.get_show(), "Fechar");
 }
 
 /// Com `LAMINA_CAPTURAS=<pasta>`, grava a página em PNG para conferir o desenho.
