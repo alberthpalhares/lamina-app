@@ -9,6 +9,10 @@ repository.workspace = true
 authors.workspace = true
 publish = false
 
+[features]
+# A filmagem da interface (spec FI): nunca entra no instalador.
+filmagem = []
+
 [dependencies]
 lamina-core = { workspace = true }
 lamina-editor = { workspace = true }

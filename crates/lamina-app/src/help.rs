@@ -7,6 +7,7 @@ use lamina_editor::error_log::{LOG_FOLDER, install_panic_hook};
 use lamina_editor::feedback::{
     browser_failed, channel_name, folder_failed, logs_failed, system_name,
 };
+use lamina_editor::updates::news::video_address;
 use lamina_editor::{ErrorLog, config_dir, feedback_address};
 
 use crate::files::show_error;
@@ -40,6 +41,20 @@ pub fn send_feedback(app: &App) {
     let address = feedback_address(&version, &system_name(), channel(app));
     if !w.invoke_open_url(address.clone().into()) {
         show_error(app, &browser_failed(&address));
+    }
+}
+
+/// A capa ou o "Assistir ao vídeo" de uma novidade (spec PV, regra 8): o editor confere o endereço
+/// antes de ele chegar ao navegador; sem internet, o erro aparece lá (seção 6).
+pub fn open_video(app: &App, address: &str) {
+    let Some(w) = app.window.upgrade() else {
+        return;
+    };
+    let Some(address) = video_address(address) else {
+        return;
+    };
+    if !w.invoke_open_url(address.into()) {
+        show_error(app, &browser_failed(address));
     }
 }
 

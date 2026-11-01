@@ -1,4 +1,4 @@
-//! As animações da janela "O que há de novo" (spec NV, regra 12): um PNG animado lido um quadro de
+//! As animações da página "O que há de novo" (spec NV, regra 12): um PNG animado lido um quadro de
 //! cada vez, em laço. Com "Reduzir movimento", ou num arquivo parado, fica o primeiro quadro.
 
 use std::io::Cursor;
@@ -100,6 +100,11 @@ impl std::fmt::Debug for Animation<'_> {
             .field("animated", &self.animated())
             .finish()
     }
+}
+
+/// `true` se o arquivo é um PNG animado. Só lê o cabeçalho: a página pergunta de cada linha.
+pub fn animates(bytes: &[u8]) -> bool {
+    apng(bytes).is_some()
 }
 
 /// Os quadros de um PNG animado; `None` se o arquivo não é um.
