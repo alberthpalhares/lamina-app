@@ -232,3 +232,11 @@ fn pv_b15_as_etiquetas_passam_no_contraste_nos_dois_temas() {
         ["dark: tag-new-bg tem alfa: o fundo da etiqueta precisa ser opaco"]
     );
 }
+
+#[test]
+fn av_b10_a_barra_nao_fica_escondida_atras_da_pagina_de_novidades() {
+    let app = include_str!("../../../crates/lamina-app/ui/app.slint");
+    assert!(app.contains("update-bar-shown: root.update-bar != \"\" && !NewsUi.show"));
+    assert!(app.contains("if root.update-bar-shown: UpdateBar"));
+    assert!(app.contains("(root.update-bar-shown ? 32px : 0px)"));
+}
