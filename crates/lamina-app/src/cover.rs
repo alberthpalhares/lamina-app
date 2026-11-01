@@ -2,8 +2,10 @@
 //! As contas ficam no `lamina-editor`; aqui só o vai e vem com o `CoverUi`.
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
+use lamina_core::PhotoId;
 use lamina_editor::Command;
 use lamina_editor::cover_form::{CoverForm, CoverTab, guide_file, guide_picture};
 use lamina_editor::motion::RollPill;
@@ -268,20 +270,30 @@ pub fn refresh_tile(app: &mut App) {
     let Some(w) = app.window.upgrade() else {
         return;
     };
-    let ui = w.global::<CoverUi>();
-    let Some(session) = app.session() else {
+    let Some(album) = app.session().map(lamina_editor::Session::album_shared) else {
         return;
     };
-    let album = session.album_shared();
-    let missing = session.missing().to_vec();
-    let warned = session.cover_warned();
-    let canvas = album.cover_canvas().ok().flatten();
     let aspect = lamina_editor::cover_form::cover_aspect(&album);
-    ui.set_tile_aspect(to_f32(aspect));
-    if let Some(canvas) = canvas {
+    w.global::<CoverUi>().set_tile_aspect(to_f32(aspect));
+    if album.cover.is_some() {
         let images = app.thumbs(&album);
-        let data = crate::state::strip_data(&canvas, 0, &missing, &images, warned);
-        ui.set_tile(data);
+        draw_tile(app, &images);
+    }
+}
+
+/// Chegou a miniatura de uma foto da capa: o espaço na faixa mostra, sem pedir nada de novo.
+pub fn thumb_arrived(app: &App) {
+    draw_tile(app, app.images.thumbs_map());
+}
+
+fn draw_tile(app: &App, images: &HashMap<PhotoId, Image>) {
+    let (Some(w), Some(session)) = (app.window.upgrade(), app.session()) else {
+        return;
+    };
+    if let Some(canvas) = session.album().cover_canvas().ok().flatten() {
+        let warned = session.cover_warned();
+        let data = crate::state::strip_data(&canvas, 0, session.missing(), images, warned);
+        w.global::<CoverUi>().set_tile(data);
     }
 }
 
