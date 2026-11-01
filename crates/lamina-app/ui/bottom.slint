@@ -16,6 +16,7 @@ import { TimelineStrip, TimelineItem } from "timeline.slint";
 import { PhotoGrid, PhotoData, PhotoGridUi } from "photo_strip.slint";
 import { DragUi } from "drag.slint";
 import { Motion } from "motion.slint";
+import { Mark } from "marks.slint";
 
 // A divisória: arrastar muda a altura da grade, duplo clique volta à padrão.
 component GridDivider inherits Rectangle {
@@ -140,8 +141,8 @@ export component BottomStrips inherits VerticalLayout {
             padding-left: 8px;
             padding-right: 8px;
             spacing: 4px;
-            spreads-tab := FilterTab { text: "Lâminas"; active: root.spreads-open; clicked => { root.header-clicked(0); } }
-            timeline-tab := FilterTab { text: "Sequência"; active: root.timeline-open; clicked => { root.header-clicked(1); } }
+            spreads-tab := FilterTab { text: "Lâminas"; active: root.spreads-open; clicked => { root.header-clicked(0); } Mark { name: "aba-laminas"; } }
+            timeline-tab := FilterTab { text: "Sequência"; active: root.timeline-open; clicked => { root.header-clicked(1); } Mark { name: "aba-sequencia"; } }
             Rectangle { width: 12px; }
             Text {
                 text: root.timeline-open ? root.strip-timeline : root.strip-spreads;

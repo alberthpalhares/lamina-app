@@ -10,6 +10,7 @@ import { Motion } from "motion.slint";
 import { StripTheme } from "strip_header.slint";
 import { DragUi } from "drag.slint";
 import { PhotoMenuUi } from "photo_menu.slint";
+import { Mark } from "marks.slint";
 
 export struct PhotoData {
     img: image,
@@ -341,6 +342,7 @@ export component PhotoGrid inherits Rectangle {
             data: root.photos[self.i];
             index: self.i;
             tile: root.tile;
+            Mark { name: "foto-" + (parent.i + 1); on: parent.visible; }
             named: root.named;
             lit: root.lassoing && root.lasso-moved
                 ? (root.crosses(parent.line, c) || (root.lasso-add && self.data.selected))

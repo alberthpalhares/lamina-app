@@ -89,7 +89,7 @@ type Check = (&'static str, fn() -> bool);
 fn verify() -> bool {
     // Os testes de velocidade (todos com "rapido" no nome) rodam num passo próprio, um de cada
     // vez: junto dos outros, disputam a máquina e reprovam sem motivo (auditoria do Marco 2, M1).
-    let cargo_steps: [(&str, &[&str]); 3] = [
+    let cargo_steps: [(&str, &[&str]); 4] = [
         ("formatação", &["fmt", "--all", "--check"]),
         (
             "clippy",
@@ -97,6 +97,20 @@ fn verify() -> bool {
                 "clippy",
                 "--workspace",
                 "--all-targets",
+                "--",
+                "-D",
+                "warnings",
+            ],
+        ),
+        // A filmagem (spec FI) só compila com a feature: sem esta linha, o clippy não a veria.
+        (
+            "clippy da filmagem",
+            &[
+                "clippy",
+                "-p",
+                "lamina-app",
+                "--features",
+                "filmagem",
                 "--",
                 "-D",
                 "warnings",

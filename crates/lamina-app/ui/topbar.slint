@@ -7,6 +7,7 @@ import { LineEdit } from "std-widgets.slint";
 import { Theme, Type } from "theme.slint";
 import { Icons } from "icons.slint";
 import { BarButton, IconButton, Tip } from "widgets.slint";
+import { Mark } from "marks.slint";
 
 // O nome do álbum que vira campo com clique duplo (spec NA): Enter ou clicar fora confirma, Esc
 // desiste. Só desenho: o editor limpa o nome e decide se muda.
@@ -143,6 +144,7 @@ export component TopBar inherits Rectangle {
                 tip: root.tip-home;
                 tip-side: -1;
                 clicked => { root.command("arquivo.fechar"); }
+                Mark { name: "botao-inicio"; }
             }
         }
         AlbumName {
@@ -165,6 +167,7 @@ export component TopBar inherits Rectangle {
                 tip-side: 1;
                 checked: root.strips-open;
                 clicked => { root.command("ver.faixas"); }
+                Mark { name: "botao-faixas"; }
             }
         }
         if root.has-project: VerticalLayout {
@@ -175,6 +178,7 @@ export component TopBar inherits Rectangle {
                 tip-side: 1;
                 checked: root.panel-open;
                 clicked => { root.command("ver.painel"); }
+                Mark { name: "botao-painel"; }
             }
         }
         if root.has-project: VerticalLayout {
@@ -184,6 +188,7 @@ export component TopBar inherits Rectangle {
                 text: "Exportar";
                 primary: true;
                 clicked => { root.command("arquivo.exportar"); }
+                Mark { name: "botao-exportar"; }
                 Tip {
                     x: parent.width - self.width;
                     y: parent.height + 4px;

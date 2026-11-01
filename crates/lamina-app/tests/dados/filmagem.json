@@ -1,0 +1,19 @@
+{
+  "nome": "teste",
+  "abrir": "vazio",
+  "janela": [1000, 700],
+  "escala": 1,
+  "passos": [
+    {"pausa_ms": 200},
+    {"camera": "botao-painel", "zoom": 1.4, "ms": 300},
+    {"legenda": "O roteiro de teste da spec FI", "ms": 500},
+    {"mover": "botao-painel", "ms": 300},
+    {"clicar": true},
+    {"pausa_ms": 300},
+    {"comando": "ajuda.atalhos"},
+    {"pausa_ms": 300},
+    {"tecla": "Escape"},
+    {"pausa_ms": 100},
+    {"camera": "geral", "ms": 100}
+  ]
+}

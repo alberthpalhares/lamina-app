@@ -55,6 +55,7 @@ pub mod example;
 mod export_form;
 pub mod exporting;
 pub mod feedback;
+pub mod filming;
 pub mod font_picker;
 pub mod forms;
 pub mod frame_form;

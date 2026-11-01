@@ -4,6 +4,7 @@
 import { LineEdit, SpinBox, ListView, ComboBox } from "std-widgets.slint";
 import { Theme, Type } from "theme.slint";
 import { Shade, Panel, Field, DialogButton, CheckRow } from "widgets.slint";
+import { Mark } from "marks.slint";
 
 export component ExportDialog inherits Shade {
     in property <string> folder;
@@ -124,12 +125,13 @@ export component ExportDialog inherits Shade {
             HorizontalLayout {
                 alignment: end;
                 spacing: 8px;
-                DialogButton { text: "Cancelar"; clicked => { root.cancel(); } }
+                DialogButton { text: "Cancelar"; clicked => { root.cancel(); } Mark { name: "exportar-cancelar"; } }
                 DialogButton {
                     text: "Exportar";
                     primary: true;
                     enabled: root.error == "";
                     clicked => { root.export(); }
+                    Mark { name: "exportar-confirmar"; }
                 }
             }
         }

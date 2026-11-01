@@ -1,0 +1,37 @@
+// As marcas da filmagem (spec FI, regra 6): cada alvo de um roteiro tem um `Mark` dentro dele, sem
+// desenho nem toque. Quando a filmagem pergunta (`ask`), cada marca viva responde onde está; a que
+// está num `if` fechado não existe e não responde. Fora da filmagem, ninguém pergunta.
+
+export global Marks {
+    // As marcas que aparecem com um álbum aberto (FI-B4).
+    out property <[string]> fixed: [
+        "lamina",
+        "botao-inicio",
+        "botao-faixas",
+        "botao-painel",
+        "botao-exportar",
+        "aba-laminas",
+        "aba-sequencia",
+    ];
+    // As que só aparecem num certo estado da janela. As repetidas (quadro-N, foto-N e menu-N) são
+    // conferidas pelo `is_known_mark` do editor.
+    out property <[string]> on-demand: [
+        "exportar-cancelar",
+        "exportar-confirmar",
+    ];
+    in-out property <int> ask;
+    callback report(string, length, length, length, length);
+}
+
+export component Mark {
+    in property <string> name;
+    in property <bool> on: true;
+    width: 100%;
+    height: 100%;
+    property <int> asked: Marks.ask;
+    changed asked => {
+        if (root.on) {
+            Marks.report(root.name, root.absolute-position.x, root.absolute-position.y, root.width, root.height);
+        }
+    }
+}

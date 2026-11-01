@@ -11,9 +11,13 @@ use std::path::{Path, PathBuf};
 const HUMAN_DIR: &str = "crates/lamina-editor/src/human";
 const WINDOW_DIRS: [&str; 2] = ["crates/lamina-app/src", "crates/lamina-editor/src/editor"];
 /// Erros que nunca chegam à janela, com o motivo.
-const EXEMPT: [(&str, &str); 2] = [
+const EXEMPT: [(&str, &str); 3] = [
     ("ToolError", "só o controle por IA vê (spec IA, regra 13)"),
     ("McpError", "só o servidor de IA vê, na linha de comando"),
+    (
+        "FilmError",
+        "só a filmagem vê, na linha de comando (spec FI)",
+    ),
 ];
 const ALLOW: &str = "// texto já humano";
 const TO_TEXT: [&str; 7] = [

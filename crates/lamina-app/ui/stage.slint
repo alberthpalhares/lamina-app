@@ -14,6 +14,7 @@ import { DragUi } from "drag.slint";
 import { PhotoGridUi } from "photo_strip.slint";
 import { SpreadRoll, RollUi } from "roll.slint";
 import { BandUi } from "band.slint";
+import { Mark } from "marks.slint";
 
 export component Stage inherits Rectangle {
     in property <bool> has-project;
@@ -315,6 +316,7 @@ export component Stage inherits Rectangle {
         gutter-shadow: root.gutter-shadow;
         interactive: true;
         selected: root.selected-frame;
+        Mark { name: "lamina"; }
         drop-shadow-blur: 16px;
         drop-shadow-color: Theme.shadow;
         frame-down(i, x, y) => {

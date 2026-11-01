@@ -190,6 +190,12 @@ impl Images {
         std::mem::take(&mut self.fresh)
     }
 
+    /// As fotos de tela já foram todas lidas (a filmagem espera por isto).
+    #[cfg(any(test, feature = "filmagem"))]
+    pub fn screens_idle(&self) -> bool {
+        self.loader.idle()
+    }
+
     /// Quantas miniaturas foram pedidas e ainda não chegaram.
     pub fn thumbs_pending(&self) -> usize {
         self.thumb_plan.pending()

@@ -34,6 +34,7 @@ mod ei;
 mod et;
 mod fb;
 mod fb_tempos;
+mod fi;
 mod fl;
 mod fl_more;
 mod forms;

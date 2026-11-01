@@ -3,6 +3,7 @@
 
 import { Theme, Radius } from "theme.slint";
 import { Icons } from "icons.slint";
+import { Mark } from "marks.slint";
 
 // Uma linha do menu: 0 = comando, 1 = submenu (abre e fecha no lugar), 2 = separador.
 export struct ContextRow {
@@ -51,6 +52,7 @@ export component ContextMenu inherits Rectangle {
                 height: r.kind == 2 ? 9px : 26px;
                 border-radius: Radius.small;
                 background: r.kind != 2 && touch.has-hover && (r.enabled || r.kind == 1) ? Theme.hover : transparent;
+                Mark { name: "menu-" + (i + 1); }
                 if r.kind == 2: Rectangle {
                     y: 4px;
                     height: 1px;
