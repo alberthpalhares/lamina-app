@@ -8,13 +8,14 @@ use super::marks::MarkBox;
 use super::script::Script;
 use super::timeline::FPS;
 
-/// Por quadro: o cursor, o botão apertado (0, 1 esquerdo, 2 direito) e as teclas.
+/// Por quadro: o cursor, o botão apertado (0, 1 esquerdo, 2 direito), as teclas e os comandos.
 #[derive(Debug, Serialize)]
 pub(super) struct FrameLog {
     pub x: f64,
     pub y: f64,
     pub botao: u8,
     pub teclas: Vec<String>,
+    pub comandos: Vec<String>,
 }
 
 /// Por passo: os retângulos das marcas que ele usou.

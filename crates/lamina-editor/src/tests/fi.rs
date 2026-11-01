@@ -385,6 +385,23 @@ fn fi_b10_o_marcas_json_traz_cursor_camera_e_legendas() {
 }
 
 #[test]
+fn fi_b10_o_marcas_json_diz_em_que_quadro_o_comando_rodou() {
+    let text = with_steps(r#"{"pausa_ms":100},{"comando":"arquivo.exportar"},{"pausa_ms":100}"#);
+    let script = Script::parse(&text).unwrap();
+    let mut scene = FakeScene::default();
+    let mut timeline = Timeline::new(&script);
+    while timeline.next(&mut scene).unwrap().is_some() {}
+    let json: serde_json::Value = serde_json::from_str(&timeline.marks_json()).unwrap();
+    let frames = json["quadros"].as_array().unwrap();
+    assert_eq!(
+        frames[3]["comandos"],
+        serde_json::json!(["arquivo.exportar"])
+    );
+    assert_eq!(frames[2]["comandos"], serde_json::json!([]));
+    assert_eq!(frames[4]["comandos"], serde_json::json!([]));
+}
+
+#[test]
 fn fi_b9_filmar_nao_vai_a_internet_nem_abre_nada_sozinho() {
     let all = Startup {
         news: true,

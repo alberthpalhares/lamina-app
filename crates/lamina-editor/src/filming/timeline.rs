@@ -120,11 +120,19 @@ impl Timeline {
                 _ => None,
             })
             .collect();
+        let comandos = actions
+            .iter()
+            .filter_map(|a| match a {
+                Action::Command(name) => Some(name.clone()),
+                _ => None,
+            })
+            .collect();
         self.log.quadros.push(FrameLog {
             x: self.cursor.0,
             y: self.cursor.1,
             botao: self.pressed,
             teclas,
+            comandos,
         });
         let frame = Frame {
             number: self.frame,
