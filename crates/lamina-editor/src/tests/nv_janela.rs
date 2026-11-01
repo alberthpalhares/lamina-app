@@ -1,11 +1,11 @@
-//! Cenários da spec `o-que-ha-de-novo` (NV) da janela em duas colunas: a ilustração e o comando de
-//! cada novidade (NV-B12) e a lista com o "Próxima" (NV-B13).
+//! Cenários da spec `o-que-ha-de-novo` (NV) da página: a ilustração e o comando de cada novidade
+//! (NV-B12) e a lista das versões (NV-B13, reescrito pela spec PV).
 
 use std::path::Path;
 
 use crate::Command;
 use crate::updates::Version;
-use crate::updates::news::{entries, from_help, illustration, next, parse};
+use crate::updates::news::{entries, from_help, illustration, parse};
 
 const REAL: &str = include_str!("../../../lamina-app/dist/novidades.md");
 
@@ -51,7 +51,7 @@ fn nv_b12_ilustracao_e_comando_de_cada_novidade() {
 }
 
 #[test]
-fn nv_b13_a_lista_a_esquerda_e_a_escolhida_a_direita() {
+fn nv_b13_a_lista_da_pagina_traz_o_cabecalho_de_cada_versao() {
     let text = "## [0.1.0-beta.5] - 2026-10-24\n\nAbertura.\n\n\
                 - **Atalhos.** A lista.\n\
                 - Um texto sem título que continua por várias palavras.\n\n\
@@ -73,12 +73,4 @@ fn nv_b13_a_lista_a_esquerda_e_a_escolhida_a_direita() {
     );
     assert!(!list[2].current);
     assert_eq!(list[0].label, "Atalhos", "sem o ponto final");
-    let mut chosen = 0;
-    let mut seen = Vec::new();
-    for _ in 0..3 {
-        chosen = next(chosen, list.len());
-        seen.push(chosen);
-    }
-    assert_eq!(seen, [1, 2, 0]);
-    assert_eq!(next(0, 0), 0);
 }

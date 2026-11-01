@@ -1,0 +1,201 @@
+// Uma novidade na página (spec PV, regra 4): tudo à vista, sem clicar. Abaixo de 900 px de largura
+// útil, a data sobe para cima do título e a capa desce para baixo do texto (regra 11). Só desenho.
+
+import { Theme, Type, Radius, Line, Space } from "theme.slint";
+import { DialogButton } from "widgets.slint";
+import { NewsUi, NewsEntryData, NewsCardData } from "news.slint";
+import { NewsCover } from "news_cover.slint";
+
+// Uma etiqueta: fundos opacos, medidos pela trava `contraste`; nenhuma em âmbar (regra 13).
+component NewsTag inherits Rectangle {
+    in property <string> text;
+    in property <bool> strong;
+    accessible-role: AccessibleRole.text;
+    accessible-label: root.text;
+    width: mark.preferred-width + 2 * Space.s2;
+    height: mark.preferred-height + Space.s1;
+    border-radius: Radius.small;
+    background: root.strong ? Theme.tag-new-bg : Theme.tag-bg;
+    mark := Text {
+        text: root.text;
+        color: Theme.tag-text;
+        font-size: Type.caption;
+        font-weight: Type.medium;
+        vertical-alignment: center;
+        horizontal-alignment: center;
+    }
+}
+
+// A data, o número da versão e "Esta versão", na primeira novidade que aparece de cada versão.
+component NewsWhen inherits VerticalLayout {
+    in property <NewsEntryData> entry;
+    alignment: start;
+    spacing: Space.s1;
+    if root.entry.date != "": Text { text: root.entry.date; color: Theme.text; font-size: Type.body; font-weight: Type.semibold; }
+    if root.entry.version != "": Text { text: root.entry.version; color: Theme.text-2; font-size: Type.small; }
+    if root.entry.current: HorizontalLayout {
+        alignment: start;
+        NewsTag { text: "Esta versão"; }
+    }
+}
+
+// O título, as etiquetas, o texto, o "Experimente" e os botões.
+component NewsText inherits VerticalLayout {
+    in property <NewsEntryData> entry;
+    callback try-now(string);
+    callback reveal();
+    spacing: Space.s2;
+    alignment: start;
+    if root.entry.intro != "": Text { text: root.entry.intro; color: Theme.text-2; font-size: Type.body; wrap: word-wrap; }
+    HorizontalLayout {
+        spacing: Space.s2;
+        Text { text: root.entry.label; color: Theme.text; font-size: Type.title; font-weight: Type.semibold; wrap: word-wrap; horizontal-stretch: 1; vertical-alignment: center; }
+        if root.entry.kind-tag != "": VerticalLayout {
+            alignment: center;
+            NewsTag { text: root.entry.kind-tag; strong: root.entry.kind-new; }
+        }
+        if root.entry.system-tag != "": VerticalLayout {
+            alignment: center;
+            NewsTag { text: root.entry.system-tag; }
+        }
+    }
+    if root.entry.text != "": Text { text: root.entry.text; color: Theme.text; font-size: Type.body; wrap: word-wrap; }
+    if root.entry.try-it != "": Text { text: "Experimente: " + root.entry.try-it; color: Theme.text-2; font-size: Type.body; wrap: word-wrap; }
+    if root.entry.command != "" || root.entry.video != "": HorizontalLayout {
+        alignment: start;
+        spacing: Space.s2;
+        padding-top: Space.s1;
+        if root.entry.command != "": DialogButton {
+            text: "Experimente agora";
+            enabled: root.entry.try-ready;
+            accessible-label: "Experimente agora: " + root.entry.label;
+            accessible-description: root.entry.try-hint;
+            clicked => { root.try-now(root.entry.command); }
+            changed focused => {
+                if (self.focused) {
+                    root.reveal();
+                }
+            }
+        }
+        if root.entry.video != "": DialogButton {
+            text: "Assistir ao vídeo ↗";
+            accessible-label: "Assistir ao vídeo: " + root.entry.label;
+            accessible-description: "Abre o vídeo no navegador. Precisa de internet.";
+            clicked => { NewsUi.open-video(root.entry.video); }
+            changed focused => {
+                if (self.focused) {
+                    root.reveal();
+                }
+            }
+        }
+        if root.entry.try-hint != "": Text { text: root.entry.try-hint; color: Theme.text-2; font-size: Type.small; vertical-alignment: center; wrap: word-wrap; }
+    }
+}
+
+export component NewsItem inherits Rectangle {
+    in property <NewsEntryData> entry;
+    in property <bool> narrow;
+    // Um cartão de destaque pediu esta linha: a página a alinha ao topo da lista.
+    in property <bool> targeted;
+    callback try-now(string);
+    callback settle();
+    callback reveal();
+    accessible-role: list-item;
+    accessible-label: root.entry.label;
+    background: hover.has-hover ? Theme.hover : transparent;
+    init => {
+        if (root.entry.has-file) {
+            NewsUi.cover-requested(root.entry.index);
+        }
+    }
+    // A altura das linhas é estimada até elas nascerem: repete até a linha chegar ao topo.
+    Timer {
+        interval: 16ms;
+        running: root.targeted;
+        triggered => { root.settle(); }
+    }
+    hover := TouchArea {
+        // Só para destacar o item com o mouse em cima (regra 4).
+        VerticalLayout {
+            padding-left: Space.s5;
+            padding-right: Space.s5;
+            padding-top: Space.s4;
+            padding-bottom: Space.s4;
+            spacing: Space.s3;
+            if root.narrow && root.entry.date != "": NewsWhen { entry: root.entry; }
+            if root.narrow: NewsText {
+                entry: root.entry;
+                try-now(name) => { root.try-now(name); }
+                reveal => { root.reveal(); }
+            }
+            if root.narrow: HorizontalLayout {
+                alignment: start;
+                NewsCover {
+                    width: 288px;
+                    height: 162px;
+                    index: root.entry.index;
+                    label: root.entry.label;
+                    video: root.entry.video;
+                    animated: root.entry.animated;
+                    has-cover: root.entry.has-cover;
+                    cover: root.entry.cover;
+                    changed focused => {
+                        if (self.focused) {
+                            root.reveal();
+                        }
+                    }
+                }
+            }
+            if !root.narrow: HorizontalLayout {
+                spacing: Space.s5;
+                NewsWhen { width: 112px; entry: root.entry; }
+                NewsText {
+                    horizontal-stretch: 1;
+                    entry: root.entry;
+                    try-now(name) => { root.try-now(name); }
+                    reveal => { root.reveal(); }
+                }
+                VerticalLayout {
+                    alignment: start;
+                    NewsCover {
+                        width: 288px;
+                        height: 162px;
+                        index: root.entry.index;
+                        label: root.entry.label;
+                        video: root.entry.video;
+                        animated: root.entry.animated;
+                        has-cover: root.entry.has-cover;
+                        cover: root.entry.cover;
+                        changed focused => {
+                            if (self.focused) {
+                                root.reveal();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Um cartão da faixa de destaques: clicar rola a lista até o item (regra 5).
+export component NewsCard inherits VerticalLayout {
+    in property <NewsCardData> card;
+    callback go();
+    spacing: Space.s2;
+    init => {
+        if (root.card.has-file) {
+            NewsUi.cover-requested(root.card.index);
+        }
+    }
+    NewsCover {
+        height: 112px;
+        index: -2;
+        label: root.card.label;
+        has-cover: root.card.has-cover;
+        cover: root.card.cover;
+        leads-to-item: true;
+        go => { root.go(); }
+    }
+    Text { text: root.card.label; color: Theme.text; font-size: Type.body; font-weight: Type.medium; overflow: elide; }
+}

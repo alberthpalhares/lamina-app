@@ -1,6 +1,8 @@
 //! A vitrine do repositório público (spec VP): os links de baixar do README seguem a versão, as
 //! notas da versão mostram as ilustrações e a mídia do README e do site fica leve.
 
+use lamina_editor::updates::news::video_address;
+
 use crate::versao::REPO;
 
 /// Onde mora a mídia do README e do site (`site/midia/`). As travas da mídia (VP-B5 e VP-B7)
@@ -37,7 +39,8 @@ pub fn fill(template: &str, version: &str) -> String {
         .replace("{{versao}}", version)
 }
 
-/// As notas com cada `<!-- imagem: x.png … -->` trocado pela imagem da tag (regra 5).
+/// As notas com cada `<!-- imagem: x.png … -->` trocado pela imagem da tag (regra 5) e, se o
+/// comentário tiver um vídeo do site do Lamina, o link dele (spec PV, seção 4).
 pub fn note_images(notes: &str, tag: &str) -> String {
     let mut out = String::with_capacity(notes.len());
     let mut rest = notes;
@@ -51,10 +54,22 @@ pub fn note_images(notes: &str, tag: &str) -> String {
         out.push_str(&format!(
             "<br><img src=\"https://raw.githubusercontent.com/{REPO}/{tag}/crates/lamina-app/dist/novidades/{file}\" width=\"560\" alt=\"\">"
         ));
+        if let Some(video) = video_of(inner) {
+            out.push_str(&format!("<br><a href=\"{video}\">Assistir ao vídeo</a>"));
+        }
         rest = &rest[start + len + "-->".len()..];
     }
     out.push_str(rest);
     out
+}
+
+/// O vídeo de um comentário, só se passar na mesma conferência do Lamina (spec PV, regra 8).
+fn video_of(comment: &str) -> Option<&str> {
+    comment
+        .split(';')
+        .filter_map(|field| field.split_once(':'))
+        .find(|(key, _)| key.trim() == "video")
+        .and_then(|(_, value)| video_address(value.trim()))
 }
 
 /// Os caminhos relativos que um Markdown cita: `](…)`, `src="…"` e `srcset="…"` (regra 4).
@@ -154,6 +169,37 @@ mod tests {
             !out.contains("<!--") && out.ends_with("- **B.** Só texto."),
             "{out}"
         );
+    }
+
+    #[test]
+    fn pv_b14_a_pagina_da_versao_leva_o_link_do_video() {
+        let video = "https://alberthpalhares.github.io/lamina-app/v/a.html";
+        let notes = format!(
+            "## [1.0.0] - 2026-11-12\n\n- **A.** Texto. <!-- imagem: a.jpg; tipo: novo; video: {video} -->\n\
+             - **B.** Só imagem. <!-- imagem: b.png -->\n\
+             - **C.** Vídeo de fora. <!-- imagem: c.png; video: https://exemplo.org/v/c.html -->\n"
+        );
+        let out = note_images(&notes, "v1.0.0");
+        let base = format!(
+            "https://raw.githubusercontent.com/{REPO}/v1.0.0/crates/lamina-app/dist/novidades"
+        );
+        assert!(
+            out.contains(&format!(
+                "<img src=\"{base}/a.jpg\" width=\"560\" alt=\"\"><br><a href=\"{video}\">Assistir ao vídeo</a>"
+            )),
+            "{out}"
+        );
+        assert!(
+            out.contains(&format!(
+                "Só imagem. <br><img src=\"{base}/b.png\" width=\"560\" alt=\"\">\n"
+            )),
+            "{out}"
+        );
+        assert_eq!(out.matches("Assistir ao vídeo").count(), 1, "{out}");
+        // O texto da seção, que vai para as notas e para o Velopack (NV-B7), continua igual.
+        let section = lamina_editor::updates::news::section_text(&notes, "1.0.0").unwrap();
+        assert!(!section.contains("Assistir ao vídeo"));
+        assert!(section.contains(&format!("video: {video} -->")));
     }
 
     #[test]
