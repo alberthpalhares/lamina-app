@@ -264,7 +264,7 @@ fn eg_b1_titulo_e_clique_fora() {
     let index = editor.session().unwrap().current() + 1;
     assert_eq!(
         editor.organize_title(),
-        format!("Organizando a lâmina {index} · Esc volta")
+        format!("Organizar a lâmina {index}")
     );
     editor.organize_click(0, false, false);
     editor.click_nothing();

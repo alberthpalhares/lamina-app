@@ -114,6 +114,7 @@ export component EmptyState inherits VerticalLayout {
     if root.action != "": HorizontalLayout {
         alignment: center;
         BarButton {
+            min-height: 32px;
             text: root.action;
             outlined: true;
             clicked => { root.act(); }

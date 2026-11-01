@@ -28,12 +28,14 @@ impl RecentsStore {
         }
     }
 
-    /// Guarda a lâmina em que o fotógrafo parou (regra 3). `false` se o álbum não está na lista.
-    pub fn remember(&mut self, file: &Path, current: usize) -> bool {
+    /// Guarda onde o fotógrafo parou: a lâmina (regra 3) e se estava na capa (spec DI, regra 13).
+    /// `false` se o álbum não está na lista.
+    pub fn remember(&mut self, file: &Path, current: usize, on_cover: bool) -> bool {
         let Some(i) = self.position(file) else {
             return false;
         };
         self.list[i].current = current;
+        self.list[i].on_cover = on_cover;
         true
     }
 

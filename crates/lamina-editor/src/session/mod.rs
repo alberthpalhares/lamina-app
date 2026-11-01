@@ -112,6 +112,12 @@ impl Session {
         self.canvas.is_some()
     }
 
+    /// O fotógrafo parou na capa? Só com a capa no arquivo: fechar sem salvar uma capa nova não deixa
+    /// a lista prometendo o que ele descartou (spec DI, regra 13).
+    pub fn stopped_on_cover(&self) -> bool {
+        self.on_cover() && self.saved.as_ref().is_some_and(|p| p.cover.is_some())
+    }
+
     /// Abre a capa; `false` se o álbum não tem capa ou as medidas dela não fecham.
     pub fn go_to_cover(&mut self) -> bool {
         self.merge = None;
@@ -205,7 +211,7 @@ impl Session {
         if self.on_cover() { 0 } else { self.current }
     }
 
-    /// A última lâmina aberta, com a capa aberta ou não: reabrir o álbum volta para ela.
+    /// A última lâmina aberta, com a capa aberta ou não: sair da capa volta para ela.
     pub fn last_spread(&self) -> usize {
         self.current
     }

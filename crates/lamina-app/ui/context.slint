@@ -168,6 +168,10 @@ component MenuPanel inherits Rectangle {
 // O popup nasce maior que qualquer tela, como o dos diálogos (spec DD): o clique fora dele cai no
 // fundo transparente, que fecha o menu.
 export component ContextMenu inherits Rectangle {
+    // A janela inteira, em que o popup encosta: fora do Windows e do Mac, a barra de menus desenhada nela
+    // fica acima de `root`. O canto do clique e o do menu contam daqui.
+    property <length> room-width: root.absolute-position.x + root.width;
+    property <length> room-height: root.absolute-position.y + root.height;
     // A linha sob o mouse. O Rust espera o mouse parar nela para abrir ou fechar o submenu (regra 8):
     // cruzar outras linhas em direção ao submenu não o fecha.
     property <int> hover-row: -1;
@@ -183,8 +187,8 @@ export component ContextMenu inherits Rectangle {
         Rectangle {
             x: 0;
             y: 0;
-            width: root.width;
-            height: root.height;
+            width: root.room-width;
+            height: root.room-height;
             // Fecha no soltar: assim o clique direito fora não abre outro menu ao soltar (seção 6).
             TouchArea {
                 pointer-event(e) => {
@@ -220,7 +224,7 @@ export component ContextMenu inherits Rectangle {
                     accept
                 }
                 main := MenuPanel {
-                    property <MenuBoxData> spot: ContextUi.place(ContextUi.x, ContextUi.y, self.wanted-width, self.wanted-height, root.width, root.height);
+                    property <MenuBoxData> spot: ContextUi.place(ContextUi.x, ContextUi.y, self.wanted-width, self.wanted-height, root.room-width, root.room-height);
                     x: self.spot.x;
                     y: self.spot.y;
                     width: self.wanted-width;
@@ -240,7 +244,7 @@ export component ContextMenu inherits Rectangle {
                     }
                 }
                 if ContextUi.sub-open >= 0: MenuPanel {
-                    property <MenuBoxData> spot: ContextUi.place-sub(main.x, main.width, main.y + ContextUi.sub-top, self.wanted-width, self.wanted-height, root.width, root.height);
+                    property <MenuBoxData> spot: ContextUi.place-sub(main.x, main.width, main.y + ContextUi.sub-top, self.wanted-width, self.wanted-height, root.room-width, root.room-height);
                     least-width: 150px;
                     x: self.spot.x;
                     y: self.spot.y;

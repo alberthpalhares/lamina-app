@@ -50,7 +50,8 @@ pub struct Card {
     pub pinned: bool,
     /// O arquivo não existe mais (regra 4).
     pub missing: bool,
-    /// O álbum não tem lâminas (spec BR): o cartão mostra o desenho do álbum em branco.
+    /// O álbum não tem lâminas nem capa a mostrar (spec BR): o cartão mostra o desenho do álbum em
+    /// branco.
     pub blank: bool,
 }
 
@@ -77,7 +78,7 @@ pub fn cards(list: &[Recent], missing: &[PathBuf], clock: Clock) -> Vec<Card> {
             counts: counts_text(r.spreads, r.photos),
             pinned: r.pinned,
             missing: gone.contains(&key(&r.path)),
-            blank: r.spreads == 0,
+            blank: r.spreads == 0 && !r.cover_image,
         })
         .collect()
 }
@@ -109,13 +110,28 @@ pub fn show_search(count: usize) -> bool {
     count > SEARCH_FROM
 }
 
-/// Os botões do topo, o principal primeiro: sem recentes, os da PC; com recentes, "Novo álbum
-/// com minhas fotos…" passa a principal e o exemplo fica ao lado (TI-B14).
-pub fn welcome_buttons(has_recents: bool) -> [Command; 3] {
+/// Onde ficam os botões da tela inicial, na ordem em que aparecem (spec DI, saídas 3 e 7).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WelcomeButtons {
+    /// No corpo da tela; o primeiro é o principal.
+    pub body: &'static [Command],
+    /// Na barra de cima.
+    pub bar: &'static [Command],
+}
+
+/// Sem recentes, o novo álbum é o principal, com o exemplo ao lado. Com recentes, o principal é
+/// continuar o álbum em andamento e os três botões ficam na barra.
+pub fn welcome_buttons(has_recents: bool) -> WelcomeButtons {
     if has_recents {
-        [Command::NewAlbum, Command::OpenExample, Command::Open]
+        WelcomeButtons {
+            body: &[],
+            bar: &[Command::OpenExample, Command::Open, Command::NewAlbum],
+        }
     } else {
-        [Command::OpenExample, Command::NewAlbum, Command::Open]
+        WelcomeButtons {
+            body: &[Command::NewAlbum, Command::OpenExample],
+            bar: &[Command::Open],
+        }
     }
 }
 

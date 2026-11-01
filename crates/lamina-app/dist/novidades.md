@@ -16,6 +16,12 @@ todo item com `video` ou `fixada` precisa dela.
 
 ## [Não lançado]
 
+- **Uma tela inicial nova.** O último álbum aberto vem grande, e um clique em "Continuar" volta para a lâmina
+  em que você parou. Os outros ficam embaixo, com os fixados primeiro. Experimente: feche o álbum pelo botão
+  Início e veja o álbum esperando por você.
+- **O modo organizar mais limpo.** No notebook, Alinhar, Igualar e Distribuir ficam à vista, e as margens de
+  segurança passam a cinza, para não parecerem seleção. O fundo ganhou "Outra cor…", com um quadro para escolher a
+  cor no clique. Experimente: dê dois cliques fora dos quadros de uma lâmina e abra "Outra cor…" no painel.
 - **Uma página de novidades.** "O que há de novo" agora cobre a janela e mostra tudo de uma vez: em cada versão, a data e
   as novidades inteiras, sem precisar clicar para ler. Dá para filtrar e buscar sem internet, e cada novidade tem o botão
   que já abre o recurso. A animação de cada novidade toca com um clique. Experimente: abra Ajuda, "O que há de novo…", e

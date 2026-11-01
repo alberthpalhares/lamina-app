@@ -127,6 +127,9 @@ impl Editor {
         } else if self.on_cover() {
             // Na capa não há troca de layout (spec CA, regra 5).
             "Arraste uma foto para Frente, Verso ou Lombada · T cria um texto · → vai para as lâminas"
+        } else if self.organizing() && self.selected_frames().is_empty() {
+            // No modo, a tarefa é escolher os quadros (spec DG, regra 6).
+            "Clique num quadro · Ctrl+clique soma · arraste no vazio para selecionar vários · Esc volta"
         } else if self.session().is_some() {
             // Sem nada selecionado, o caminho das tarefas mais comuns (auditoria da Fase 4, 5 e 18).
             "Arraste uma foto da faixa de baixo para um quadro · ↑ ↓ trocam o layout · T cria um texto"

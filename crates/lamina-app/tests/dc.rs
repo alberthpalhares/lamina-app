@@ -51,6 +51,8 @@ fn dc_b10_esc_nao_vaza() {
     assert!(menu.contains("close-policy: no-auto-close;"));
     assert!(menu.contains("focus-on-tab-navigation: false;"));
     assert!(menu.contains("ContextUi.key(\"esc\");"));
+    // O popup encosta no canto da janela: o fundo e os limites contam a barra de menus desenhada nela.
+    assert!(menu.contains("root.absolute-position.y + root.height"));
     // E nada tira o foco dele enquanto está aberto, nem a seleção que o clique direito muda.
     let app = ui("app.slint");
     let guard = &app[app.find("public function focus-main()").unwrap()..];

@@ -40,7 +40,7 @@ const FIXED: [(&str, &str, &str); 22] = [
     (
         DRAG_AND_CLICK,
         "Passar fotos para a lâmina vizinha",
-        "arrastar o corte na linha do tempo",
+        "arrastar o corte na Sequência",
     ),
     (
         DRAG_AND_CLICK,
@@ -71,7 +71,7 @@ const FIXED: [(&str, &str, &str); 22] = [
     ),
     (
         ORGANIZE,
-        "Selecionar com o laço",
+        "Selecionar vários arrastando no vazio",
         "arrastar no vazio (com Shift, soma)",
     ),
     (

@@ -138,7 +138,7 @@ fn at_b11_arrastar_e_clicar_no_topo() {
         tail(ORGANIZE, 7),
         [
             "Mover os quadros selecionados",
-            "Selecionar com o laço",
+            "Selecionar vários arrastando no vazio",
             "Somar ou tirar um quadro da seleção",
             "Ampliar o grupo",
             "Encaixar sem o ímã",
