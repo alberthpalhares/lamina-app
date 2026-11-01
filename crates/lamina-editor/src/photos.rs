@@ -41,10 +41,12 @@ pub struct PhotoInfo {
 /// Usos de cada foto e a primeira lâmina de cada uma.
 fn usage(project: &Project) -> HashMap<PhotoId, (usize, usize)> {
     let mut map: HashMap<PhotoId, (usize, usize)> = HashMap::new();
-    for (index, spread) in project.spreads.iter().enumerate() {
+    for (index, spread) in project.all_content().enumerate() {
+        // A capa vem depois das lâminas: uma foto só nela aponta para a lâmina 1 (spec CA, regra 11).
+        let at = index.min(project.spreads.len().saturating_sub(1));
         for frame in &spread.frames {
             if let FrameContent::Photo { photo, .. } = &frame.content {
-                map.entry(*photo).or_insert((0, index)).0 += 1;
+                map.entry(*photo).or_insert((0, at)).0 += 1;
             }
         }
     }
@@ -79,7 +81,7 @@ pub fn photo_list(project: &Project, filter: Filter) -> Vec<PhotoItem> {
 /// Mexer só num quadro não refaz a lista (spec LV, regra 6).
 pub fn same_photo_list(a: &Project, b: &Project) -> bool {
     fn uses(project: &Project) -> impl Iterator<Item = (usize, PhotoId)> + '_ {
-        let frames = project.spreads.iter().enumerate();
+        let frames = project.all_content().enumerate();
         frames.flat_map(|(index, spread)| {
             spread
                 .frames

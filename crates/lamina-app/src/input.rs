@@ -65,6 +65,7 @@ pub fn run_command(app: &Shared, command: Command) {
             }
         }
         Command::Specification => crate::new_project::open_spec(&mut a),
+        Command::CreateCover | Command::CoverMeasures => crate::cover::open(&mut a, Vec::new()),
         Command::MountAlbum => crate::new_project::open_mount(&mut a),
         Command::ImportPhotos => crate::importing::pick(&mut a, false),
         Command::ImportFolder => crate::importing::pick(&mut a, true),

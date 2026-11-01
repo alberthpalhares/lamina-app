@@ -1,0 +1,15 @@
+// O que a lâmina grande desenha com a capa aberta (spec CA, regra 8). Mora à parte para o `canvas`
+// não depender da caixa da capa, que já importa o `canvas`.
+
+export global CoverLook {
+    in property <bool> on;
+    in property <float> spine-l;
+    in property <float> spine-r;
+    in property <float> trim-top;
+    in property <bool> guide-on;
+    in property <image> guide-image;
+    in property <float> guide-x;
+    in property <float> guide-y;
+    in property <float> guide-w;
+    in property <float> guide-h;
+}

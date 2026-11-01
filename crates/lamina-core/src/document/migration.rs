@@ -20,6 +20,7 @@ pub(super) fn migrate(mut value: Value, from: u32) -> Result<Value, CoreError> {
             4 => v4_para_v5(value),
             5 => v5_para_v6(value),
             6 => v6_para_v7(value),
+            7 => v7_para_v8(value),
             _ => {
                 return Err(CoreError::Migration {
                     from: version,
@@ -138,6 +139,14 @@ fn v5_para_v6(mut value: Value) -> Value {
 /// recusa o arquivo 7 em vez de perder a cor e o giro ao salvar.
 fn v6_para_v7(mut value: Value) -> Value {
     value["schema_version"] = json!(7);
+    value
+}
+
+/// v7 → v8 (specs PB e CA): as lâminas ganham as páginas em branco e o projeto, a capa, que só vão
+/// para o arquivo quando existem; nada muda além da versão. Um Lamina antigo recusa o arquivo 8 em
+/// vez de perder as duas coisas ao salvar.
+fn v7_para_v8(mut value: Value) -> Value {
+    value["schema_version"] = json!(8);
     value
 }
 

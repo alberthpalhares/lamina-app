@@ -15,6 +15,7 @@ mod calibrate;
 mod clear_all;
 mod context;
 mod convert;
+mod cover;
 mod crop;
 mod details;
 mod dialogs;
@@ -134,6 +135,7 @@ fn connect(window: &AppWindow, app: &Shared) {
     drag_motion::connect_motion(window, app);
     organize::connect(window, app);
     context::connect(window, app);
+    cover::connect(window, app);
     backup::connect(window, app);
     palette::connect(window, app);
     panel_width::connect(window, app);

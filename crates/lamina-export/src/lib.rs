@@ -5,6 +5,7 @@
 //! TIFF sem perda e saída em sRGB ou Adobe RGB (spec CT).
 
 mod clean;
+mod cover;
 mod export;
 mod in_order;
 mod jobs;
@@ -20,6 +21,7 @@ mod tiff_out;
 mod write;
 
 pub use clean::{is_export_name, leftovers};
+pub use cover::{CoverExport, cover_preflight};
 pub use export::{DEFAULT_QUALITY, ExportOptions, ExportReport, export, output_names};
 pub use jpeg::{embedded_profile as color_profile, srgb_profile};
 pub use preflight::{Warning, WarningKind, preflight};
@@ -57,6 +59,9 @@ impl ExportFormat {
 /// Erros da exportação, com as mensagens da spec.
 #[derive(Debug, Error)]
 pub enum ExportError {
+    /// As medidas da capa não fecham (a validação ao abrir já recusa isso; spec CA, seção 6).
+    #[error(transparent)]
+    Cover(lamina_core::CoreError),
     #[error("A qualidade do JPEG vai de 1 a 100, não {0}.")]
     Quality(u8),
     #[error("As marcas de corte só existem no PDF.")]
@@ -129,6 +134,9 @@ mod af;
 #[path = "tests/ap.rs"]
 mod ap;
 #[cfg(test)]
+#[path = "tests/ca.rs"]
+mod ca;
+#[cfg(test)]
 #[path = "tests/ct.rs"]
 mod ct;
 #[cfg(test)]
@@ -149,6 +157,9 @@ mod lv;
 #[cfg(test)]
 #[path = "tests/op.rs"]
 mod op;
+#[cfg(test)]
+#[path = "tests/pb.rs"]
+mod pb;
 #[cfg(test)]
 #[path = "tests/pd.rs"]
 mod pd;

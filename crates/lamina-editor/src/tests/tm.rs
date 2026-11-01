@@ -94,7 +94,8 @@ fn tm_b5_salvar_abrir_e_a_versao_7() {
     project.photos[0].adjust = color(30, -15);
     let json = project.to_json().unwrap();
     assert!(json.contains("\"temperatura\": 30") && json.contains("\"matiz\": -15"));
-    assert!(json.contains("\"schema_version\": 7"));
+    let current = format!("\"schema_version\": {CURRENT_SCHEMA_VERSION}");
+    assert!(json.contains(&current));
     let opened = Project::from_json(&json).unwrap();
     assert_eq!(opened.photos[0].adjust, color(30, -15));
     // Um arquivo do formato 6, sem os campos, abre com os dois em zero.
@@ -103,7 +104,7 @@ fn tm_b5_salvar_abrir_e_a_versao_7() {
     let v6 = plain
         .to_json()
         .unwrap()
-        .replace("\"schema_version\": 7", "\"schema_version\": 6");
+        .replace(&current, "\"schema_version\": 6");
     let old = Project::from_json(&v6).unwrap();
     assert_eq!(old.schema_version, CURRENT_SCHEMA_VERSION);
     assert!(old.photos.iter().all(|p| !p.adjust.has_color()));

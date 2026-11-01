@@ -93,13 +93,18 @@ impl Agent {
     }
 }
 
-/// Todos os avisos de pré-impressão, com lâmina e quadro, nas frases da janela.
+/// Todos os avisos de pré-impressão, com lâmina e quadro, nas frases da janela; os da capa vêm
+/// depois dos das lâminas (spec CA, CA-B11).
 pub(super) fn preflight(editor: &Editor) -> Result<ToolReply, ToolError> {
     let s = session(editor)?;
-    let warnings: Vec<Value> = (0..s.spread_count())
-        .flat_map(|i| s.warnings_for(i))
-        .map(|w| json!({ "lamina": w.spread, "quadro": w.frame + 1, "aviso": w.to_string() }))
-        .collect();
+    let spreads = (0..s.album().spreads.len())
+        .flat_map(|i| s.spread_warnings(i))
+        .map(|w| json!({ "lamina": w.spread, "quadro": w.frame + 1, "aviso": w.to_string() }));
+    let cover = s
+        .cover_warnings()
+        .into_iter()
+        .map(|w| json!({ "capa": true, "quadro": w.frame + 1, "aviso": w.to_string() }));
+    let warnings: Vec<Value> = spreads.chain(cover).collect();
     let text = match warnings.len() {
         0 => "Nenhum aviso de pré-impressão.".to_owned(),
         1 => "1 aviso de pré-impressão.".to_owned(),
@@ -160,6 +165,7 @@ fn menu_name(menu: Menu) -> &'static str {
         Menu::File => "Arquivo",
         Menu::Edit => "Editar",
         Menu::Spread => "Lâmina",
+        Menu::Cover => "Capa",
         Menu::Layout => "Layout",
         Menu::View => "Ver",
         Menu::Help => "Ajuda",

@@ -28,6 +28,8 @@ pub fn respec(project: &mut Project, spec: AlbumSpec) -> Result<Vec<usize>, Edit
         .map(|i| current_design(project, i))
         .collect();
     project.spec = spec;
+    // A marca de uma página que deixou de existir sai (spec PB, regra 3).
+    crate::blank::clear_lost_marks(project);
     let mut changed = Vec::new();
     for (index, design) in designs.into_iter().enumerate() {
         let photos = spread_photos(project, index);
@@ -63,6 +65,7 @@ pub fn respec(project: &mut Project, spec: AlbumSpec) -> Result<Vec<usize>, Edit
             // Fotos numa página que deixou de existir (pontas, regra 7): ficam na mesma lâmina,
             // arrumadas na página que sobrou.
             Err(_) => {
+                crate::blank::free_stuck_photos(project, index, &photos);
                 layout_with(project, index, &photos)?;
                 false
             }

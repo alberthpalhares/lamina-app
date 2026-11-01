@@ -24,7 +24,7 @@ pub fn show(app: &mut App, fresh: &[PhotoId]) {
         return;
     };
     // Sem copiar o projeto: com a grade rolando, chegam miniaturas a cada quadro (spec PF).
-    let (project, missing) = (session.project(), session.missing());
+    let (project, missing) = (session.album(), session.missing());
     let current = project
         .spreads
         .get(session.current())

@@ -5,9 +5,8 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use lamina_editor::motion::reorder;
+use lamina_editor::motion::TimelineKey;
 use lamina_editor::motion::{CrossHit, cross_target};
-use lamina_editor::motion::{TimelineKey, timeline_rows};
 use lamina_editor::{CrossTarget, DropPlace};
 
 use crate::state::App;
@@ -41,11 +40,16 @@ fn inside(app: &App, fx: f32, fy: f32) -> bool {
 /// lâmina atual, uma vizinha do rolo ou uma miniatura da faixa (spec ML, regras 7 e 11).
 fn frame_target(app: &App, fx: f32, fy: f32) -> Option<CrossTarget> {
     let current = app.session()?.current();
+    let on_cover = app.editor.on_cover();
     if let Some(frame) = target(app, fx, fy) {
         return Some(CrossTarget::Frame {
             spread: current,
             frame,
         });
+    }
+    // Da capa, o quadro não vai para as lâminas: a projeção só tem a capa.
+    if on_cover {
+        return None;
     }
     let roll = crate::roll_connect::neighbor_target(app, f64::from(fx), f64::from(fy));
     roll.map(|(t, _)| t).or_else(|| strip_target(app))
@@ -107,6 +111,14 @@ pub fn connect(window: &AppWindow, app: &Shared) {
             |app| app.editor.drop_photos(place, &photos),
             App::refresh_all,
         );
+        // Na capa aberta, fora dos quadros, a foto vai para a área sob o ponteiro (spec CA, regra 19).
+        if app.editor.on_cover() && target(&app, fx, fy).is_none() {
+            let photos = app.editor.drag_photos(photo);
+            if app.editor.drop_on_cover(f64::from(fx), &photos) {
+                app.refresh_all();
+            }
+            return;
+        }
         // Mais de 24 fotos na lâmina vazia: nada muda, e o aviso aparece (spec BR, regra 4).
         if !done {
             app.refresh_current();
@@ -196,24 +208,19 @@ fn connect_sequence(window: &AppWindow, app: &Shared) {
     });
 }
 
-/// A lâmina `from` solta no vão `gap` (da faixa ou da alça do rolo): o vão vira a posição final
-/// pela regra do editor (spec MV, MV-B23) e ela vira a atual (spec FQ, regra 7).
+/// A lâmina `from` solta no vão `gap` (da faixa ou da alça do rolo). A decisão é do editor.
 pub fn move_spread(app: &mut App, from: usize, gap: usize) {
-    let count = app.session().map_or(0, |s| s.spread_count());
-    let to = reorder(from, gap, count).to;
-    let moved = app.editor.session_mut().is_some_and(|s| s.go_to(from))
-        && (from == to || app.editor.move_current_to(to));
+    let moved = app.editor.move_spread_to_gap(from, gap);
     after_edit(app, moved);
 }
 
 /// A timeline: as fotos de cada lâmina e um corte entre uma lâmina e a outra (regra 8), só as
 /// posições que mudaram (spec MV, regra 3).
 pub fn refresh_timeline(app: &mut App) {
-    let Some(project) = app.session().map(|s| s.project_shared()) else {
+    let Some((project, rows)) = app.editor.sequence_rows() else {
         return;
     };
     let thumbs = app.thumbs(&project);
-    let rows = timeline_rows(&project);
     let mut items: Vec<TimelineItem> = rows
         .iter()
         .enumerate()

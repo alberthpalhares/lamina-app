@@ -5,6 +5,7 @@
 use std::path::Path;
 
 use lamina_core::{ColorSpace, ExportPrefs, OutputFormat};
+use lamina_export::CoverExport;
 
 use crate::exporting::{DEFAULT_QUALITY, ExportFormat, ExportOptions};
 
@@ -30,6 +31,8 @@ pub struct ExportForm {
     pub crop_marks: bool,
     /// sRGB ou Adobe RGB (spec CT).
     pub space: ColorSpace,
+    /// A capa: junto, só ela ou sem ela (spec CA, regra 13).
+    pub cover: CoverExport,
 }
 
 impl ExportForm {
@@ -57,6 +60,7 @@ impl ExportForm {
             format: self.format,
             crop_marks: self.format == ExportFormat::Pdf && self.crop_marks,
             space: self.space,
+            cover: self.cover,
         }
     }
 }
@@ -69,8 +73,8 @@ pub fn replace_question(existing: usize, folder: &Path) -> String {
         format!("{existing} arquivos desta exportação")
     };
     format!(
-        "Já existem {files} em {}. Substituindo, os arquivos lamina-NN e pagina-NN do mesmo \
-         formato que não fizerem parte desta exportação também saem da pasta; os outros \
+        "Já existem {files} em {}. Substituindo, os arquivos lamina-NN, pagina-NN e da capa do \
+         mesmo formato que não fizerem parte desta exportação também saem da pasta; os outros \
          arquivos ficam.",
         folder.display()
     )

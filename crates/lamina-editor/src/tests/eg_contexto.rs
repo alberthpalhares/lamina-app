@@ -14,6 +14,7 @@ fn items(menu: &[ContextEntry]) -> Vec<(Command, String, bool)> {
                 command,
                 label,
                 enabled,
+                ..
             } => out.push((*command, label.clone(), *enabled)),
             ContextEntry::Sub { items: sub, .. } => out.extend(items(sub)),
             ContextEntry::Separator => {}

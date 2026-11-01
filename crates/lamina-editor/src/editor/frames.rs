@@ -9,6 +9,7 @@ use crate::edits::{
     capacity, delete_spread, insert_spread, layout_with, move_cut, move_spread, place_photo,
     remove_photos, swap_photos,
 };
+use crate::motion::reorder;
 use crate::suggestions::{Selection, Unavailable};
 
 impl Editor {
@@ -64,6 +65,9 @@ impl Editor {
         let session = self.session.as_ref().ok_or(Unavailable::NoPhotos)?;
         let (project, index) = (session.project(), session.current());
         let cap = capacity(project, index);
+        if cap == 0 && !project.spreads.is_empty() {
+            return Err(Unavailable::BlankSpread);
+        }
         if self.selection.len() > cap {
             return Err(Unavailable::TooMany(cap));
         }
@@ -77,10 +81,7 @@ impl Editor {
                     .map(lamina_core::Photo::aspect_ratio)
             })
             .collect();
-        let active = project
-            .spec
-            .edges()
-            .active_pages(index, project.spreads.len());
+        let active = project.content_pages(index);
         Ok(Selection {
             photos: self.selection.clone(),
             aspects,
@@ -217,6 +218,15 @@ impl Editor {
         done
     }
 
+    /// A lâmina `from` solta no vão `gap` da faixa ou da alça do rolo: o vão vira a posição final
+    /// pela regra do editor (spec MV, MV-B23) e ela vira a atual (spec FQ, regra 7).
+    pub fn move_spread_to_gap(&mut self, from: usize, gap: usize) -> bool {
+        let count = self.album_end();
+        let to = reorder(from, gap, count).to;
+        self.session.as_mut().is_some_and(|s| s.go_to(from))
+            && (from == to || self.move_current_to(to))
+    }
+
     pub(super) fn move_by(&mut self, delta: isize) -> bool {
         let Some(s) = &self.session else {
             return false;
@@ -229,6 +239,8 @@ impl Editor {
 
     /// Arrasta o corte depois da lâmina `k` em `delta` fotos (regra 8).
     pub fn drag_cut(&mut self, k: usize, delta: i32) -> bool {
+        // O corte é entre lâminas do álbum, não da projeção da capa.
+        self.leave_cover();
         let mut moved = false;
         let Some(session) = self.session.as_mut() else {
             return false;

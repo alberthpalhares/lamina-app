@@ -66,6 +66,8 @@ pub struct SpreadView {
     pub spine_x: f64,
     /// Páginas sem conteúdo (lâmina de ponta com página simples).
     pub inactive: Vec<PxRect>,
+    /// Páginas em branco de propósito, para o rótulo só de tela (spec PB).
+    pub blank: Vec<PxRect>,
     pub background: Rgb,
     /// Fundo da página direita (igual ao `background` quando não há fundo por página).
     pub background_right: Rgb,
@@ -119,6 +121,11 @@ pub fn spread_view(
     .filter(|(on, _)| !on)
     .map(|(_, side)| px(spec.page_canvas_rect(side)))
     .collect();
+    let blank = [PageSide::Left, PageSide::Right]
+        .into_iter()
+        .filter(|side| spread.blank.has(*side))
+        .map(|side| px(spec.page_rect(side)))
+        .collect();
     let frames = spread
         .frames
         .iter()
@@ -184,6 +191,7 @@ pub fn spread_view(
         ],
         spine_x: origin.0 + (trim.x.get() + trim.width.get() / 2.0) * scale,
         inactive,
+        blank,
         background: spread.background,
         background_right: spread.page_background(PageSide::Right),
         frames,

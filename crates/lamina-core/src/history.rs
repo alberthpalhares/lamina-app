@@ -92,6 +92,13 @@ impl<T: Clone> History<T> {
         Ok(Some(result))
     }
 
+    /// Troca o rótulo da última edição (a sessão só sabe o rótulo inteiro depois de aplicar).
+    pub fn relabel_last(&mut self, label: impl Into<String>) {
+        if let Some(entry) = self.past.last_mut() {
+            entry.label = label.into();
+        }
+    }
+
     /// Aplica uma edição que não falha.
     pub fn apply<R>(&mut self, label: impl Into<String>, edit: impl FnOnce(&mut T) -> R) -> R {
         match self.try_apply(label, |state| {

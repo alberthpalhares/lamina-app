@@ -24,7 +24,11 @@ pub struct CropCall {
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LookCall {
+    #[serde(default)]
     pub lamina: usize,
+    /// Na capa em vez de numa lâmina.
+    #[serde(default)]
+    pub capa: bool,
     /// Depois das mudanças, levar a aparência desta lâmina para todas, como "Aplicar a todas".
     #[serde(default)]
     pub todas: bool,
@@ -71,7 +75,11 @@ pub struct PlaceMm {
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct AddText {
+    #[serde(default)]
     pub lamina: usize,
+    /// Na capa em vez de numa lâmina.
+    #[serde(default)]
+    pub capa: bool,
     pub pagina: PageArg,
     pub texto: String,
     /// Uma das fontes do Lamina (lista no erro, se não existir); padrão Inter.
@@ -103,7 +111,11 @@ pub enum VAlignArg {
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct EditText {
+    #[serde(default)]
     pub lamina: usize,
+    /// Na capa em vez de numa lâmina.
+    #[serde(default)]
+    pub capa: bool,
     /// Número do quadro de texto, como em ver_lamina.
     pub quadro: usize,
     pub texto: Option<String>,

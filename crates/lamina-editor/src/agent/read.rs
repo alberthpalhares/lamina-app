@@ -34,6 +34,11 @@ impl Agent {
             },
             "laminas": p.spreads.len(),
             "paginas": pages,
+            "capa": cover_data(p),
+            "paginas_em_branco": p.spreads.iter().enumerate()
+                .filter(|(_, spread)| !spread.blank.is_none())
+                .map(|(i, spread)| json!({ "lamina": i + 1, "lados": blank_sides(spread.blank) }))
+                .collect::<Vec<_>>(),
             "aviso_de_paginas": s.page_warning(),
             "fotos": {
                 "total": p.photos.len(),
@@ -116,6 +121,38 @@ impl Agent {
 }
 
 /// Os dados da lâmina `index`: fundo, espaço, avisos e os quadros (seção 3).
+/// A capa no resumo: as medidas e as fotos dela (spec CA, regra 15).
+fn cover_data(p: &lamina_core::Project) -> Value {
+    let Some(cover) = &p.cover else {
+        return Value::Null;
+    };
+    let m = cover.measures;
+    let photos: Vec<u64> = cover
+        .content
+        .frames
+        .iter()
+        .filter_map(|f| match &f.content {
+            lamina_core::FrameContent::Photo { photo, .. } => Some(photo.get()),
+            _ => None,
+        })
+        .collect();
+    json!({
+        "face_cm": [round(m.face_width.get() / 10.0), round(m.face_height.get() / 10.0)],
+        "lombada_cm": round(m.spine_width(p.page_count()).get() / 10.0),
+        "dobra_cm": round(m.wrap.get() / 10.0),
+        "fotos": photos,
+    })
+}
+
+/// Os lados em branco de uma lâmina, como a IA os escreve (spec PB, regra 12).
+fn blank_sides(blank: lamina_core::BlankPages) -> Vec<&'static str> {
+    [(blank.left, "esquerda"), (blank.right, "direita")]
+        .into_iter()
+        .filter(|(on, _)| *on)
+        .map(|(_, side)| side)
+        .collect()
+}
+
 pub(super) fn spread_data(s: &Session, index: usize) -> Value {
     let p = s.project();
     let spread = &p.spreads[index];
@@ -138,6 +175,7 @@ pub(super) fn spread_data(s: &Session, index: usize) -> Value {
         "espaco_mm": round(p.spread_gap(spread).get()),
         "a_mao": spread.manual,
         "modelo": spread.model,
+        "paginas_em_branco": blank_sides(spread.blank),
         "avisos": warnings,
         "quadros": frames,
     })

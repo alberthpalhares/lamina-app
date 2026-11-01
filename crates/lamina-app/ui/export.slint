@@ -10,6 +10,9 @@ export component ExportDialog inherits Shade {
     in-out property <bool> all-spreads: true;
     in-out property <string> range;
     in-out property <bool> pages;
+    // A capa (spec CA, regra 13): 0 = junto, 1 = só ela, 2 = sem ela; só aparece com capa criada.
+    in-out property <int> cover;
+    in property <bool> has-cover;
     in-out property <int> quality: 95;
     // Formato (spec PD e CT): 0 = JPEG, 1 = PDF, 2 = TIFF; marcas de corte só no PDF.
     in-out property <int> format;
@@ -90,6 +93,14 @@ export component ExportDialog inherits Shade {
                     text: "Nos quatro cantos";
                     checked <=> root.marks;
                     toggled => { root.changed(); }
+                }
+            }
+            if root.has-cover: Field {
+                label: "Capa";
+                ComboBox {
+                    model: ["Junto com as lâminas", "Só a capa", "Sem a capa"];
+                    current-index <=> root.cover;
+                    selected => { root.changed(); }
                 }
             }
             Field {

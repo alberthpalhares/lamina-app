@@ -18,11 +18,13 @@ mod adjust;
 mod arrange_cmd;
 mod backup;
 mod band;
+mod blank;
 mod bottom_strips;
 mod build_album;
 mod clear_all;
 mod clipboard;
 mod context;
+pub(crate) mod cover;
 mod crop;
 mod details;
 mod dispatch;
@@ -90,10 +92,14 @@ type ListsKey = (Vec<u64>, bool, bool);
 pub struct Editor {
     session: Option<Session>,
     guides: bool,
+    /// O guia da capa escondido: é só da vista, não entra no histórico (spec CA, regra 18).
+    guide_hidden: bool,
     reordered: bool,
     prefs: PrefsStore,
     lists: RefCell<HashMap<ListsKey, LayoutLists>>,
     notice: Option<String>,
+    /// A página do último clique direito no fundo da lâmina (spec PB).
+    context_side: Option<lamina_core::PageSide>,
     selected_frame: Option<usize>,
     selection: Vec<PhotoId>,
     /// Última foto clicada sem Shift: começo do intervalo do Shift+clique.
@@ -169,10 +175,12 @@ impl Editor {
         Editor {
             session: None,
             guides: true,
+            guide_hidden: false,
             reordered: false,
             prefs,
             lists: RefCell::new(HashMap::new()),
             notice,
+            context_side: None,
             selected_frame: None,
             selection: Vec::new(),
             anchor: None,
@@ -312,7 +320,11 @@ impl Editor {
         };
         let edges = s.project().spec.edges();
         let pages = edges.active_pages(s.current(), s.spread_count());
-        self.strips.strips.gutter_shadow && pages.left && pages.right && !self.organizing()
+        self.strips.strips.gutter_shadow
+            && pages.left
+            && pages.right
+            && !self.organizing()
+            && !s.on_cover()
     }
 
     /// A preferência da sombra da dobra, que vale também na tela inicial (spec DI).
@@ -355,7 +367,8 @@ impl Editor {
     /// Vai para a lâmina `index` (clique na faixa): sai do modo recorte, gravando o gesto, e
     /// desmarca o quadro (spec RC, regra 1). `false` se a lâmina não existe.
     pub fn go_to_spread(&mut self, index: usize) -> bool {
-        if index >= self.session.as_ref().map_or(0, Session::spread_count) {
+        let count = self.session.as_ref().map_or(0, |s| s.album().spreads.len());
+        if index >= count {
             return false;
         }
         self.exit_crop();
@@ -393,7 +406,7 @@ impl Editor {
     /// Vai para a primeira lâmina da foto (duplo clique no navegador). `false` se não é usada.
     pub fn go_to_photo(&mut self, id: PhotoId) -> bool {
         let first = self.session.as_ref().and_then(|s| {
-            photo_list(s.project(), Filter::All)
+            photo_list(s.album(), Filter::All)
                 .into_iter()
                 .find(|item| item.id == id)
                 .and_then(|item| item.first_spread)

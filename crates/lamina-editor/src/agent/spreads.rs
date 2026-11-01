@@ -3,13 +3,14 @@
 
 use std::collections::HashSet;
 
-use lamina_core::Project;
+use lamina_core::{PageSide, Project};
 use serde_json::json;
 
 use super::{
-    Agent, BuildSpread, MoveSpread, ToolError, ToolReply, edit_on, photo_id, session, session_mut,
-    spread_index,
+    Agent, BlankPageCall, BlankSide, BuildSpread, MoveSpread, NewSpreadCall, ToolError, ToolReply,
+    edit_on, photo_id, session, session_mut, spread_index,
 };
+use crate::blank::{returned_text, set_blank};
 use crate::edits::{delete_spread, insert_spread, layout_with, move_spread};
 use crate::{Editor, EditorError};
 
@@ -31,6 +32,12 @@ impl Agent {
             }
             photos.push(photo_id(p, n)?);
         }
+        if a.capa {
+            edit_on(editor, 0, "Montar lâmina", |p| {
+                crate::editor::cover::arrange(p, &photos)
+            })?;
+            return self.edited(editor, 0, "Capa montada.");
+        }
         let at = position(p, a.posicao)?;
         let label = format!("Montar lâmina · lâmina {}", at + 1);
         edit_on(editor, at.saturating_sub(1), &label, |p| {
@@ -48,15 +55,70 @@ impl Agent {
     pub(super) fn new_spread(
         &mut self,
         editor: &mut Editor,
-        posicao: Option<usize>,
+        a: &NewSpreadCall,
     ) -> Result<ToolReply, ToolError> {
-        let at = position(session(editor)?.project(), posicao)?;
+        let at = position(session(editor)?.project(), a.posicao)?;
+        if a.em_branco {
+            let label = format!("Nova lâmina em branco · lâmina {}", at + 1);
+            edit_on(editor, at.saturating_sub(1), &label, |p| {
+                crate::spreads::insert_blank(p, at)
+            })?;
+            editor.go_to_spread(at);
+            return self.edited(editor, at, &format!("Lâmina {} criada, em branco.", at + 1));
+        }
         let label = format!("Nova lâmina · lâmina {}", at + 1);
         edit_on(editor, at.saturating_sub(1), &label, |p| {
             insert_at(p, at).map(|_| ())
         })?;
         editor.go_to_spread(at);
         self.edited(editor, at, &format!("Lâmina {} criada, vazia.", at + 1))
+    }
+
+    /// A página em branco pela IA (spec PB, regra 12): faz o que o menu faz, num passo.
+    pub(super) fn blank_page(
+        &mut self,
+        editor: &mut Editor,
+        a: &BlankPageCall,
+    ) -> Result<ToolReply, ToolError> {
+        let p = session(editor)?.project();
+        let index = spread_index(p, a.lamina)?;
+        let active = p.spec.edges().active_pages(index, p.spreads.len());
+        let sides: &[PageSide] = match a.lado {
+            BlankSide::Esquerda => &[PageSide::Left],
+            BlankSide::Direita => &[PageSide::Right],
+            BlankSide::Ambas => &[PageSide::Left, PageSide::Right],
+        };
+        let exists = |side: &PageSide| match side {
+            PageSide::Left => active.left,
+            PageSide::Right => active.right,
+        };
+        if a.lado != BlankSide::Ambas && !sides.iter().all(exists) {
+            let only = if active.right { "direita" } else { "esquerda" };
+            return Err(ToolError::MissingPage {
+                spread: a.lamina,
+                verb: if index == 0 { "começa" } else { "termina" },
+                only,
+            });
+        }
+        let label = if a.em_branco {
+            "Página em branco"
+        } else {
+            "Desmarcar página em branco"
+        };
+        let label = format!("{label} · lâmina {}", a.lamina);
+        let mut returned = 0;
+        edit_on(editor, index, &label, |p| {
+            for side in sides.iter().filter(|s| exists(s)) {
+                returned += set_blank(p, index, *side, a.em_branco)?;
+            }
+            Ok(())
+        })?;
+        let text = if returned > 0 {
+            format!("{label}: {}.", returned_text(returned))
+        } else {
+            format!("{label}.")
+        };
+        self.edited(editor, index, &text)
     }
 
     pub(super) fn delete_spread(

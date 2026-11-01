@@ -122,6 +122,7 @@ pub fn spread_data(
         })
         .collect();
     let inactive: Vec<BoxData> = view.inactive.iter().copied().map(boxed).collect();
+    let blank: Vec<BoxData> = view.blank.iter().copied().map(boxed).collect();
     SpreadData {
         badge: "".into(),
         aspect: to_f32(a),
@@ -132,6 +133,7 @@ pub fn spread_data(
         safe_r: boxed(view.safe[1]),
         spine_x: to_f32(view.spine_x),
         inactive: ModelRc::from(Rc::new(VecModel::from(inactive))),
+        blank: ModelRc::from(Rc::new(VecModel::from(blank))),
         frames: ModelRc::from(Rc::new(VecModel::from(frames))),
         warning,
         snaps: ModelRc::default(),

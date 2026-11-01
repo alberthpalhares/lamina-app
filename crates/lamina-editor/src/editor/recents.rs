@@ -77,7 +77,7 @@ impl Editor {
         let Some((file, current)) = self
             .session
             .as_ref()
-            .and_then(|s| Some((s.file()?.to_path_buf(), s.current())))
+            .and_then(|s| Some((s.file()?.to_path_buf(), s.last_spread())))
         else {
             return;
         };
@@ -91,7 +91,7 @@ impl Editor {
     pub fn thumbnail_job(&self) -> Option<(Arc<Project>, PathBuf)> {
         let session = self.session.as_ref()?;
         let target = self.recents.thumb_path(session.file()?)?;
-        Some((session.project_shared(), target))
+        Some((session.album_shared(), target))
     }
 
     /// Onde gravar a miniatura grande do álbum aberto (spec DI, regra 14).
@@ -119,7 +119,7 @@ impl Editor {
         let Some(session) = &self.session else {
             return;
         };
-        let missing = crate::font_picker::missing_fonts(session.project());
+        let missing = crate::font_picker::missing_fonts(session.album());
         if let Some(message) = crate::font_picker::missing_fonts_notice(&missing) {
             self.notice = Some(match self.notice.take() {
                 Some(before) => format!(
@@ -151,9 +151,9 @@ fn recent_of(session: &Session) -> Option<Recent> {
         path: session.file()?.to_path_buf(),
         name: session.title().to_owned(),
         opened_at: now(),
-        spreads: session.spread_count(),
-        photos: session.project().photos.len(),
-        current: session.current(),
+        spreads: session.album().spreads.len(),
+        photos: session.album().photos.len(),
+        current: session.last_spread(),
         pinned: false,
     })
 }

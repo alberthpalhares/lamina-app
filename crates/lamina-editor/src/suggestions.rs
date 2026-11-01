@@ -48,6 +48,8 @@ pub enum Unavailable {
     EdgeSpread,
     /// Seleção de fotos maior do que a lâmina comporta (spec FQ, regra 5).
     TooMany(usize),
+    /// A lâmina não tem página com conteúdo (spec PB, regra 7).
+    BlankSpread,
 }
 
 impl std::fmt::Display for Unavailable {
@@ -68,6 +70,7 @@ impl std::fmt::Display for Unavailable {
             ),
             Unavailable::EdgeSpread => write!(f, "Lâmina de ponta: não dá para espelhar."),
             Unavailable::TooMany(n) => write!(f, "Selecione até {n} fotos para uma lâmina."),
+            Unavailable::BlankSpread => write!(f, "{}", crate::blank::BLANK_SPREAD),
         }
     }
 }
@@ -122,12 +125,8 @@ pub fn selection(project: &Project, index: usize, part: Part) -> Result<Selectio
                 .map(lamina_core::Photo::aspect_ratio)
         })
         .collect();
-    let edges = project
-        .spec
-        .edges()
-        .active_pages(index, project.spreads.len());
     let active = match part {
-        Part::Spread => edges,
+        Part::Spread => project.content_pages(index),
         Part::Left => ActivePages {
             left: true,
             right: false,
@@ -189,6 +188,8 @@ pub fn mirror(project: &mut Project, index: usize) -> Result<(), CoreError> {
         let x = (1.0 - r.x() - r.width()).max(0.0);
         frame.rect = RelRect::new(x, r.y(), r.width(), r.height())?;
     }
+    // A marca vai junto com o conteúdo (spec PB, regra 9).
+    std::mem::swap(&mut spread.blank.left, &mut spread.blank.right);
     Ok(())
 }
 

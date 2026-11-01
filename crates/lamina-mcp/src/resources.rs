@@ -98,7 +98,11 @@ async fn read_spread(server: &Server, uri: &str) -> Result<ReadResourceResult, E
 }
 
 fn view(lamina: usize, imagem: bool) -> ToolCall {
-    ToolCall::ViewSpread(ViewSpread { lamina, imagem })
+    ToolCall::ViewSpread(ViewSpread {
+        capa: false,
+        lamina,
+        imagem,
+    })
 }
 
 async fn tool_data(server: &Server, call: ToolCall) -> Result<String, ErrorData> {

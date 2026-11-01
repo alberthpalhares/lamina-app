@@ -25,7 +25,7 @@ impl Editor {
     /// da janela ("Tirar as 48 fotos de todas as 12 lâminas?").
     pub fn clear_counts(&self) -> (usize, usize) {
         self.session.as_ref().map_or((0, 0), |s| {
-            (placed(s.project()).len(), s.project().spreads.len())
+            (placed(s.album()).len(), s.album().spreads.len())
         })
     }
 

@@ -29,7 +29,7 @@ pub use roll::{
     Landing, ROLL_BYTES, Revisions, RollAsk, RollGot, RollPlan, RollView, SCREEN_MAX, SMALL_WIDTH,
     Tier,
 };
-pub use roll_bar::{BarButton, SPREAD_BAR_COMMANDS, SpreadBar, roll_shown, spread_bar};
+pub use roll_bar::{BarButton, RollPill, SPREAD_BAR_COMMANDS, SpreadBar, roll_shown, spread_bar};
 pub use roll_nav::{NEAR, Pill, RollMove, RollScroll, pill, roll_move};
 pub use roll_timeline::{TIMELINE, TimelineSizes, spread_badge, timeline_run, timeline_scroll};
 pub use roll_view::{

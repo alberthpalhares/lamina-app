@@ -4,7 +4,9 @@
 use lamina_core::{FrameContent, Mm, PageSide, Rect};
 
 use super::{Editor, TextFocus};
-use crate::hand::{add_empty_frame, add_frame_at, add_text, page_for, remove_frame, reorder};
+use crate::hand::{
+    add_empty_frame, add_frame_at, add_text, page_for, photo_page_for, remove_frame, reorder,
+};
 use crate::hand_click::{is_click, sized_at, text_at};
 
 impl Editor {
@@ -27,11 +29,10 @@ impl Editor {
         self.exit_crop();
         let mut at = None;
         let done = self.change(label, |p, i| {
-            let side = page_for(p, i, side);
             at = Some(if text {
-                add_text(p, i, side)?
+                add_text(p, i, page_for(p, i, side))?
             } else {
-                add_empty_frame(p, i, side)?
+                add_empty_frame(p, i, photo_page_for(p, i, side)?)?
             });
             Ok(())
         });

@@ -44,6 +44,8 @@ pub struct TextForm {
     pub color: Rgb,
     pub align: usize,
     pub valign: usize,
+    /// O giro do texto: 0 = deitado, 1 = para cima, 2 = para baixo (spec CA, regra 9).
+    pub rotation: usize,
     pub spacing: String,
 }
 
@@ -84,6 +86,11 @@ fn text_form(t: &TextBox) -> TextForm {
         color: t.color,
         align: t.align as usize,
         valign: t.valign as usize,
+        rotation: match t.rotation {
+            lamina_core::TextRotation::Zero => 0,
+            lamina_core::TextRotation::Up => 1,
+            lamina_core::TextRotation::Down => 2,
+        },
         spacing: decimal(t.line_spacing),
     }
 }

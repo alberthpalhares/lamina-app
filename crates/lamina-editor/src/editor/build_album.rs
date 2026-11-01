@@ -13,7 +13,7 @@ impl Editor {
     /// O que montar no álbum aberto, ou a mensagem de por que não dá (seção 6).
     pub fn album_build(&self) -> Result<AlbumBuild, &'static str> {
         let session = self.session.as_ref().ok_or(crate::building::NO_PHOTOS)?;
-        album_build(session.project())
+        album_build(session.album())
     }
 
     /// "Montar o álbum…" pode rodar agora? Álbum aberto, fora do modo organizar, editor livre e
@@ -37,6 +37,7 @@ impl Editor {
     /// histórico numa edição só; a lâmina atual passa a ser a primeira nova e a seleção do painel
     /// é limpa (regra 10).
     pub fn finish_build(&mut self, built: Project, spreads: usize, photos: usize) -> bool {
+        self.leave_cover();
         let first = built.spreads.len().saturating_sub(spreads);
         let Some(session) = self.session.as_mut() else {
             return false;
@@ -69,7 +70,7 @@ impl Editor {
         let spreads = spreads.unwrap_or(plan.suggestion);
         let session = self.session.as_ref().ok_or(EditorError::NoProject)?;
         let options = self.build_options(reuse);
-        let (built, report) = build_unused(session.project(), spreads, &options)?;
+        let (built, report) = build_unused(session.album(), spreads, &options)?;
         self.finish_build(built, spreads, plan.unused.len());
         Ok(report)
     }

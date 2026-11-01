@@ -8,6 +8,10 @@ use crate::ExportError;
 
 /// O nome é de um arquivo que a exportação grava (`lamina-01.jpg`, `pagina-007.tif`)?
 pub fn is_export_name(name: &str) -> bool {
+    // A capa (spec CA, regra 13).
+    if name == "capa.jpg" || name == "capa.tif" {
+        return true;
+    }
     let stem = name
         .strip_suffix(".jpg")
         .or_else(|| name.strip_suffix(".tif"));

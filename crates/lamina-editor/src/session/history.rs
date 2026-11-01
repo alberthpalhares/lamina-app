@@ -74,7 +74,7 @@ impl Session {
     /// Vai ao passo `step` (0 = o começo); a lâmina atual vai para a lâmina do passo, ou para a
     /// que mudou quando o passo não cita uma (regra 2).
     pub fn go_to_step(&mut self, step: usize) -> bool {
-        let before = self.project_shared();
+        let before = self.album_shared();
         if !self.history.go_to(step) {
             return false;
         }

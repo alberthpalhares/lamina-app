@@ -5,7 +5,7 @@
 use std::path::Path;
 
 use lamina_core::{ColorSpace, OutputFormat};
-use lamina_export::{ExportFormat, ExportOptions, leftovers, output_names};
+use lamina_export::{CoverExport, ExportFormat, ExportOptions, leftovers, output_names};
 use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::json;
@@ -47,6 +47,17 @@ pub struct ExportCall {
     /// Gravar por cima de arquivos com os mesmos nomes.
     #[serde(default)]
     pub substituir: bool,
+    /// A capa, num álbum que tem capa: junto com as lâminas (padrão), só ela ou sem ela.
+    pub capa: Option<CoverArg>,
+}
+
+/// O que fazer com a capa ao exportar (spec CA, regra 13).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum CoverArg {
+    Junto,
+    SoACapa,
+    SemACapa,
 }
 
 impl Agent {
@@ -108,6 +119,11 @@ fn options_for(a: &ExportCall, prefs: lamina_core::ExportPrefs) -> ExportOptions
         format,
         crop_marks: format == ExportFormat::Pdf && a.marcas_de_corte,
         space,
+        cover: match a.capa {
+            Some(CoverArg::SoACapa) => CoverExport::Only,
+            Some(CoverArg::SemACapa) => CoverExport::Without,
+            _ => CoverExport::WithSpreads,
+        },
     }
 }
 
@@ -126,6 +142,10 @@ fn refuse_leftovers(
     } else {
         ".jpg"
     };
+    // "Só a capa" não apaga nada: as lâminas da exportação anterior continuam valendo.
+    if options.cover == CoverExport::Only && project.cover.is_some() {
+        return Ok(());
+    }
     let names = output_names(project, options)?;
     let found = leftovers(folder, &names, ext)?;
     match found.first() {

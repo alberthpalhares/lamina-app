@@ -63,6 +63,23 @@ pub fn page_for(project: &Project, index: usize, wanted: Option<PageSide>) -> Pa
     }
 }
 
+/// A página de um quadro de foto novo: como `page_for`, sem as páginas em branco (spec PB,
+/// regra 10).
+pub fn photo_page_for(
+    project: &Project,
+    index: usize,
+    wanted: Option<PageSide>,
+) -> Result<PageSide, EditorError> {
+    let room = project.content_pages(index);
+    match wanted {
+        Some(PageSide::Right) if room.right => Ok(PageSide::Right),
+        Some(PageSide::Left) if room.left => Ok(PageSide::Left),
+        _ if room.left => Ok(PageSide::Left),
+        _ if room.right => Ok(PageSide::Right),
+        _ => Err(EditorError::BlankPage),
+    }
+}
+
 fn push(
     project: &mut Project,
     index: usize,
@@ -70,6 +87,9 @@ fn push(
     content: FrameContent,
 ) -> Result<usize, EditorError> {
     let rel = fit_rect(project, rect)?;
+    if !is_text(&content) {
+        crate::blank::check_photo_rect(project, index, &rel)?;
+    }
     let id = spread_mut(project, index)?.id;
     project.add_frame(id, rel, content)?;
     Ok(project.spreads[index].frames.len() - 1)
@@ -165,6 +185,10 @@ pub fn set_rect(
     rect: Rect,
 ) -> Result<(), EditorError> {
     let rel = fit_rect(project, rect)?;
+    let photo = project.spreads.get(index).and_then(|s| s.frames.get(frame));
+    if photo.is_some_and(|f| !is_text(&f.content)) {
+        crate::blank::check_photo_rect(project, index, &rel)?;
+    }
     let spread = spread_mut(project, index)?;
     let f = spread.frames.get_mut(frame).ok_or(EditorError::NoFrame)?;
     f.rect = rel;

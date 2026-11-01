@@ -41,11 +41,12 @@ impl Editor {
     pub fn photos_in_spreads(&self, photos: &[PhotoId]) -> usize {
         self.session
             .as_ref()
-            .map_or(0, |s| used_in_spreads(s.project(), photos))
+            .map_or(0, |s| used_in_spreads(s.album(), photos))
     }
 
     /// Tira as fotos do álbum e das lâminas, numa edição só; a seleção perde essas fotos.
     pub fn remove_from_album(&mut self, photos: &[PhotoId]) -> bool {
+        self.leave_cover();
         if photos.is_empty() {
             return false;
         }

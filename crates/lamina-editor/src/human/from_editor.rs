@@ -75,6 +75,11 @@ impl Human for EditorError {
                 "Leve outra foto para ela antes, ou apague a lâmina se não precisa mais dela."
                     .to_owned(),
             ),
+            EditorError::BlankPage => (
+                crate::blank::BLANK_SPREAD.to_owned(),
+                "Clique com o botão direito no fundo da página e desmarque Página em branco."
+                    .to_owned(),
+            ),
             EditorError::NoFrame => return bug(details),
             EditorError::Media(e) => return e.human(),
             EditorError::Build(e) => return e.human(),

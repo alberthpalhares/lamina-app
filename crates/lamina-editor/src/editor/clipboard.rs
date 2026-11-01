@@ -50,6 +50,9 @@ fn paste_into(
             r.height,
         );
         let rel = fit_rect(project, moved)?;
+        if !matches!(f.content, FrameContent::Text(_)) {
+            crate::blank::check_photo_rect(project, index, &rel)?;
+        }
         let id = project.add_frame(spread, rel, f.content.clone())?;
         if let Some(new) = project.spreads[index].frames.last_mut() {
             new.border = f.border;

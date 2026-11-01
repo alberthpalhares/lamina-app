@@ -55,8 +55,8 @@ pub fn refresh(app: &mut App) {
         return;
     };
     let (current, count) = (session.current(), session.spread_count());
-    let aspect = crate::convert::aspect(session.project());
-    let rows = timeline_rows(session.project());
+    let aspect = crate::convert::aspect(session.album());
+    let rows = timeline_rows(session.album());
     let (x, width) = timeline_run(&rows, current, TIMELINE);
     #[allow(clippy::cast_possible_truncation)]
     {
@@ -99,7 +99,7 @@ pub fn badges(w: &AppWindow, app: &App) {
     let Some(session) = app.session() else {
         return;
     };
-    let (edges, count) = (session.project().spec.edges(), session.spread_count());
+    let (edges, count) = (session.album().spec.edges(), session.album().spreads.len());
     let badges: Vec<SharedString> = (0..count)
         .map(|i| spread_badge(edges, i, count).into())
         .collect();
@@ -380,9 +380,7 @@ fn connect_spreads(ui: &RollUi, app: &Shared) {
     });
     let a = app.clone();
     ui.on_shift(move |from, gap, i| {
-        let count = a
-            .try_borrow()
-            .map_or(0, |app| app.session().map_or(0, |s| s.spread_count()));
+        let count = a.try_borrow().map_or(0, |app| app.editor.album_end());
         let (Ok(from), Ok(gap), Ok(i)) = (
             usize::try_from(from),
             usize::try_from(gap),

@@ -32,19 +32,20 @@ pub struct AlbumBuild {
     pub suggestion: usize,
 }
 
-/// Uma lâmina sem foto e sem texto (os quadros vazios não contam).
+/// Uma lâmina sem foto, sem texto e sem página em branco de propósito (os quadros vazios não
+/// contam; spec PB, regra 8).
 fn is_empty(spread: &Spread) -> bool {
-    spread
-        .frames
-        .iter()
-        .all(|f| matches!(f.content, FrameContent::Empty))
+    spread.blank.is_none()
+        && spread
+            .frames
+            .iter()
+            .all(|f| matches!(f.content, FrameContent::Empty))
 }
 
 /// As fotos usadas em alguma lâmina.
 fn used(project: &Project) -> HashSet<PhotoId> {
     project
-        .spreads
-        .iter()
+        .all_content()
         .flat_map(|s| &s.frames)
         .filter_map(|f| match &f.content {
             FrameContent::Photo { photo, .. } => Some(*photo),
@@ -58,6 +59,7 @@ fn used(project: &Project) -> HashSet<PhotoId> {
 fn unused_project(project: &Project) -> Project {
     let used = used(project);
     let mut sub = project.clone();
+    sub.cover = None;
     sub.photos.retain(|p| !used.contains(&p.id));
     sub.spreads.clear();
     if project.spreads.iter().any(|s| !is_empty(s)) {
@@ -159,6 +161,8 @@ pub fn build_unused(
     // O `out` vem do projeto inteiro: os ids novos continuam a contagem dele.
     out.photos.clone_from(&project.photos);
     out.spec = project.spec.clone();
+    // A capa fica como está: "Montar o álbum…" só mexe nas lâminas (spec CA, CA-B12).
+    out.cover.clone_from(&project.cover);
     out.spreads = kept;
     crate::spreads::append_spreads(&mut out, new)?;
     Ok((out, built.report))

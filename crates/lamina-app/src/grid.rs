@@ -102,7 +102,7 @@ impl App {
             return;
         };
         self.images
-            .thumbs_for(ThumbList::Browser, session.project(), &order);
+            .thumbs_for(ThumbList::Browser, session.album(), &order);
         let old = std::mem::replace(&mut self.grid_view.window, grid.window(visible));
         let new = self.grid_view.window.clone();
         let touched: Vec<usize> = if full {

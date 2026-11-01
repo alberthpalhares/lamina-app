@@ -56,6 +56,34 @@ pub struct TextBox {
     /// Distância entre as linhas, em vezes o tamanho.
     #[serde(default = "default_line_spacing")]
     pub line_spacing: f64,
+    /// O texto em pé, para a lombada (spec CA, regra 9); o quadro continua retângulo.
+    #[serde(
+        rename = "giro",
+        default,
+        skip_serializing_if = "TextRotation::is_zero"
+    )]
+    pub rotation: TextRotation,
+}
+
+/// O giro do bloco de texto dentro do quadro.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, JsonSchema)]
+pub enum TextRotation {
+    #[default]
+    #[serde(rename = "zero")]
+    Zero,
+    /// 90° para a esquerda: lê de baixo para cima.
+    #[serde(rename = "cima")]
+    Up,
+    /// 90° para a direita: lê de cima para baixo.
+    #[serde(rename = "baixo")]
+    Down,
+}
+
+impl TextRotation {
+    /// Sem giro: o campo nem vai para o arquivo.
+    pub fn is_zero(&self) -> bool {
+        *self == TextRotation::Zero
+    }
 }
 
 fn default_font() -> String {
@@ -79,6 +107,7 @@ impl TextBox {
             align: TextAlign::default(),
             valign: TextVAlign::default(),
             line_spacing: default_line_spacing(),
+            rotation: TextRotation::Zero,
         }
     }
 

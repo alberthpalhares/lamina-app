@@ -215,7 +215,7 @@ impl FontPreviews {
 /// que aparecem, sem repetir (regra 5). Um álbum só com as 6 do Lamina não lê nada (FS-B13).
 pub fn missing_fonts(project: &lamina_core::Project) -> Vec<String> {
     let mut missing: Vec<String> = Vec::new();
-    let texts = project.spreads.iter().flat_map(|s| &s.frames);
+    let texts = project.all_content().flat_map(|s| &s.frames);
     for frame in texts {
         if let lamina_core::FrameContent::Text(t) = &frame.content
             && !missing.contains(&t.font)

@@ -9,8 +9,16 @@ impl Editor {
     /// O comando de vista pode rodar agora? `None` = não é de vista.
     pub(super) fn view_available(&self, command: Command) -> Option<bool> {
         let s = self.session.as_ref()?;
-        let last = s.spread_count().saturating_sub(1);
+        let last = s.album().spreads.len().saturating_sub(1);
         let ok = match command {
+            // Com a capa aberta, → e End andam para as lâminas, Home vai para a lâmina 1 (spec CA,
+            // regra 10); na lâmina 1, ← vai para a capa.
+            // Num álbum sem lâminas, eles voltam ao álbum.
+            Command::NextSpread | Command::LastSpread | Command::FirstSpread if s.on_cover() => {
+                true
+            }
+            Command::PreviousSpread if s.on_cover() => false,
+            Command::PreviousSpread if s.current() == 0 && s.album().cover.is_some() => true,
             Command::NextSpread | Command::LastSpread => s.current() < last,
             Command::PreviousSpread | Command::FirstSpread => s.current() > 0,
             Command::ToggleGuides | Command::ToggleReduceMotion | Command::TogglePanel => true,
@@ -66,14 +74,29 @@ impl Editor {
     }
 
     fn navigate(&mut self, command: Command) -> bool {
+        let forward = command != Command::PreviousSpread;
+        if forward
+            && self.on_cover()
+            && self
+                .session
+                .as_ref()
+                .is_some_and(|s| s.album().spreads.is_empty())
+        {
+            self.leave_cover();
+            return true;
+        }
         let Some(s) = self.session.as_mut() else {
             return false;
         };
+        if command == Command::PreviousSpread && s.current() == 0 && !s.on_cover() {
+            return s.go_to_cover();
+        }
         let target = match command {
+            Command::NextSpread if s.on_cover() => 0,
             Command::NextSpread => s.current() + 1,
             Command::PreviousSpread => s.current().saturating_sub(1),
             Command::FirstSpread => 0,
-            Command::LastSpread => s.spread_count().saturating_sub(1),
+            Command::LastSpread => s.album().spreads.len().saturating_sub(1),
             _ => return false,
         };
         s.go_to(target)

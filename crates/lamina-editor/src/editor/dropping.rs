@@ -24,8 +24,15 @@ pub enum DropPlace {
 impl Editor {
     /// Solta `photos` em `place` (uma ação, uma edição; regra 9). `false` se nada mudou.
     pub fn drop_photos(&mut self, place: DropPlace, photos: &[PhotoId]) -> bool {
+        // Uma lâmina nova é no álbum, não na capa aberta.
+        if matches!(place, DropPlace::NewSpread(_)) {
+            self.leave_cover();
+        }
         let current = self.session.as_ref().map(crate::Session::current);
         match place {
+            // Na capa, fora dos quadros, quem decide é a área solta (`drop_on_cover`; spec CA,
+            // regra 19): o motor das lâminas não conhece a lombada.
+            DropPlace::Spread(_) if self.on_cover() => false,
             // Na lâmina vazia do álbum em branco, as fotos viram a lâmina 1 (spec BR, regra 4).
             DropPlace::Spread(_) if self.is_blank() => self.first_spread(photos),
             DropPlace::Frame { spread, frame } if Some(spread) == current => {
@@ -38,6 +45,11 @@ impl Editor {
             DropPlace::Spread(spread) => self.add_to(spread, photos),
             DropPlace::NewSpread(at) => self.new_spread_with(at, photos),
         }
+    }
+
+    /// A posição de uma lâmina nova no fim do álbum (regra 11), com a capa aberta ou não.
+    pub fn album_end(&self) -> usize {
+        self.session.as_ref().map_or(0, |s| s.album().spreads.len())
     }
 
     /// O álbum aberto não tem lâminas (o álbum em branco; spec BR).
@@ -97,6 +109,10 @@ impl Editor {
         let Some(session) = &self.session else {
             return false;
         };
+        if crate::edits::capacity(session.project(), session.current()) == 0 {
+            self.notice = Some(crate::blank::BLANK_SPREAD.to_owned());
+            return false;
+        }
         let current = spread_photos(session.project(), session.current());
         let mut all = current.clone();
         all.extend(photos.iter().filter(|p| !current.contains(p)));
@@ -123,6 +139,7 @@ impl Editor {
         report: &ImportReport,
         at: usize,
     ) -> Result<ImportSummary, EditorError> {
+        self.leave_cover();
         let session = self.session_mut().ok_or(EditorError::NoProject)?;
         let fresh = crate::importing::fresh_count(session.project(), report);
         let at = at.min(session.spread_count());

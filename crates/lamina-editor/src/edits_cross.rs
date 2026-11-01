@@ -107,6 +107,9 @@ pub fn check_room(
         return Err(EditorError::AlreadyInSpread { spread: to });
     }
     let capacity = capacity(project, to);
+    if capacity == 0 {
+        return Err(EditorError::BlankPage);
+    }
     if present.len() + fresh > capacity {
         return Err(EditorError::SpreadFull {
             spread: to,

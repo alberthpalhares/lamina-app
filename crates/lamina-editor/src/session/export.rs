@@ -23,7 +23,7 @@ impl Session {
             .file
             .as_deref()
             .and_then(Path::parent)
-            .or_else(|| self.project().photos.first().and_then(|p| p.path.parent()))
+            .or_else(|| self.album().photos.first().and_then(|p| p.path.parent()))
             .map_or_else(|| PathBuf::from("."), Path::to_path_buf);
         base.join(EXPORT_FOLDER)
     }
@@ -39,7 +39,7 @@ impl Session {
         folder: &Path,
         options: &ExportOptions,
     ) -> Result<ExportCheck, EditorError> {
-        let project = self.project();
+        let project = self.album();
         let names = output_names(project, options)?;
         let total = project.spreads.len();
         let spreads = match &options.range {

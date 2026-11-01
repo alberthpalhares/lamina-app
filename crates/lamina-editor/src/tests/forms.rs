@@ -42,6 +42,7 @@ fn campos_da_exportacao_e_a_pergunta() {
         format: crate::exporting::ExportFormat::Jpeg,
         crop_marks: true,
         space: lamina_core::ColorSpace::AdobeRgb,
+        cover: crate::exporting::CoverExport::default(),
     };
     let options = form.options(true);
     assert_eq!(options.quality, 100);
@@ -132,6 +133,7 @@ fn faixa_de_paginas_e_preferencias_da_exportacao() {
         format: crate::exporting::ExportFormat::Pdf,
         crop_marks: false,
         space: lamina_core::ColorSpace::AdobeRgb,
+        cover: crate::exporting::CoverExport::default(),
     };
     let prefs = form.prefs();
     assert_eq!(prefs.format, OutputFormat::Pdf);

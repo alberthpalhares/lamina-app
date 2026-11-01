@@ -64,6 +64,8 @@ export struct SpreadData {
     safe-r: BoxData,
     spine-x: float,
     inactive: [BoxData],
+    // Páginas em branco de propósito, com o rótulo só de tela (spec PB).
+    blank: [BoxData],
     frames: [FrameData],
     warning: bool,
     // Linhas das guias que pegaram no ímã (spec TX, regra 7).
@@ -75,7 +77,8 @@ export struct SpreadData {
 
 import { Handles } from "handles.slint";
 import { Motion } from "motion.slint";
-import { Theme, Fixed, Type } from "theme.slint";
+import { CoverLook } from "cover_look.slint";
+import { Theme, Fixed, Type, Radius } from "theme.slint";
 
 // A foto da vaga (spec MV, regra 2): a imagem só troca quando a foto muda (`photo`), não a cada
 // mudança de posição; senão a tela sobe a textura de novo e o primeiro quadro atrasa.
@@ -230,7 +233,8 @@ export component SpreadCanvas inherits Rectangle {    in property <SpreadData> d
     in property <image> preview-img;
     callback frame-double(int);
     // Clique direito num quadro (-1 = no fundo), em pixels da janela: o menu de contexto (spec EG).
-    callback context(int, length, length);
+    // O quadro (-1 = fundo), o ponto na janela e a fração da largura da lâmina.
+    callback context(int, length, length, float);
     // A grade do recorte (spec AF): os terços, e a grade fina enquanto o ângulo muda. Só na tela.
     in property <bool> grid-thirds;
     in property <bool> grid-fine;
@@ -267,7 +271,7 @@ export component SpreadCanvas inherits Rectangle {    in property <SpreadData> d
         moved => { root.back-press(1, self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y, false); }
         pointer-event(e) => {
             if (e.button == PointerEventButton.right && e.kind == PointerEventKind.up) {
-                root.context(-1, self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
+                root.context(-1, self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y, self.mouse-x / root.width);
             }
             if (e.button == PointerEventButton.left && e.kind == PointerEventKind.down) {
                 root.back-press(0, self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y, e.modifiers.shift);
@@ -320,7 +324,7 @@ export component SpreadCanvas inherits Rectangle {    in property <SpreadData> d
         }
         pointer-event(e) => {
             if (e.button == PointerEventButton.right && e.kind == PointerEventKind.up) {
-                root.context(f.index, self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
+                root.context(f.index, self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y, 0);
                 return;
             }
             // No modo organizar, o corpo de qualquer quadro segura o grupo (nenhuma foto troca de
@@ -369,6 +373,57 @@ export component SpreadCanvas inherits Rectangle {    in property <SpreadData> d
         background: Theme.line;
     }
 
+    // A capa aberta (spec CA, regra 8): o guia do laboratório, as linhas da lombada e os nomes.
+    // Só na tela: a exportação não passa por aqui.
+    if root.interactive && CoverLook.on: Rectangle {
+        z: 1001;
+        if CoverLook.guide-on: Image {
+            accessible-role: none;
+            x: CoverLook.guide-x * root.width;
+            y: CoverLook.guide-y * root.width;
+            width: CoverLook.guide-w * root.width;
+            height: CoverLook.guide-h * root.width;
+            source: CoverLook.guide-image;
+            image-fit: fill;
+            opacity: 0.55;
+        }
+        for line in [CoverLook.spine-l, CoverLook.spine-r]: Rectangle {
+            x: line * root.width;
+            y: root.data.trim.y * root.width;
+            width: 1px;
+            height: root.data.trim.h * root.width;
+            background: Theme.accent.with-alpha(0.8);
+        }
+        for name[i] in [
+            { text: "Verso", at: (root.data.trim.x + CoverLook.spine-l) / 2 },
+            { text: "Lombada", at: (CoverLook.spine-l + CoverLook.spine-r) / 2 },
+            { text: "Frente", at: (CoverLook.spine-r + root.data.trim.x + root.data.trim.w) / 2 },
+        ]: Rectangle {
+            x: name.at * root.width - self.width / 2;
+            y: max(2px, CoverLook.trim-top * root.width / 2 - self.height / 2);
+            width: label.preferred-width + 12px;
+            height: label.preferred-height + 4px;
+            border-radius: Radius.small;
+            background: Theme.panel;
+            label := Text { text: name.text; color: Theme.text; font-size: Type.caption; }
+        }
+    }
+
+    // O rótulo da página em branco, só na tela (spec PB): a exportação não passa por aqui.
+    if root.interactive: Rectangle {
+        z: 1000;
+        for b in root.data.blank: Text {
+            x: b.x * root.width;
+            y: b.y * root.width;
+            width: b.w * root.width;
+            height: b.h * root.width;
+            text: "Página em branco";
+            color: Theme.text-2;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+
     // A sombra da dobra: 7% da largura, no máximo 10% no centro.
     if root.gutter-shadow: Rectangle {
         z: 999;
@@ -378,8 +433,8 @@ export component SpreadCanvas inherits Rectangle {    in property <SpreadData> d
         background: @linear-gradient(90deg, Fixed.ink.with-alpha(0) 0%, Fixed.ink.with-alpha(0.1) 50%, Fixed.ink.with-alpha(0) 100%);
     }
 
-    // Lombada.
-    Rectangle {
+    // Lombada. Na capa aberta, ela tem duas linhas próprias (spec CA, regra 8).
+    if !(root.interactive && CoverLook.on): Rectangle {
         // Acima das vagas, que têm a ordem de desenho dos quadros (z).
         z: 1000;
         x: root.data.spine-x * root.width;

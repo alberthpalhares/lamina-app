@@ -6,8 +6,8 @@ use std::path::{Path, PathBuf};
 use lamina_core::ColorSpace;
 use lamina_editor::forms::{ExportForm, replace_question};
 use lamina_editor::{
-    DEFAULT_QUALITY, ExportFormat, ExportOptions, Human, export_progress, export_project,
-    export_summary, guarded,
+    CoverExport, DEFAULT_QUALITY, ExportFormat, ExportOptions, Human, export_progress,
+    export_project, export_summary, guarded,
 };
 
 use crate::AppWindow;
@@ -29,6 +29,8 @@ pub fn start(app: &mut App) {
     w.set_ex_format(lamina_editor::forms::format_index(prefs.format));
     w.set_ex_pages(prefs.pages);
     w.set_ex_marks(false);
+    w.set_ex_has_cover(session.album().cover.is_some());
+    w.set_ex_cover(0);
     w.set_ex_adobe(prefs.space == ColorSpace::AdobeRgb);
     w.set_ex_quality(i32::from(DEFAULT_QUALITY));
     w.set_ex_step(0);
@@ -54,6 +56,11 @@ fn form(w: &AppWindow) -> ExportForm {
             _ => ExportFormat::Jpeg,
         },
         crop_marks: w.get_ex_marks(),
+        cover: match w.get_ex_cover() {
+            1 => CoverExport::Only,
+            2 => CoverExport::Without,
+            _ => CoverExport::WithSpreads,
+        },
         space: if w.get_ex_adobe() {
             ColorSpace::AdobeRgb
         } else {
@@ -190,7 +197,7 @@ pub fn run(app: &mut App, overwrite: bool) {
     session.set_export_folder(&folder);
     // O que foi escolhido passa a ser a preferência do projeto (spec PR, regra 5).
     session.set_export_prefs(form(&w).prefs());
-    let project = session.project_shared();
+    let project = session.album_shared();
     w.set_show_export(false);
     w.set_busy_text("Exportando…".into());
     app.editor.set_busy(true);

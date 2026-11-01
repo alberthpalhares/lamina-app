@@ -84,6 +84,11 @@ impl Lab {
         self.editor.session().unwrap().project()
     }
 
+    /// O álbum inteiro, mesmo com a capa aberta.
+    pub fn project_album(&self) -> &Project {
+        self.editor.session().unwrap().album()
+    }
+
     /// Os rótulos do histórico, em ordem.
     pub fn labels(&self) -> Vec<String> {
         let list = self.editor.session().unwrap().history_list();

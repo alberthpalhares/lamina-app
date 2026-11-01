@@ -85,6 +85,18 @@ pub enum ToolError {
     TooManyPhotos(usize),
     #[error("Escolha pelo menos uma foto.")]
     NoPhotosChosen,
+    /// Pediu a capa num álbum sem capa (spec CA, regra 15).
+    #[error("O álbum ainda não tem capa. Use criar_capa.")]
+    NoCover,
+    #[error("Use capa ou lamina, não os dois.")]
+    CoverAndSpread,
+    /// O lado pedido não existe naquela ponta (spec PB, regra 12).
+    #[error("A lâmina {spread} {verb} só com a página {only}.")]
+    MissingPage {
+        spread: usize,
+        verb: &'static str,
+        only: &'static str,
+    },
     #[error("A foto {0} aparece duas vezes na lista.")]
     RepeatedPhoto(u64),
     #[error("Escolha dois quadros diferentes.")]

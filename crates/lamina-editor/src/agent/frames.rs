@@ -14,6 +14,9 @@ impl Agent {
         editor: &mut Editor,
         a: &PlacePhoto,
     ) -> Result<ToolReply, ToolError> {
+        if let Some(reply) = self.place_on_empty_cover(editor, a.foto)? {
+            return Ok(reply);
+        }
         let p = session(editor)?.project();
         let index = spread_index(p, a.lamina)?;
         let frame = photo_frame(p, index, a.quadro)?;

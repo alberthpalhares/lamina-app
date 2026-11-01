@@ -5,6 +5,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use lamina_core::PageSide;
 use lamina_editor::Command;
 use lamina_editor::editor::ContextEntry;
 use slint::ComponentHandle;
@@ -36,6 +37,7 @@ fn row(label: &str, kind: i32, enabled: bool, indent: bool) -> ContextRow {
         enabled,
         open: false,
         indent,
+        checked: false,
     }
 }
 
@@ -44,9 +46,12 @@ fn push_item(rows: &mut Vec<(ContextRow, Action)>, entry: &ContextEntry, indent:
         command,
         label,
         enabled,
+        checked,
     } = entry
     {
-        rows.push((row(label, 0, *enabled, indent), Action::Run(*command)));
+        let mut line = row(label, 0, *enabled, indent);
+        line.checked = *checked;
+        rows.push((line, Action::Run(*command)));
     }
 }
 
@@ -79,9 +84,14 @@ fn show(window: &AppWindow, open: &Open) {
 pub fn connect(window: &AppWindow, app: &Shared) {
     let state = Rc::new(RefCell::new(Open::default()));
     let (a, st) = (app.clone(), state.clone());
-    window.on_context_requested(move |i, x, y| {
+    window.on_context_requested(move |i, x, y, fx| {
         let mut app = a.borrow_mut();
-        let entries = app.editor.context_menu(usize::try_from(i).ok());
+        let entries = match usize::try_from(i) {
+            Ok(frame) => app.editor.context_menu(Some(frame)),
+            // No fundo, o menu vale para a página clicada (spec PB): a dobra fica no meio do canvas.
+            Err(_) if fx < 0.5 => app.editor.context_menu_on_page(PageSide::Left),
+            Err(_) => app.editor.context_menu_on_page(PageSide::Right),
+        };
         app.refresh_current();
         let Some(w) = app.window.upgrade() else {
             return;
