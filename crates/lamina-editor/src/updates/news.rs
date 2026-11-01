@@ -4,20 +4,81 @@
 
 mod animation;
 mod item;
+mod listing;
 mod page;
 
-pub use animation::{Animation, Frame};
+pub use animation::{Animation, Frame, animates};
 
 use item::{clean, item};
+pub use listing::{
+    NewsFilter, available_filters, cover, entries, highlights, no_results, shown, shows_highlights,
+    video_address,
+};
 pub use page::{
-    Illustration, NO_NEWS, NewsEntry, NewsPage, after_update, entries, from_help, heading,
-    illustration, item_label, missing_try, next,
+    Illustration, NO_NEWS, NewsEntry, NewsPage, after_update, from_help, heading, illustration,
+    item_label, missing_try,
 };
 
 use super::Version;
 
-/// Uma novidade: o título em negrito ("Atalhos do teclado."), o texto e o "Experimente".
+/// O tipo da novidade, que vira etiqueta e filtro (spec PV, seção 3).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NewsKind {
+    New,
+    Improvement,
+}
+
+/// O único sistema em que a novidade vale (spec PV, seção 3).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NewsSystem {
+    Windows,
+    Mac,
+    Linux,
+}
+
+impl NewsKind {
+    /// A etiqueta da novidade.
+    pub fn label(self) -> &'static str {
+        match self {
+            NewsKind::New => "Novo recurso",
+            NewsKind::Improvement => "Melhoria",
+        }
+    }
+}
+
+impl NewsSystem {
+    /// A etiqueta da novidade, que aparece em qualquer sistema (spec PV, regra 15).
+    pub fn label(self) -> &'static str {
+        match self {
+            NewsSystem::Windows => "Só no Windows",
+            NewsSystem::Mac => "Só no Mac",
+            NewsSystem::Linux => "Só no Linux",
+        }
+    }
+
+    /// O sistema em que este Lamina roda. Só o "Experimente agora" pergunta (spec PV, regra 15).
+    pub fn current() -> Self {
+        if cfg!(windows) {
+            NewsSystem::Windows
+        } else if cfg!(target_os = "macos") {
+            NewsSystem::Mac
+        } else {
+            NewsSystem::Linux
+        }
+    }
+}
+
+/// O "Experimente agora" de uma novidade (spec PV, regra 14).
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TryNow {
+    Hidden,
+    Ready,
+    /// O botão fica apagado, com esta frase ao lado.
+    Unavailable(String),
+}
+
+/// Uma novidade: o título em negrito ("Atalhos do teclado."), o texto e o "Experimente".
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct NewsItem {
     pub title: Option<String>,
     pub text: String,
@@ -26,6 +87,14 @@ pub struct NewsItem {
     pub image: Option<String>,
     /// O comando do "Experimente agora" (`<!-- comando: ajuda.atalhos -->`).
     pub command: Option<String>,
+    /// `<!-- tipo: novo -->` ou `melhoria`; as notas antigas não têm (spec PV).
+    pub kind: Option<NewsKind>,
+    /// O endereço do vídeo como está escrito; só vira botão se passar em [`video_address`].
+    pub video: Option<String>,
+    /// `<!-- fixada: sim -->`: candidata aos destaques.
+    pub pinned: bool,
+    /// `<!-- so: mac -->`: vale só nesse sistema.
+    pub only: Option<NewsSystem>,
 }
 
 /// A seção de uma versão: a data como está escrita, a frase de abertura e os itens.

@@ -1,0 +1,239 @@
+// A página "O que há de novo" (spec PV): cobre a janela, sem véu. O topo fica fixo; os destaques rolam
+// junto com a lista, que só cria as linhas que aparecem. Esc e "Fechar" fecham, e o álbum continua
+// igual embaixo. Só desenho.
+
+import { LineEdit, ListView } from "std-widgets.slint";
+import { Theme, Type, Line, Space } from "theme.slint";
+import { BarButton, DialogButton, FilterTab } from "widgets.slint";
+import { NewsUi } from "news.slint";
+import { NewsItem, NewsCard } from "news_item.slint";
+
+export component NewsPage inherits Rectangle {
+    callback closed();
+    callback send-feedback();
+    // "Experimente agora": a página fecha e o comando roda.
+    callback try-now(string);
+    // No Slint, ligar o layout a `width` fecha um laço: a largura é copiada aqui (regra 11).
+    property <bool> narrow: false;
+    // Até qual item (índice) um cartão de destaque quer rolar; -1 = nenhum.
+    property <int> target: -1;
+    property <int> tries: 0;
+    // A linha pedida já nasceu: quem acerta a posição agora é ela (`settle`).
+    property <bool> row-seen: false;
+    property <bool> has-notes: NewsUi.empty == "";
+    property <bool> has-rows: root.has-notes && NewsUi.no-results == "";
+    // Copiados para `changed` valer: a lista volta ao começo, e o cartão pede um item.
+    property <int> generation: NewsUi.generation;
+    property <int> jump: NewsUi.jump;
+    changed generation => { list.content-y = 0px; }
+    changed jump => {
+        if (root.jump >= 0) {
+            let index = root.jump;
+            NewsUi.jump = -1;
+            root.go-to(index);
+        }
+    }
+    changed width => { root.narrow = root.width < 900px; }
+    background: Theme.stage;
+    // Os cliques não chegam ao álbum embaixo.
+    TouchArea { }
+
+    function shut() {
+        NewsUi.close();
+        root.closed();
+    }
+    // Rola sem sair do conteúdo; rolar também para a animação (regra 9).
+    function scroll-to(y: length) {
+        list.content-y = max(min(0px, y), min(0px, list.visible-height - list.content-height));
+        NewsUi.scrolled();
+    }
+    // A linha `y` (na janela) e sua altura chegam à vista; a mais alta que a lista fica no topo.
+    function reveal(y: length, h: length) {
+        let top = y - list.absolute-position.y;
+        if (top < 0px || h > list.visible-height) {
+            root.scroll-to(list.content-y - top);
+        } else if (top + h > list.visible-height) {
+            root.scroll-to(list.content-y - (top + h - list.visible-height));
+        }
+    }
+    function go-to(index: int) {
+        // A altura das linhas é estimada: para antes, e a linha acerta ao nascer (`settle`).
+        let step = list.content-height / max(1, NewsUi.entries.length);
+        root.target = index;
+        root.tries = 0;
+        root.row-seen = false;
+        root.scroll-to(-step * max(0, index - 1));
+    }
+
+    keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.shut();
+                return accept;
+            }
+            let page = list.visible-height - Space.s6;
+            if (event.text == Key.UpArrow) {
+                root.scroll-to(list.content-y + Space.s6);
+            } else if (event.text == Key.DownArrow) {
+                root.scroll-to(list.content-y - Space.s6);
+            } else if (event.text == Key.PageUp) {
+                root.scroll-to(list.content-y + page);
+            } else if (event.text == Key.PageDown) {
+                root.scroll-to(list.content-y - page);
+            } else if (event.text == Key.Home) {
+                root.scroll-to(0px);
+            } else if (event.text == Key.End) {
+                root.scroll-to(list.visible-height - list.content-height);
+            } else {
+                return reject;
+            }
+            accept
+        }
+        VerticalLayout {
+            // O topo, fixo: o título, a busca, "Fechar" e os filtros.
+            Rectangle {
+                background: Theme.bar;
+                VerticalLayout {
+                    padding-left: Space.s5;
+                    padding-right: Space.s5;
+                    padding-top: Space.s4;
+                    padding-bottom: NewsUi.filters.length > 1 ? 0px : Space.s4;
+                    spacing: Space.s2;
+                    HorizontalLayout {
+                        spacing: Space.s3;
+                        Text { text: NewsUi.title; color: Theme.text; font-size: Type.display; font-weight: Type.semibold; wrap: word-wrap; horizontal-stretch: 1; vertical-alignment: center; }
+                        if !root.narrow: VerticalLayout {
+                            alignment: center;
+                            BarButton { min-height: 32px; text: "Enviar sugestão ou problema…"; clicked => { root.send-feedback(); } }
+                        }
+                        if !root.narrow && root.has-notes: VerticalLayout {
+                            alignment: center;
+                            LineEdit {
+                                width: 240px;
+                                accessible-label: "Buscar nas novidades";
+                                placeholder-text: "Buscar…";
+                                text <=> NewsUi.query;
+                                edited(text) => { NewsUi.search(text); }
+                            }
+                        }
+                        VerticalLayout {
+                            alignment: center;
+                            DialogButton { text: "Fechar"; clicked => { root.shut(); } }
+                        }
+                    }
+                    if root.narrow: HorizontalLayout {
+                        spacing: Space.s3;
+                        if root.has-notes: LineEdit {
+                            horizontal-stretch: 1;
+                            accessible-label: "Buscar nas novidades";
+                            placeholder-text: "Buscar…";
+                            text <=> NewsUi.query;
+                            edited(text) => { NewsUi.search(text); }
+                        }
+                        BarButton { min-height: 32px; text: "Enviar sugestão ou problema…"; clicked => { root.send-feedback(); } }
+                    }
+                    if NewsUi.subtitle != "": HorizontalLayout {
+                        spacing: Space.s3;
+                        Text { text: NewsUi.subtitle; color: Theme.text-2; font-size: Type.body; wrap: word-wrap; horizontal-stretch: 1; vertical-alignment: center; }
+                        if NewsUi.more: DialogButton { text: "Ver todas as versões"; clicked => { NewsUi.all-versions(); } }
+                    }
+                    if NewsUi.filters.length > 1: HorizontalLayout {
+                        alignment: start;
+                        spacing: Space.s1;
+                        for f[i] in NewsUi.filters: FilterTab {
+                            min-height: 32px;
+                            text: f.label;
+                            active: i == NewsUi.filter;
+                            clicked => { NewsUi.filter-chosen(i); }
+                        }
+                    }
+                }
+            }
+            Rectangle { height: Line.thin; background: Theme.line; }
+            Rectangle {
+                vertical-stretch: 1;
+                if !root.has-notes: Text { text: NewsUi.empty; color: Theme.text; font-size: Type.body; horizontal-alignment: center; vertical-alignment: center; }
+                if root.has-notes && !root.has-rows: VerticalLayout {
+                    alignment: center;
+                    spacing: Space.s3;
+                    Text { text: NewsUi.no-results; color: Theme.text; font-size: Type.body; horizontal-alignment: center; wrap: word-wrap; }
+                    HorizontalLayout {
+                        alignment: center;
+                        DialogButton {
+                            text: "Limpar a busca";
+                            clicked => {
+                                NewsUi.query = "";
+                                NewsUi.search("");
+                            }
+                        }
+                    }
+                }
+                list := ListView {
+                    visible: root.has-rows;
+                    accessible-label: NewsUi.title;
+                    scrolled => { NewsUi.scrolled(); }
+                    for entry[i] in NewsUi.entries: VerticalLayout {
+                        if i == 0 && NewsUi.show-highlights && NewsUi.highlights.length > 0: VerticalLayout {
+                            padding-left: Space.s5;
+                            padding-right: Space.s5;
+                            padding-top: Space.s4;
+                            spacing: Space.s2;
+                            Text { text: "Destaques"; color: Theme.text-2; font-size: Type.small; font-weight: Type.semibold; }
+                            HorizontalLayout {
+                                spacing: Space.s3;
+                                alignment: start;
+                                for card in NewsUi.highlights: NewsCard {
+                                    width: 200px;
+                                    card: card;
+                                    go => { NewsUi.jump = card.index; }
+                                }
+                            }
+                        }
+                        if entry.date != "" && i > 0: Rectangle { height: Line.thin; background: Theme.line; }
+                        row := NewsItem {
+                            entry: entry;
+                            narrow: root.narrow;
+                            targeted: entry.index == root.target;
+                            try-now(name) => {
+                                // Antes de fechar: fechar esvazia a lista de onde o comando vem.
+                                let command = name;
+                                NewsUi.close();
+                                root.try-now(command);
+                            }
+                            reveal => { root.reveal(row.absolute-position.y, row.height); }
+                            settle => {
+                                let top = row.absolute-position.y - list.absolute-position.y;
+                                let at-end = list.content-y <= list.visible-height - list.content-height + 1px;
+                                root.row-seen = true;
+                                if (abs(top / 1px) < 1 || at-end || root.tries > 20) {
+                                    root.target = -1;
+                                    NewsUi.mark-arrived(entry.index);
+                                } else {
+                                    root.tries += 1;
+                                    root.scroll-to(list.content-y - top);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // A linha pedida por um cartão pode ainda não ter nascido: desce até ela aparecer.
+    Timer {
+        interval: 50ms;
+        running: root.target >= 0 && !root.row-seen;
+        triggered => {
+            root.tries += 1;
+            if (root.tries > 20) {
+                root.target = -1;
+            } else {
+                root.scroll-to(list.content-y - list.visible-height / 2);
+            }
+        }
+    }
+    init => {
+        root.narrow = root.width < 900px;
+        keys.focus();
+    }
+}

@@ -1,5 +1,5 @@
-//! O que a janela "O que há de novo" mostra (spec NV, seção 4) e o aviso da release quando falta
-//! o "Experimente" (regra 9).
+//! O que a página "O que há de novo" abre (specs NV e PV) e o aviso da release quando falta o
+//! "Experimente" (NV, regra 9).
 
 use super::{NewsItem, NewsSection, date_text, since, until, without_try};
 use crate::updates::Version;
@@ -7,7 +7,7 @@ use crate::updates::Version;
 /// Pela Ajuda, sem nenhuma seção até a versão que roda.
 pub const NO_NEWS: &str = "Ainda não há notas desta versão.";
 
-/// A janela: o título, o subtítulo, as versões e, pela Ajuda, a versão marcada "Esta versão".
+/// A página: o título, o subtítulo, as versões e, pela Ajuda, a versão marcada "Esta versão".
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewsPage {
     pub title: String,
@@ -61,6 +61,11 @@ pub fn heading(section: &NewsSection) -> String {
     }
 }
 
+/// A data da seção como a página mostra: "24/10/2026"; vazia quando a seção não tem.
+pub(super) fn date_text_of(section: &NewsSection) -> String {
+    section.date.as_deref().map(date_text).unwrap_or_default()
+}
+
 /// O aviso da release (regra 9): "1 item da 0.1.0-beta.5 sem “Experimente:”: «Programa
 /// menor.»". Item sem título aparece pelas primeiras palavras. `None` quando todos têm.
 pub fn missing_try(section: &NewsSection) -> Option<String> {
@@ -90,57 +95,21 @@ pub fn item_label(item: &NewsItem) -> String {
         .unwrap_or_else(|| first_words(&item.text))
 }
 
-/// Uma linha da lista à esquerda (seção 4): a novidade e, na primeira de cada versão, o cabeçalho
-/// e a frase de abertura dela.
+/// Uma linha da página (spec PV, seção 4): a novidade e, na primeira que aparece de cada versão, a
+/// data, o número da versão e a frase de abertura.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewsEntry {
+    /// A posição dela na lista completa da página: não muda com o filtro nem com a busca.
+    pub index: usize,
     pub heading: Option<String>,
     pub intro: String,
+    /// O número da versão e a data, só na linha que leva o cabeçalho.
+    pub version: String,
+    pub date: String,
     /// A versão que roda, marcada "Esta versão" (só pela Ajuda).
     pub current: bool,
     pub label: String,
     pub item: NewsItem,
-}
-
-/// A lista da janela, na ordem das versões. Uma versão só com a frase de abertura vira uma linha.
-pub fn entries(page: &NewsPage) -> Vec<NewsEntry> {
-    let mut out = Vec::new();
-    for section in &page.sections {
-        let current = page.current.as_ref() == Some(&section.version);
-        let only_intro = NewsItem {
-            title: None,
-            text: section.intro.clone(),
-            try_it: None,
-            image: None,
-            command: None,
-        };
-        let items = if section.items.is_empty() {
-            std::slice::from_ref(&only_intro)
-        } else {
-            section.items.as_slice()
-        };
-        for (i, item) in items.iter().enumerate() {
-            let first = i == 0;
-            out.push(NewsEntry {
-                heading: first.then(|| heading(section)),
-                intro: if first && !section.items.is_empty() {
-                    section.intro.clone()
-                } else {
-                    String::new()
-                },
-                current: current && first,
-                // Na lista, sem o ponto final do título ("Atalhos do teclado").
-                label: item_label(item).trim_end_matches(['.', ':']).to_owned(),
-                item: item.clone(),
-            });
-        }
-    }
-    out
-}
-
-/// "Próxima": a novidade seguinte; da última, volta à primeira.
-pub fn next(index: usize, count: usize) -> usize {
-    if count == 0 { 0 } else { (index + 1) % count }
 }
 
 /// A ilustração decodificada, em RGBA, para a janela.

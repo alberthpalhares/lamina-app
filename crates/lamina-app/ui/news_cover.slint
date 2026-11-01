@@ -1,0 +1,96 @@
+// A capa de uma novidade (spec PV, regras 8 a 10): o cartão de título do vídeo, o primeiro quadro da
+// animação ou, sem arquivo, um quadro com o título. Só desenho.
+
+import { Theme, Type, Radius, Line, Space } from "theme.slint";
+import { Icons } from "icons.slint";
+import { FocusRing } from "widgets.slint";
+import { NewsUi } from "news.slint";
+
+export component NewsCover inherits Rectangle {
+    in property <int> index;
+    in property <string> label;
+    in property <string> video;
+    in property <bool> animated;
+    in property <bool> has-cover;
+    in property <image> cover;
+    out property <bool> focused: focus.has-focus;
+    // Um cartão de destaque troca o clique da capa por rolar até o item.
+    in property <bool> leads-to-item;
+    callback go();
+    property <bool> acts: root.leads-to-item || root.video != "" || root.animated;
+    property <bool> playing: NewsUi.playing == root.index;
+    accessible-role: button;
+    accessible-enabled: root.acts;
+    accessible-label: root.leads-to-item ? "Ir para a novidade: " + root.label
+        : root.video != "" ? "Vídeo de " + root.label + ". Abre o vídeo no navegador. Precisa de internet."
+        : root.animated ? (root.playing ? "Parar a animação de " : "Tocar a animação de ") + root.label
+        : root.label;
+    accessible-action-default => { root.activate(); }
+    border-radius: Radius.small;
+    border-width: Line.thin;
+    border-color: touch.has-hover && root.acts ? Theme.line-strong : Theme.line;
+    background: Theme.g3;
+    function activate() {
+        if (root.leads-to-item) {
+            root.go();
+        } else if (root.video != "") {
+            NewsUi.open-video(root.video);
+        } else if (root.animated) {
+            NewsUi.cover-clicked(root.index);
+        }
+    }
+    if root.has-cover || root.playing: Image {
+        accessible-role: none;
+        width: parent.width;
+        height: parent.height;
+        source: root.playing ? NewsUi.frame : root.cover;
+        image-fit: contain;
+    }
+    if !root.has-cover && !root.playing: Text {
+        accessible-role: none;
+        x: Space.s3;
+        width: parent.width - 2 * Space.s3;
+        text: root.label;
+        color: Theme.text-2;
+        font-size: Type.title;
+        font-weight: Type.semibold;
+        wrap: word-wrap;
+        overflow: elide;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    if !root.leads-to-item && !root.playing && (root.video != "" || root.animated): Rectangle {
+        accessible-role: none;
+        width: 40px;
+        height: 40px;
+        border-radius: self.height / 2;
+        background: Theme.raised;
+        border-width: Line.thin;
+        border-color: Theme.line-strong;
+        Image {
+            accessible-role: none;
+            width: 20px;
+            height: 20px;
+            source: Icons.play;
+            colorize: Theme.text;
+        }
+    }
+    touch := TouchArea {
+        enabled: root.acts;
+        mouse-cursor: root.acts ? MouseCursor.pointer : MouseCursor.default;
+        clicked => { root.activate(); }
+    }
+    focus := FocusScope {
+        x: 0;
+        width: 0;
+        enabled: root.acts;
+        key-pressed(e) => {
+            if (e.text == Key.Space || e.text == Key.Return) {
+                root.activate();
+                return accept;
+            }
+            return reject;
+        }
+    }
+    FocusRing { shown: focus.has-focus; x: -3px; y: -3px; width: parent.width + 6px; height: parent.height + 6px; }
+}

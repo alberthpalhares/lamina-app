@@ -94,8 +94,9 @@ fn nv_b14_as_ilustracoes_de_verdade_cabem_no_limite() {
         assert!(bytes.len() <= 1_500_000, "{name} tem {} bytes", bytes.len());
         let animation = Animation::open(&bytes, false).unwrap();
         let first = &animation.first().picture;
-        assert_eq!((first.width, first.height), (1280, 720), "{name}");
+        assert!(first.width <= 1280 && first.height <= 720, "{name}");
         if animation.animated() {
+            assert_eq!((first.width, first.height), (1280, 720), "{name}");
             let ms = duration_ms(&bytes);
             assert!((3_000..=8_000).contains(&ms), "{name} dura {ms} ms");
         }

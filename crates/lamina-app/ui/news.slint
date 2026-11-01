@@ -1,242 +1,99 @@
-// "O que há de novo" (spec NV, seção 4): as novidades à esquerda e, à direita, a ilustração e o
-// texto da escolhida, com "Experimente agora". Só desenho: quais versões aparecem, os textos e a
-// ordem saem do `lamina-editor` (`updates::news`).
+// "O que há de novo" (specs NV e PV): o que a página mostra. Só dados: quais versões aparecem, os
+// filtros, a busca, os destaques e os textos saem do `lamina-editor` (`updates::news`). O desenho
+// está em `news_page.slint`, `news_item.slint` e `news_cover.slint`.
 
-import { Theme, Type } from "theme.slint";
-import { Panel, DialogButton } from "widgets.slint";
-
-// Uma linha da lista: a novidade e, na primeira de cada versão, o cabeçalho dela.
+// Uma linha da lista: a novidade e, na primeira que aparece de cada versão, o cabeçalho dela.
 export struct NewsEntryData {
-    heading: string,
+    // A posição do item na lista completa: não muda com o filtro nem com a busca.
+    index: int,
+    date: string,
+    version: string,
     intro: string,
     // A versão que roda, marcada "Esta versão" (só pela Ajuda).
     current: bool,
     label: string,
-    title: string,
     text: string,
     // O "Experimente"; vazio = sem.
     try-it: string,
     // O comando do "Experimente agora"; vazio = sem botão.
     command: string,
-    has-image: bool,
-    image: image,
+    // Com comando e `try-ready` falso, o botão fica apagado, com `try-hint` ao lado.
+    try-ready: bool,
+    try-hint: string,
+    // O endereço conferido pelo editor; vazio = sem vídeo.
+    video: string,
+    kind-tag: string,
+    kind-new: bool,
+    system-tag: string,
+    // Há um arquivo de capa: a linha pede a capa quando nasce.
+    has-file: bool,
+    // A capa de animação toca com um clique (nunca com "Reduzir movimento").
+    animated: bool,
+    has-cover: bool,
+    cover: image,
+}
+
+// Um cartão da faixa de destaques.
+export struct NewsCardData {
+    index: int,
+    label: string,
+    has-file: bool,
+    video: string,
+    has-cover: bool,
+    cover: image,
+}
+
+export struct NewsFilterData {
+    label: string,
 }
 
 export global NewsUi {
     in-out property <bool> show;
     in property <string> title;
     in property <string> subtitle;
-    in property <[NewsEntryData]> entries;
-    in-out property <int> selected;
+    // Depois de atualizar: o botão "Ver todas as versões".
+    in property <bool> more;
     // Sem nenhuma nota: "Ainda não há notas desta versão."; vazio = há notas.
     in property <string> empty;
-    // O quadro da animação da escolhida (etapa 2, regra 12). Parada, a janela mostra o primeiro
-    // quadro, que está na própria linha.
+    // A busca sem resultado: "Nenhuma novidade com “…”."; vazio = há resultado.
+    in property <string> no-results;
+    in property <[NewsFilterData]> filters;
+    in property <int> filter;
+    in-out property <string> query;
+    in property <[NewsEntryData]> entries;
+    in property <[NewsCardData]> highlights;
+    in property <bool> show-highlights;
+    // Muda a cada troca de filtro ou de busca: a lista volta ao começo.
+    in property <int> generation;
+    // O quadro da animação que toca e o item dela (-1 = nenhum): toca na própria capa.
     in property <image> frame;
-    in property <bool> playing;
-    callback next();
-    // Um clique numa linha da lista: o Rust escolhe e começa a animação dela.
-    callback chose(int);
-    // A janela fechou: o Rust solta as ilustrações da memória (NV-B17).
+    in property <int> playing: -1;
+    // Um cartão de destaque pede para a lista rolar até este item; a página atende e volta a -1.
+    in-out property <int> jump: -1;
+    // A última linha a que um cartão de destaque levou (-1 = nenhuma).
+    out property <int> arrived: -1;
+
+    callback search(string);
+    callback filter-chosen(int);
+    callback all-versions();
+    // Um clique numa capa de animação: toca ou para.
+    callback cover-clicked(int);
+    // A linha ou o cartão nasceu: o Rust traz a capa.
+    callback cover-requested(int);
+    // Um clique numa capa de vídeo ou em "Assistir ao vídeo": abre no navegador.
+    callback open-video(string);
+    // A lista rolou: a animação para (spec PV, regra 9).
+    callback scrolled();
+    // A página fechou: o Rust solta as capas da memória (NV-B17).
     callback released();
+
     public function close() {
         show = false;
         released();
     }
-}
 
-// Uma linha da lista à esquerda, com a barra da escolhida.
-component EntryRow inherits Rectangle {
-    accessible-role: list-item;
-    accessible-label: root.entry.heading;
-    accessible-action-default => { root.clicked(); }
-    in property <NewsEntryData> entry;
-    in property <bool> chosen;
-    callback clicked();
-    height: label.preferred-height + 12px;
-    Rectangle {
-        x: 0;
-        width: 3px;
-        height: parent.height - 8px;
-        background: root.chosen ? Theme.text : transparent;
+    // Para a lista marcar aonde um cartão de destaque levou.
+    public function mark-arrived(index: int) {
+        arrived = index;
     }
-    label := Text {
-        x: 14px;
-        width: parent.width - 14px;
-        text: root.entry.label;
-        color: root.chosen ? Theme.text : (touch.has-hover ? Theme.text : Theme.text-2);
-        font-size: Type.title;
-        wrap: word-wrap;
-        vertical-alignment: center;
-    }
-    touch := TouchArea {
-        clicked => { root.clicked(); }
-    }
-}
-
-// A ilustração da escolhida, animada quando o arquivo anima; sem ilustração, um quadro com o título.
-component Picture inherits Rectangle {
-    in property <NewsEntryData> entry;
-    clip: true;
-    background: Theme.g2;
-    if root.entry.has-image: Image {
-        accessible-role: none;
-        width: parent.width;
-        height: parent.height;
-        source: NewsUi.playing ? NewsUi.frame : root.entry.image;
-        image-fit: contain;
-    }
-    if !root.entry.has-image: Rectangle {
-        background: @linear-gradient(135deg, Theme.accent-soft 0%, Theme.g5 100%);
-        Text {
-            text: root.entry.label;
-            color: Theme.text-strong;
-            font-size: Type.display;
-            font-weight: Type.semibold;
-            wrap: word-wrap;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-            width: parent.width - 80px;
-        }
-    }
-}
-
-export component NewsDialog inherits Rectangle {
-    callback closed();
-    callback send-feedback();
-    // "Experimente agora": a janela fecha e o comando roda.
-    callback try-now(string);
-    property <NewsEntryData> chosen: NewsUi.entries[NewsUi.selected];
-    background: Theme.veil;
-    // Um clique fora da janela fecha (regra 6).
-    TouchArea {
-        clicked => {
-            NewsUi.close();
-            root.closed();
-        }
-    }
-    keys := FocusScope {
-        key-pressed(event) => {
-            if (event.text == Key.Escape) {
-                NewsUi.close();
-                root.closed();
-                return accept;
-            }
-            reject
-        }
-        Panel {
-            width: min(root.width - 40px, 1180px);
-            height: min(root.height - 40px, 760px);
-            clip: true;
-            // Cliques dentro da janela não fecham.
-            TouchArea { }
-            HorizontalLayout {
-                // À esquerda: o título e a lista das novidades.
-                Rectangle {
-                    width: 330px;
-                    background: Theme.g4;
-                    VerticalLayout {
-                        padding: 28px;
-                        padding-right: 20px;
-                        spacing: 10px;
-                        Text { text: NewsUi.title; font-size: Type.display; font-weight: Type.semibold; color: Theme.text; wrap: word-wrap; }
-                        if NewsUi.subtitle != "": Text { text: NewsUi.subtitle; color: Theme.text-2; wrap: word-wrap; }
-                        Flickable {
-                            vertical-stretch: 1;
-                            content-height: list.preferred-height;
-                            list := VerticalLayout {
-                                alignment: start;
-                                spacing: 2px;
-                                padding-top: 8px;
-                                for entry[i] in NewsUi.entries: VerticalLayout {
-                                    spacing: 4px;
-                                    if entry.heading != "": HorizontalLayout {
-                                        padding-top: i == 0 ? 0px : 14px;
-                                        spacing: 8px;
-                                        alignment: start;
-                                        Text { text: entry.heading; color: Theme.text-2; font-size: Type.small; font-weight: Type.semibold; vertical-alignment: center; }
-                                        if entry.current: Rectangle {
-                                            width: mark.preferred-width + 12px;
-                                            height: 18px;
-                                            border-radius: self.height / 2;
-                                            background: Theme.accent;
-                                            mark := Text { text: "Esta versão"; color: Theme.on-accent; font-size: Type.caption; vertical-alignment: center; horizontal-alignment: center; }
-                                        }
-                                    }
-                                    if entry.intro != "": Text { text: entry.intro; color: Theme.text-2; font-size: Type.small; wrap: word-wrap; }
-                                    EntryRow {
-                                        entry: entry;
-                                        chosen: i == NewsUi.selected;
-                                        clicked => { NewsUi.chose(i); }
-                                    }
-                                }
-                            }
-                        }
-                        if NewsUi.entries.length > 1: HorizontalLayout {
-                            alignment: start;
-                            DialogButton { text: "Próxima"; clicked => { NewsUi.next(); } }
-                        }
-                    }
-                }
-                // À direita: a ilustração e o texto da escolhida.
-                VerticalLayout {
-                    horizontal-stretch: 1;
-                    if NewsUi.empty == "": Picture {
-                        entry: root.chosen;
-                        vertical-stretch: 1;
-                        min-height: 260px;
-                    }
-                    VerticalLayout {
-                        padding: 28px;
-                        spacing: 12px;
-                        if NewsUi.empty != "": Text { text: NewsUi.empty; color: Theme.text; wrap: word-wrap; vertical-stretch: 1; }
-                        if NewsUi.empty == "": VerticalLayout {
-                            spacing: 10px;
-                            Text { text: root.chosen.label; font-size: Type.heading; font-weight: Type.semibold; color: Theme.text; wrap: word-wrap; }
-                            Text { text: root.chosen.text; color: Theme.text; wrap: word-wrap; }
-                            if root.chosen.try-it != "": Text { text: "Experimente: " + root.chosen.try-it; color: Theme.warning; wrap: word-wrap; }
-                            if root.chosen.command != "": HorizontalLayout {
-                                alignment: start;
-                                padding-top: 6px;
-                                DialogButton {
-                                    text: "Experimente agora";
-                                    primary: true;
-                                    clicked => {
-                                        // Antes de fechar: fechar esvazia a lista de onde o comando vem.
-                                        let command = root.chosen.command;
-                                        NewsUi.close();
-                                        root.try-now(command);
-                                    }
-                                }
-                            }
-                        }
-                        HorizontalLayout {
-                            spacing: 8px;
-                            padding-top: 8px;
-                            Text { text: "Achou um problema ou tem uma ideia?"; color: Theme.text-2; vertical-alignment: center; }
-                            // O mesmo link da tela inicial (spec SR).
-                            Text {
-                                text: "Enviar sugestão ou problema…";
-                                color: link.has-hover ? Theme.text-strong : Theme.link;
-                                vertical-alignment: center;
-                                link := TouchArea {
-                                    mouse-cursor: pointer;
-                                    clicked => { root.send-feedback(); }
-                                }
-                            }
-                            Rectangle { horizontal-stretch: 1; }
-                            DialogButton {
-                                text: "Fechar";
-                                clicked => {
-                                    NewsUi.close();
-                                    root.closed();
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    init => { keys.focus(); }
 }
