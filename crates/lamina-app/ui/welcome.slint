@@ -1,216 +1,206 @@
-// Tela de boas-vindas (spec PC) e tela inicial com os álbuns recentes (spec TI): aparece sempre
-// que não há álbum aberto. Sem recentes, é a boas-vindas da PC sem mudança. Cada botão chama um
-// comando do registro; as decisões (ordem, busca, quais sumiram) ficam no Rust.
+// A tela inicial (specs PC, TI e DI): aparece sempre que não há álbum aberto. Na primeira vez, o
+// convite para o novo álbum, com uma lâmina real do exemplo; depois, o álbum em andamento grande e
+// os outros em cartões. Os botões de quem já usa ficam na barra de cima (`topbar.slint`).
 
 import { LineEdit, ScrollView } from "std-widgets.slint";
-import { Theme, Type, Radius } from "theme.slint";
-import { Dialog, DialogFooter, DialogButton } from "widgets.slint";
+import { Theme, Fixed, Type, Space } from "theme.slint";
+import { Icons } from "icons.slint";
+import { Dialog, DialogFooter, DialogButton, EmptyState, FocusRing, SectionTitle } from "widgets.slint";
+import { BlankAlbum, CardGrid, PinButton, RecentsUi, RecentCard, RecentItem } from "welcome_cards.slint";
 
-export struct RecentCard {
-    index: int,
-    name: string,
-    folder: string,
-    when: string,
-    counts: string,
-    pinned: bool,
-    missing: bool,
-    thumb: image,
-    has-thumb: bool,
-    blank: bool,
-}
+export { RecentsUi, RecentCard, RecentItem } from "welcome_cards.slint";
 
-export struct RecentItem {
-    index: int,
-    label: string,
-    enabled: bool,
-}
-
-// A lista vem do Rust (`src/recents.rs`); `index` é a posição na lista de recentes.
-export global RecentsUi {
-    in property <bool> has-recents;
-    in property <[RecentCard]> pinned;
-    in property <[RecentCard]> others;
-    in property <[RecentItem]> menu;
-    in property <bool> show-search;
-    in-out property <string> query;
-    in-out property <bool> show-clear;
-    callback open(int);
-    callback pin(int);
-    callback browse(int);
-    callback forget(int);
-    callback search(string);
-    callback clear-confirmed();
-}
-
-// O desenho do álbum sem miniatura: duas páginas abertas com o nome. É o álbum em branco da BR
-// (sem lâminas) e também o desenho neutro quando a miniatura falhou (spec TI, regra 5).
-component BlankAlbum inherits Rectangle {
-    in property <string> name;
-    in property <bool> blank;
-    Rectangle {
-        width: 152px;
-        height: 80px;
-        background: Theme.g5;
-        border-width: 1px;
-        border-color: Theme.g7;
-        border-radius: Radius.hair;
-        // A dobra entre as duas páginas, interrompida no meio para não cortar o nome.
-        Rectangle { x: (parent.width - 1px) / 2; y: 0; width: 1px; height: 16px; background: Theme.g7; }
-        Rectangle { x: (parent.width - 1px) / 2; y: parent.height - 16px; width: 1px; height: 16px; background: Theme.g7; }
-        VerticalLayout {
-            padding: 8px;
-            alignment: center;
-            spacing: 2px;
-            Text { text: root.name; color: Theme.text; font-size: Type.small; font-weight: Type.semibold; horizontal-alignment: center; overflow: elide; }
-            if root.blank: Text { text: "Álbum em branco"; color: Theme.text-2; font-size: Type.caption; horizontal-alignment: center; }
-        }
-    }
-}
-
-component Card inherits Rectangle {
+// A imagem do álbum, grande, como ele fica aberto: a sombra da dobra é só desta tela e nunca entra
+// no arquivo da imagem (specs DJ, regra 1, e DI, regra 16).
+component OpenAlbum inherits Rectangle {
+    in property <image> source;
+    in property <bool> fold;
+    in property <string> label;
+    callback clicked();
+    // O tamanho da imagem dentro da área, para a sombra não passar da lâmina num álbum que não é 2:1.
+    property <float> aspect: root.source.height > 0 ? root.source.width / root.source.height : 2;
+    property <length> shown-width: min(root.width, root.height * root.aspect);
+    property <length> shown-height: min(root.height, root.width / root.aspect);
     accessible-role: button;
-    accessible-label: root.data.name;
-    accessible-action-default => { RecentsUi.open(root.data.index); }
-    in property <RecentCard> data;
-    width: 200px;
-    height: 210px;
-    border-radius: Radius.medium;
-    background: open.has-hover && !root.data.missing ? Theme.g6 : Theme.panel;
-    open := TouchArea {
-        enabled: !root.data.missing;
-        mouse-cursor: root.data.missing ? default : pointer;
-        clicked => { RecentsUi.open(root.data.index); }
+    accessible-label: root.label;
+    accessible-action-default => { root.clicked(); }
+    background: Theme.g2;
+    Image { accessible-role: none; source: root.source; image-fit: contain; width: parent.width; height: parent.height; }
+    if root.fold: Rectangle {
+        accessible-role: none;
+        // Em pixels inteiros: com fração, o desenho por software deixa um fio no meio do degradê.
+        x: floor((parent.width - self.width) / 2 / 1px) * 1px;
+        y: (parent.height - self.height) / 2;
+        width: 2 * round(root.shown-width * 0.035 / 1px) * 1px;
+        height: root.shown-height;
+        background: @linear-gradient(90deg, Fixed.ink.transparentize(1) 0%, Fixed.ink.transparentize(0.9) 50%, Fixed.ink.transparentize(1) 100%);
     }
-    VerticalLayout {
-        padding: 10px;
-        spacing: 4px;
-        Rectangle {
-            height: 112px;
-            background: Theme.g3;
-            border-radius: Radius.small;
-            opacity: root.data.missing ? 0.35 : 1;
-            if root.data.has-thumb: Image { accessible-role: none; source: root.data.thumb; image-fit: contain; width: parent.width; height: parent.height; }
-            if !root.data.has-thumb: BlankAlbum { name: root.data.name; blank: root.data.blank; }
-        }
-        HorizontalLayout {
-            spacing: 4px;
-            Text { text: root.data.name; color: root.data.missing ? Theme.text-2 : Theme.text; font-weight: Type.semibold; overflow: elide; horizontal-stretch: 1; vertical-alignment: center; }
-            Rectangle {
-                width: 22px;
-                height: 22px;
-                border-radius: Radius.small;
-                background: pin.has-hover ? Theme.hover : transparent;
-                // O alfinete: cheio quando fixado.
-                Path {
-                    width: 14px;
-                    height: 14px;
-                    viewbox-width: 16;
-                    viewbox-height: 16;
-                    commands: "M 5 1 L 11 1 L 10 6 L 13 9 L 3 9 L 6 6 Z M 8 9 L 8 15";
-                    stroke: root.data.pinned ? Theme.text-strong : Theme.text-2;
-                    stroke-width: 1.5px;
-                    fill: root.data.pinned ? Theme.text-strong : transparent;
-                    opacity: root.data.pinned || pin.has-hover ? 1 : 0.5;
-                }
-                pin := TouchArea { clicked => { RecentsUi.pin(root.data.index); } }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+    focus := FocusScope {
+        x: 0;
+        width: 0;
+        key-pressed(e) => {
+            if (e.text == Key.Space || e.text == Key.Return) {
+                root.clicked();
+                return accept;
             }
-        }
-        if !root.data.missing: Text { text: root.data.when; color: Theme.text-2; font-size: Type.small; }
-        if !root.data.missing: Text { text: root.data.counts; color: Theme.text-2; font-size: Type.small; }
-        if root.data.missing: Text { text: "Não encontrado"; color: Theme.warning; font-size: Type.small; }
-        if root.data.missing: HorizontalLayout {
-            spacing: 6px;
-            DialogButton { text: "Procurar…"; clicked => { RecentsUi.browse(root.data.index); } }
-            DialogButton { text: "Tirar da lista"; clicked => { RecentsUi.forget(root.data.index); } }
+            return reject;
         }
     }
+    FocusRing { shown: focus.has-focus; x: -3px; y: -3px; width: parent.width + 6px; height: parent.height + 6px; }
 }
 
-// Os cartões em linhas que quebram conforme a largura.
-component CardGrid inherits Rectangle {
-    in property <[RecentCard]> cards;
-    in property <length> columns-width;
-    property <int> columns: max(1, floor((root.columns-width + 12px) / 212px));
-    height: ceil(root.cards.length / root.columns) * 222px;
-    for card[i] in root.cards: Card {
-        x: mod(i, root.columns) * 212px;
-        y: floor(i / root.columns) * 222px;
-        data: card;
-    }
-}
-
-component Section inherits Text {
-    color: Theme.text-2;
-    font-size: Type.small;
-    font-weight: Type.semibold;
-}
-
-export component WelcomeScreen inherits VerticalLayout {
+// A primeira vez: o novo álbum é o principal; o exemplo fica ao lado, sem destaque (spec DI).
+component FirstUse inherits VerticalLayout {
     callback command(string);
-    alignment: RecentsUi.has-recents ? start : center;
-    spacing: 16px;
-    padding-top: RecentsUi.has-recents ? 24px : 0px;
-    Image { accessible-role: none; source: @image-url("../icons/lamina-logo-escuro.svg"); height: 64px; image-fit: contain; }
-    Text { text: "Diagramação de álbuns de fotos"; color: Theme.text-2; horizontal-alignment: center; }
-    if !RecentsUi.has-recents: HorizontalLayout {
+    alignment: center;
+    padding: Space.s5;
+    spacing: Space.s5;
+    property <length> image-width: min(min(root.width * 0.52, (root.height - 140px) * 1.4), 960px);
+    property <image> picture: @image-url("../icons/exemplo-primeira-lamina.jpg");
+    HorizontalLayout {
         alignment: center;
-        DialogButton { text: "Experimentar com o álbum de exemplo"; primary: true; clicked => { root.command("arquivo.exemplo"); } }
-    }
-    if !RecentsUi.has-recents: HorizontalLayout {
-        alignment: center;
-        spacing: 12px;
-        DialogButton { text: "Novo álbum com minhas fotos…"; clicked => { root.command("arquivo.novo"); } }
-        DialogButton { text: "Abrir um álbum…"; clicked => { root.command("arquivo.abrir"); } }
-    }
-    // Com recentes, o novo álbum passa a principal e o exemplo fica ao lado (TI-B14).
-    if RecentsUi.has-recents: HorizontalLayout {
-        alignment: center;
-        spacing: 12px;
-        DialogButton { text: "Novo álbum com minhas fotos…"; primary: true; clicked => { root.command("arquivo.novo"); } }
-        DialogButton { text: "Experimentar com o álbum de exemplo"; clicked => { root.command("arquivo.exemplo"); } }
-        DialogButton { text: "Abrir um álbum…"; clicked => { root.command("arquivo.abrir"); } }
-    }
-    if RecentsUi.has-recents: HorizontalLayout {
-        alignment: center;
-        vertical-stretch: 1;
-        list := VerticalLayout {
-            width: min(root.width - 48px, 1084px);
-            spacing: 10px;
-            if RecentsUi.show-search: LineEdit {
-                placeholder-text: "Buscar pelo nome ou pela pasta";
-                text <=> RecentsUi.query;
-                edited(text) => { RecentsUi.search(text); }
-            }
-            // A área pede a altura dos cartões; sem isso, com o topo alinhado (`start`), ela ficava
-            // com a altura mínima da ScrollView e cortava o cartão logo abaixo do título. Quando
-            // não cabe, a janela dá o que sobra e a área rola (correção TI de 2026-10-22).
-            ScrollView {
-                vertical-stretch: 1;
-                min-height: 0px;
-                preferred-height: shelf.preferred-height;
-                shelf := VerticalLayout {
-                    spacing: 10px;
-                    if RecentsUi.pinned.length > 0: Section { text: "FIXADOS"; }
-                    if RecentsUi.pinned.length > 0: CardGrid { cards: RecentsUi.pinned; columns-width: list.width - 16px; }
-                    if RecentsUi.others.length > 0: Section { text: "RECENTES"; }
-                    if RecentsUi.others.length > 0: CardGrid { cards: RecentsUi.others; columns-width: list.width - 16px; }
-                }
+        spacing: Space.s6;
+        OpenAlbum {
+            width: root.image-width;
+            height: root.image-width * root.picture.height / max(1, root.picture.width);
+            source: root.picture;
+            fold: true;
+            label: "Abrir o álbum de exemplo";
+            clicked => { root.command("arquivo.exemplo"); }
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: Space.s2;
+            max-width: 400px;
+            min-width: 240px;
+            Text { text: "DIAGRAMAÇÃO DE ÁLBUNS DE FOTOS"; color: Theme.text-2; font-size: Type.caption; font-weight: Type.semibold; letter-spacing: Type.caps-spacing; wrap: word-wrap; }
+            Text { text: "Comece seu primeiro álbum"; color: Theme.text; font-size: Type.display; font-weight: Type.semibold; wrap: word-wrap; }
+            Text { text: "Escolha a pasta das fotos e o Lamina monta as lâminas. Depois, é só ajustar o que quiser."; color: Theme.text-2; font-size: Type.body; wrap: word-wrap; }
+            HorizontalLayout {
+                alignment: start;
+                padding-top: Space.s2;
+                spacing: Space.s2;
+                DialogButton { text: "Novo álbum…"; primary: true; clicked => { root.command("arquivo.novo"); } }
+                DialogButton { text: "Álbum de exemplo"; clicked => { root.command("arquivo.exemplo"); } }
             }
         }
     }
     HorizontalLayout {
         alignment: center;
-        padding-top: 8px;
-        padding-bottom: RecentsUi.has-recents ? 12px : 0px;
-        Text {
-            text: "Enviar sugestão ou problema";
-            color: link.has-hover ? Theme.text-strong : Theme.link;
-            font-size: Type.small;
-            link := TouchArea {
-                mouse-cursor: pointer;
-                clicked => { root.command("ajuda.enviar-sugestao"); }
+        spacing: Space.s4;
+        for step[i] in [
+            { title: "Escolha a pasta das fotos", detail: "As fotos ficam onde estão." },
+            { title: "O Lamina monta as lâminas", detail: "Ele agrupa por momento e diagrama." },
+            { title: "Ajuste e exporte", detail: "Mexa no que quiser e mande para a gráfica." },
+        ]: VerticalLayout {
+            width: (root.image-width + 400px + Space.s6 - 2 * Space.s4) / 3;
+            spacing: 2px;
+            Text { text: i + 1; color: Theme.text-3; font-size: Type.caption; font-weight: Type.semibold; }
+            Text { text: step.title; color: Theme.text; font-size: Type.body; font-weight: Type.semibold; wrap: word-wrap; }
+            Text { text: step.detail; color: Theme.text-2; font-size: Type.small; wrap: word-wrap; }
+        }
+    }
+}
+
+// O álbum em andamento: a imagem grande e, ao lado, onde o fotógrafo parou (spec DI).
+component Resume inherits HorizontalLayout {
+    in property <length> image-height;
+    property <RecentCard> data: RecentsUi.resume;
+    // Na proporção do álbum, até 2,4 vezes a altura: a lâmina encosta na margem da página.
+    property <float> aspect: root.data.has-thumb && root.data.thumb.height > 0 ? root.data.thumb.width / root.data.thumb.height : 2;
+    spacing: Space.s6;
+    Rectangle {
+        width: root.image-height * min(root.aspect, 2.4);
+        height: root.image-height;
+        if root.data.has-thumb: OpenAlbum {
+            source: root.data.thumb;
+            fold: root.data.fold;
+            label: root.data.button + ": " + root.data.name;
+            clicked => { RecentsUi.open(root.data.index); }
+        }
+        if !root.data.has-thumb: BlankAlbum { name: root.data.name; blank: root.data.blank; background: Theme.g2; }
+    }
+    VerticalLayout {
+        alignment: center;
+        spacing: Space.s2;
+        horizontal-stretch: 1;
+        Text { text: "CONTINUAR"; color: Theme.text-2; font-size: Type.caption; font-weight: Type.semibold; letter-spacing: Type.caps-spacing; }
+        Text { text: root.data.name; color: Theme.text; font-size: Type.heading; font-weight: Type.semibold; wrap: word-wrap; overflow: elide; max-height: 2.8 * Type.heading; }
+        if root.data.sentence != "": Text { text: root.data.sentence; color: Theme.text; font-size: Type.title; wrap: word-wrap; }
+        Text { text: root.data.meta; color: Theme.text-2; font-size: Type.small; wrap: word-wrap; }
+        Text { text: root.data.folder; color: Theme.text-3; font-size: Type.small; overflow: elide; }
+        HorizontalLayout {
+            alignment: start;
+            padding-top: Space.s2;
+            spacing: Space.s2;
+            DialogButton { text: root.data.button; primary: true; clicked => { RecentsUi.open(root.data.index); } }
+            VerticalLayout {
+                alignment: center;
+                PinButton { pinned: root.data.pinned; clicked => { RecentsUi.pin(root.data.index); } }
             }
         }
+    }
+}
+
+// Quem já usa: o álbum em andamento e, embaixo, os outros; a página toda rola.
+component Returning inherits ScrollView {
+    // A área pede a altura que os cartões precisam; a janela dá o que sobra e ela rola.
+    HorizontalLayout {
+        alignment: center;
+        VerticalLayout {
+            width: min(root.visible-width - 2 * Space.s5, 1456px);
+            alignment: start;
+            padding-top: Space.s5;
+            padding-bottom: Space.s5;
+            spacing: Space.s5;
+            if RecentsUi.has-resume: Resume {
+                image-height: RecentsUi.resume-height(root.height + 44px);
+            }
+            VerticalLayout {
+                spacing: Space.s3;
+                HorizontalLayout {
+                    spacing: Space.s4;
+                    SectionTitle {
+                        horizontal-stretch: 1;
+                        text: RecentsUi.has-resume ? "OUTROS ÁLBUNS" : "ÁLBUNS";
+                    }
+                    if RecentsUi.show-search: LineEdit {
+                        width: 280px;
+                        placeholder-text: "Buscar pelo nome ou pela pasta";
+                        text <=> RecentsUi.query;
+                        edited(text) => { RecentsUi.search(text); }
+                    }
+                }
+                if RecentsUi.no-results == "": CardGrid { cards: RecentsUi.cards; }
+                if RecentsUi.no-results != "": EmptyState {
+                    padding-top: Space.s6;
+                    icon: Icons.search;
+                    text: RecentsUi.no-results;
+                    action: "Limpar a busca";
+                    act => {
+                        RecentsUi.query = "";
+                        RecentsUi.search("");
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component WelcomeScreen inherits Rectangle {
+    callback command(string);
+    if !RecentsUi.has-recents: FirstUse {
+        width: parent.width;
+        height: parent.height;
+        command(name) => { root.command(name); }
+    }
+    if RecentsUi.has-recents: Returning {
+        width: parent.width;
+        height: parent.height;
     }
 }
 

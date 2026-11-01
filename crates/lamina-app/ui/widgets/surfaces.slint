@@ -39,6 +39,14 @@ export global DialogSize {
     out property <length> margin: 40px;
 }
 
+// O foco quando um popup fecha e outro abre na mesma volta (spec DD, regra 8). O popup que fecha devolve
+// o foco a quem o tinha: se o novo veio antes na árvore, a janela ficaria com o foco por baixo dele.
+// Então a janela pede de volta (`asked`), e quem abriu por último (`last`) o pega.
+export global DialogFocus {
+    in-out property <int> last;
+    in-out property <int> asked;
+}
+
 // A moldura de todo diálogo (spec DD, regras 1 a 3, 8 e 9): véu, painel e título; o corpo e o rodapé
 // vêm de quem herda. O conteúdo mora num `PopupWindow` porque só ali o Slint prende o Tab; o tamanho
 // do popup é lido uma vez só, por isso ele nasce maior que qualquer tela, e quem segue a janela é
@@ -65,9 +73,11 @@ export component Dialog inherits Rectangle {
         width: 16000px;
         height: 16000px;
         close-policy: no-auto-close;
+        // O popup maior que a janela encosta no canto dela; a barra de menus desenhada na janela (fora
+        // do Windows e do Mac) fica acima de `root`, então o véu desconta o lugar dela.
         Shade {
-            x: 0;
-            y: 0;
+            x: root.absolute-position.x;
+            y: root.absolute-position.y;
             width: root.width;
             height: root.height;
             TouchArea {
@@ -81,6 +91,12 @@ export component Dialog inherits Rectangle {
                 focus-on-tab-navigation: false;
                 init => {
                     if (!root.child-focus) {
+                        self.focus();
+                    }
+                }
+                property <int> asked: DialogFocus.asked;
+                changed asked => {
+                    if (root.order == DialogFocus.last) {
                         self.focus();
                     }
                 }
@@ -128,7 +144,12 @@ export component Dialog inherits Rectangle {
             }
         }
     }
-    init => { popup.show(); }
+    property <int> order;
+    init => {
+        DialogFocus.last += 1;
+        root.order = DialogFocus.last;
+        popup.show();
+    }
 }
 
 // O corpo de um diálogo que pode passar da janela: só ele rola; título e rodapé ficam à vista
@@ -366,6 +387,7 @@ export component EmptyState inherits VerticalLayout {
     if root.action != "": HorizontalLayout {
         alignment: center;
         BarButton {
+            min-height: 32px;
             text: root.action;
             outlined: true;
             clicked => { root.act(); }

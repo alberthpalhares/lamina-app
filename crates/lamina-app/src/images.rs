@@ -134,8 +134,8 @@ impl Images {
             .collect()
     }
 
-    /// As miniaturas das fotos das lâminas (faixa, linha do tempo e lâmina) e de `extra` (a
-    /// seleção, para as prévias do painel de layouts; até uma lâmina cheia). O painel de fotos
+    /// As miniaturas das fotos das lâminas e da capa (faixa, linha do tempo e lâmina) e de `extra`
+    /// (a seleção, para as prévias do painel de layouts; até uma lâmina cheia). O painel de fotos
     /// pede as dele à parte, só perto da tela (spec PF, regra 14).
     pub fn album_thumbs(
         &mut self,
@@ -143,8 +143,7 @@ impl Images {
         extra: &[PhotoId],
     ) -> HashMap<PhotoId, Image> {
         let mut ids: Vec<PhotoId> = project
-            .spreads
-            .iter()
+            .all_content()
             .flat_map(|s| &s.frames)
             .filter_map(|f| match &f.content {
                 FrameContent::Photo { photo, .. } => Some(*photo),

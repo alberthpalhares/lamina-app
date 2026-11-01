@@ -51,6 +51,7 @@ import { BottomStrips } from "bottom.slint";
 import { ShortcutsUi, ShortcutsDialog, ShortcutGroup, ShortcutRow } from "shortcuts.slint";
 import { NewsUi, NewsEntryData, NewsCardData, NewsFilterData } from "news.slint";
 import { NewsPage } from "news_page.slint";
+import { DialogFocus } from "widgets.slint";
 import { RollUi, RollCell, RollButton, RollHitData, TimelineStep } from "roll.slint";
 import { Gallery } from "gallery.slint";
 
@@ -294,8 +295,15 @@ export component AppWindow inherits Window {
     pure callback seq-marker <=> bottom.seq-marker;
     callback seq-drop <=> bottom.seq-drop;
 
+    // Um diálogo ou a página de novidades cobre a janela: o teclado é deles, e nada aqui atrás reage.
+    property <bool> covered: CoverUi.open || NewProjectUi.show || root.show-confirm || root.show-message || root.show-about || root.show-export || PresetUi.show-spec || PresetUi.show-name || PresetUi.show-list || ModelUi.show-name || ModelUi.show-list || RecentsUi.show-clear || ClearUi.show || RelinkUi.show || PhotoMenuUi.show-ask || CalibrateUi.show || ShortcutsUi.show || NewsUi.show || BuildUi.show || RecoverUi.show || root.busy-text != "";
+
     public function focus-main() {
-        keys.focus();
+        // Pedir o foco com algo por cima o tiraria de lá (spec DD, regra 8; PV, regra 17). Ao fechar,
+        // o popup devolve o foco a quem o tinha.
+        if (!root.covered) {
+            keys.focus();
+        }
     }
 
     // Abre o endereço no navegador do sistema (formulário de sugestões, spec SR).
@@ -451,8 +459,14 @@ export component AppWindow inherits Window {
     }
 
     keys := FocusScope {
+        // A janela não fica com o foco por baixo de um diálogo (spec DD, regra 8).
+        changed has-focus => {
+            if (self.has-focus && root.covered) {
+                DialogFocus.asked += 1;
+            }
+        }
         key-pressed(event) => {
-            if (CoverUi.open || NewProjectUi.show || root.show-confirm || root.show-message || root.show-about || root.show-export || PresetUi.show-spec || PresetUi.show-name || PresetUi.show-list || ModelUi.show-name || ModelUi.show-list || RecentsUi.show-clear || ClearUi.show || RelinkUi.show || PhotoMenuUi.show-ask || CalibrateUi.show || ShortcutsUi.show || NewsUi.show || BuildUi.show || RecoverUi.show || root.busy-text != "") {
+            if (root.covered) {
                 return reject;
             }
             // No modo organizar, Espaço segurado é a mão (spec EG, seção 3).

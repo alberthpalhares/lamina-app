@@ -20,6 +20,8 @@ mod common;
 mod cs;
 mod ct;
 mod dd;
+mod di;
+mod di_capa;
 mod dj;
 mod ds;
 mod eg_arrumar;

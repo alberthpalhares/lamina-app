@@ -96,7 +96,11 @@ fn dd_b2_o_foco_fica_dentro() {
     // O popup nasce maior que qualquer tela, e o véu segue a janela.
     assert!(frame.contains("width: 16000px;"));
     assert!(frame.contains("width: root.width;"));
-    assert!(frame.contains("init => { popup.show(); }"));
+    // O popup encosta no canto da janela: o véu desconta a barra de menus desenhada nela.
+    assert!(frame.contains("y: root.absolute-position.y;"));
+    assert!(frame.contains("popup.show();"));
+    // Quem abriu por último pega o foco de volta numa troca de diálogos.
+    assert!(frame.contains("root.order == DialogFocus.last"));
     // O andamento também é da moldura, para ficar por cima e segurar as teclas.
     assert!(component(&ui("dialogs.slint"), "BusyOverlay").contains("escape: false;"));
 }

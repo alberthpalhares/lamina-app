@@ -2,8 +2,8 @@
 // lista, a busca e o texto das teclas saem do `lamina-editor` (`shortcuts::sheet`).
 
 import { ScrollView } from "std-widgets.slint";
-import { Theme, Type, Radius, Space } from "theme.slint";
-import { Dialog, DialogSize, DialogFooter, DialogButton, FirstLineEdit } from "widgets.slint";
+import { Theme, Type, Radius, Space, Line } from "theme.slint";
+import { Dialog, DialogSize, DialogFooter, DialogButton, FirstLineEdit, SectionTitle } from "widgets.slint";
 
 // Uma linha: o que faz e as teclas (o principal e os alternativos) ou, num gesto, como fazer.
 export struct ShortcutRow {
@@ -33,11 +33,11 @@ export global ShortcutsUi {
 // Uma tecla desenhada como teclinha.
 component Keycap inherits Rectangle {
     in property <string> text;
-    width: max(24px, label.preferred-width + 12px);
-    height: 22px;
+    width: max(Space.s5, label.preferred-width + Space.s3);
+    height: Space.s5;
     border-radius: Radius.small;
-    border-width: 1px;
-    border-color: Theme.overlay;
+    border-width: Line.thin;
+    border-color: Theme.line-strong;
     background: Theme.hover;
     label := Text {
         text: root.text;
@@ -50,14 +50,15 @@ component Keycap inherits Rectangle {
 
 component GroupView inherits VerticalLayout {
     in property <ShortcutGroup> group;
-    spacing: Space.s1;
-    padding-bottom: Space.s3;
-    Text { text: root.group.title; font-size: Type.title; font-weight: Type.semibold; color: Theme.text; }
+    spacing: Space.s2;
+    padding-bottom: Space.s4;
+    SectionTitle { text: root.group.title; }
     for row in root.group.rows: HorizontalLayout {
         spacing: Space.s3;
         Text {
             text: row.does;
             color: Theme.text;
+            font-size: Type.body;
             wrap: word-wrap;
             horizontal-stretch: 1;
             vertical-alignment: center;
@@ -65,8 +66,9 @@ component GroupView inherits VerticalLayout {
         if row.gesture: Text {
             text: row.keys[0];
             color: Theme.text-2;
+            font-size: Type.small;
             wrap: word-wrap;
-            horizontal-stretch: 1;
+            horizontal-stretch: 2;
             horizontal-alignment: right;
             vertical-alignment: center;
         }
@@ -131,7 +133,6 @@ export component ShortcutsDialog inherits Dialog {
     DialogFooter {
         DialogButton {
             text: "Fechar";
-            primary: true;
             clicked => {
                 ShortcutsUi.show = false;
                 root.closed();
