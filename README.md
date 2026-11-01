@@ -13,7 +13,7 @@ ajustar as fotos e mandar para a gráfica.
 [![Versão](https://img.shields.io/github/v/release/alberthpalhares/lamina-app?include_prereleases&label=vers%C3%A3o&color=0095B6)](https://github.com/alberthpalhares/lamina-app/releases)
 [![Downloads](https://img.shields.io/github/downloads/alberthpalhares/lamina-app/total?label=downloads&color=2A2D31)](https://github.com/alberthpalhares/lamina-app/releases)
 [![Licença](https://img.shields.io/badge/licen%C3%A7a-Apache--2.0-2A2D31)](LICENSE)
-[![Verificação](https://github.com/alberthpalhares/lamina-app/actions/workflows/ci.yml/badge.svg)](https://github.com/alberthpalhares/lamina-app/actions/workflows/ci.yml)
+[![Verificação](https://github.com/alberthpalhares/lamina-app/actions/workflows/ci.yml/badge.svg?branch=proxima)](https://github.com/alberthpalhares/lamina-app/actions/workflows/ci.yml?query=branch%3Aproxima)
 
 [![Baixar para Windows](https://img.shields.io/badge/Baixar_para-Windows_10_e_11-0095B6?style=for-the-badge)](https://github.com/alberthpalhares/lamina-app/releases/download/v0.1.0-beta.8.1/Lamina-win-beta-Setup.exe)
 [![Baixar para Mac](https://img.shields.io/badge/Baixar_para-Mac_Intel_e_Apple-0095B6?style=for-the-badge)](https://github.com/alberthpalhares/lamina-app/releases/download/v0.1.0-beta.8.1/Lamina-osx-beta-Setup.pkg)
@@ -224,8 +224,8 @@ tem cada clique, com as telas.
 
 ## Por dentro do Lamina
 
-Na tela de boas-vindas, **Experimentar com o álbum de exemplo** abre um álbum pronto, com fotos
-livres, para você ver tudo funcionando. Depois, **Novo álbum com minhas fotos…** monta o seu.
+Na tela de boas-vindas, **Álbum de exemplo** abre um álbum pronto, com fotos
+livres, para você ver tudo funcionando. Depois, **Novo álbum…** monta o seu.
 
 <table>
   <tr>

@@ -1,12 +1,13 @@
 name: CI
 
 # Plano de economia de minutos (2026-10-16, decisão do dono): o CI roda só no repositório
-# público (lamina-app). Em PR e na main, só Linux; Windows e macOS só à mão (Actions → CI →
-# Run workflow), antes de fechar um marco. O Windows também é coberto pelo `cargo xtask verify`
-# local, que roda antes de todo PR.
+# público (lamina-app). Na branch `proxima` e em PR de fora, só Linux; Windows e macOS só à mão
+# (Actions → CI → Run workflow), antes de fechar um marco. O Windows também é coberto pelo
+# `cargo xtask verify` local, que roda antes de cada lote. A `main` só avança até uma `proxima`
+# verde, então não roda de novo (ADR 0015).
 on:
   push:
-    branches: [main]
+    branches: [proxima]
     paths-ignore: ["README.md", "LICENSE"]
   pull_request:
     paths-ignore: ["README.md", "LICENSE"]

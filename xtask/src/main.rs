@@ -16,6 +16,7 @@
 //! - `exemplo <pasta>`: prepara as fotos do álbum de exemplo (spec PC).
 //! - `versao <tag> [--notas <arquivo>]`: a tag da release bate com o `Cargo.toml` e as novidades.
 //! - `mcpb <windows|macos> <binário> <pasta>`: a pasta do pacote do Claude Desktop (spec IA).
+//! - `limpar [--dias N] [--poupar <pasta>] [--simular]`: apaga o cache incremental (ADR 0015).
 
 mod asserts;
 mod contraste;
@@ -33,6 +34,7 @@ mod icones;
 #[cfg(test)]
 mod interface;
 mod layers;
+mod limpar;
 mod mcpb;
 mod portao;
 mod sala_limpa;
@@ -68,9 +70,10 @@ fn main() -> ExitCode {
         "exemplo" => exemplo::run(&std::env::args().skip(2).collect::<Vec<_>>()),
         "versao" => versao::run(&std::env::args().skip(2).collect::<Vec<_>>()),
         "mcpb" => mcpb::run(&std::env::args().skip(2).collect::<Vec<_>>()),
+        "limpar" => limpar::run(&std::env::args().skip(2).collect::<Vec<_>>()),
         _ => {
             eprintln!(
-                "uso: cargo xtask <verify | layers | size | specs | asserts | erros | sala-limpa | cores | contraste | icones | esquema | portao | fotos | exemplo | versao | mcpb>"
+                "uso: cargo xtask <verify | layers | size | specs | asserts | erros | sala-limpa | cores | contraste | icones | esquema | portao | fotos | exemplo | versao | mcpb | limpar>"
             );
             false
         }

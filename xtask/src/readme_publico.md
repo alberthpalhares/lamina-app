@@ -13,7 +13,7 @@ ajustar as fotos e mandar para a gráfica.
 [![Versão](https://img.shields.io/github/v/release/alberthpalhares/lamina-app?include_prereleases&label=vers%C3%A3o&color=0095B6)](https://github.com/alberthpalhares/lamina-app/releases)
 [![Downloads](https://img.shields.io/github/downloads/alberthpalhares/lamina-app/total?label=downloads&color=2A2D31)](https://github.com/alberthpalhares/lamina-app/releases)
 [![Licença](https://img.shields.io/badge/licen%C3%A7a-Apache--2.0-2A2D31)](LICENSE)
-[![Verificação](https://github.com/alberthpalhares/lamina-app/actions/workflows/ci.yml/badge.svg)](https://github.com/alberthpalhares/lamina-app/actions/workflows/ci.yml)
+[![Verificação](https://github.com/alberthpalhares/lamina-app/actions/workflows/ci.yml/badge.svg?branch=proxima)](https://github.com/alberthpalhares/lamina-app/actions/workflows/ci.yml?query=branch%3Aproxima)
 
 [![Baixar para Windows](https://img.shields.io/badge/Baixar_para-Windows_10_e_11-0095B6?style=for-the-badge)]({{baixar_windows}})
 [![Baixar para Mac](https://img.shields.io/badge/Baixar_para-Mac_Intel_e_Apple-0095B6?style=for-the-badge)]({{baixar_mac}})
