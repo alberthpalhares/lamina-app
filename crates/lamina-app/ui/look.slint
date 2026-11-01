@@ -2,8 +2,8 @@
 // valores e as edições vêm do editor.
 
 import { Button, LineEdit } from "std-widgets.slint";
-import { Theme, Type, Radius } from "theme.slint";
-import { DialogButton, CheckRow } from "widgets.slint";
+import { Theme, Type, Radius, Space, Line, Elevation } from "theme.slint";
+import { ColorArea, DialogButton, CheckRow } from "widgets.slint";
 import { Icons } from "icons.slint";
 
 export struct Swatch {
@@ -65,18 +65,69 @@ export global LookUi {
     in property <color> right;
     in property <color> border-color;
     in property <bool> only-frame;
-    in-out property <string> hex;
-    in property <string> hex-error;
+    in property <string> hex;
+    in property <string> hex-right;
+    in-out property <string> hex-error;
     callback gap-step(int);
     callback border-step(int);
     callback radius-step(int);
     callback background(int, int);
-    callback background-hex(string);
+    // Uma cor pelo código ou pelo quadro de cores; o segundo número é o lado (-1 = a lâmina toda).
+    callback background-hex(string, int);
+    callback background-at(float, float, int);
     callback split-changed(bool);
     callback border-pick(int);
     callback apply-all();
     // Lâmina à mão (spec TX, regra 8): o espaço entre fotos não mexe nos quadros dela.
     in property <bool> manual;
+}
+
+// "Outra cor…" (spec DG, regra 9): o quadro de cores do Novo álbum e o código, para quem tem o número
+// da gráfica. `side` é o lado do fundo, como nas cores prontas.
+component OtherColor inherits HorizontalLayout {
+    in property <int> side: -1;
+    in property <color> current;
+    in property <string> code;
+    property <string> draft;
+    changed code => { root.draft = root.code; }
+    alignment: start;
+    DialogButton {
+        text: "Outra cor…";
+        clicked => {
+            root.draft = root.code;
+            LookUi.hex-error = "";
+            popup.show();
+        }
+        popup := PopupWindow {
+            y: parent.height + Line.focus;
+            close-policy: close-on-click-outside;
+            Rectangle {
+                background: Theme.raised;
+                border-radius: Radius.medium;
+                border-width: Line.thin;
+                border-color: Theme.line;
+                drop-shadow-blur: Elevation.menu-blur;
+                drop-shadow-offset-y: Elevation.menu-y;
+                drop-shadow-color: Elevation.menu-color;
+                VerticalLayout {
+                    padding: Space.s3;
+                    spacing: Space.s2;
+                    HorizontalLayout {
+                        spacing: Space.s2;
+                        Rectangle { width: 28px; height: 28px; border-radius: Radius.small; background: root.current; border-width: Line.thin; border-color: Theme.overlay; }
+                        LineEdit {
+                            width: 140px;
+                            text <=> root.draft;
+                            placeholder-text: "#F5F0E6";
+                            accepted(t) => { LookUi.background-hex(t, root.side); }
+                        }
+                    }
+                    if LookUi.hex-error != "": Text { text: LookUi.hex-error; color: Theme.warning; font-size: Type.small; wrap: word-wrap; }
+                    ColorArea { picked(x, y) => { LookUi.background-at(x, y, root.side); } }
+                }
+            }
+        }
+    }
 }
 
 export component LookPanel inherits VerticalLayout {
@@ -109,28 +160,21 @@ export component LookPanel inherits VerticalLayout {
         chosen: LookUi.left;
         pick(i) => { LookUi.background(i, -1); root.done(); }
     }
+    if !LookUi.split: OtherColor { current: LookUi.left; code: LookUi.hex; }
     if LookUi.split: Label { text: "Página esquerda"; }
     if LookUi.split: Swatches {
         palette: LookUi.palette;
         chosen: LookUi.left;
         pick(i) => { LookUi.background(i, 0); root.done(); }
     }
+    if LookUi.split: OtherColor { side: 0; current: LookUi.left; code: LookUi.hex; }
     if LookUi.split: Label { text: "Página direita"; }
     if LookUi.split: Swatches {
         palette: LookUi.palette;
         chosen: LookUi.right;
         pick(i) => { LookUi.background(i, 1); root.done(); }
     }
-    HorizontalLayout {
-        spacing: 6px;
-        LineEdit {
-            text <=> LookUi.hex;
-            placeholder-text: "#F5F0E6";
-            accepted(t) => { LookUi.background-hex(t); }
-        }
-        DialogButton { text: "Usar"; clicked => { LookUi.background-hex(LookUi.hex); } }
-    }
-    if LookUi.hex-error != "": Text { text: LookUi.hex-error; color: Theme.warning; font-size: Type.small; }
+    if LookUi.split: OtherColor { side: 1; current: LookUi.right; code: LookUi.hex-right; }
 
     if root.frame-style: Label { text: LookUi.only-frame ? "Borda (quadro selecionado)" : "Borda (todas as fotos da lâmina)"; }
     if root.frame-style: Stepper { value: LookUi.border; step(d) => { LookUi.border-step(d); root.done(); } }

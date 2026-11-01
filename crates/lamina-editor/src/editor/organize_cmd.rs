@@ -70,11 +70,12 @@ impl Editor {
         }
     }
 
-    /// O título da lâmina em destaque: "Organizando a lâmina 3 · Esc volta" (vazio fora do modo;
-    /// spec ZR, regra 12).
+    /// O título do painel do modo: "Organizar a lâmina 3" ou "Organizar a capa" (vazio fora do modo;
+    /// spec DG, regra 7).
     pub fn organize_title(&self) -> String {
         match (&self.session, self.organizing()) {
-            (Some(s), true) => format!("Organizando a lâmina {} · Esc volta", s.current() + 1),
+            (Some(s), true) if s.on_cover() => "Organizar a capa".to_owned(),
+            (Some(s), true) => format!("Organizar a lâmina {}", s.current() + 1),
             _ => String::new(),
         }
     }

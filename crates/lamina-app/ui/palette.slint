@@ -1,10 +1,6 @@
-// Os botões do modo organizar (spec EG, seção 3; spec BO): ferramentas, zoom, Alinhar, Igualar e
-// Distribuir. Desde a spec BO eles moram na barra única de cima (`OrganizeBar`); a paleta
-// flutuante e a destacada saíram. Só desenho: o Rust preenche o `PaletteUi` e roda os comandos do
-// registro.
-
-import { Theme, Radius } from "theme.slint";
-import { Tip } from "widgets.slint";
+// O estado dos botões do modo organizar (spec EG, seção 3; spec BO): ferramentas, zoom, Alinhar,
+// Igualar e Distribuir. Eles moram na barra única de cima (`OrganizeBar`) e usam os componentes da
+// reforma (spec DG, regra 4). Só desenho: o Rust preenche o `PaletteUi` e roda os comandos do registro.
 
 export global PaletteUi {
     // A ferramenta: 0 = Selecionar, 1 = Quadro, 2 = Texto, 3 = Mão, 4 = Lupa.
@@ -18,48 +14,4 @@ export global PaletteUi {
     callback pick-tool(int);
     // Um comando do registro pelo nome estável.
     callback command(string);
-}
-
-// Um botão de ícone: marcado (ferramenta atual) ou apagado (indisponível). `tip` é a posição da
-// dica em `PaletteUi.tips`, que já diz " (indisponível)"; sem posição, vale `label`.
-export component Icon inherits Rectangle {
-    accessible-role: button;
-    accessible-label: root.label != "" ? root.label : root.said;
-    accessible-enabled: root.enabled;
-    accessible-checked: root.on;
-    accessible-action-default => { root.clicked(); }
-    in property <image> icon;
-    in property <int> tip: -1;
-    in property <string> label;
-    property <string> said: root.tip >= 0 && root.tip < PaletteUi.tips.length ? PaletteUi.tips[root.tip] : root.label;
-    in property <bool> on;
-    in property <bool> enabled: true;
-    callback clicked();
-    width: 30px;
-    height: 30px;
-    border-radius: Radius.small;
-    background: root.on ? Theme.accent : touch.has-hover && root.enabled ? Theme.press : transparent;
-    Image {
-        accessible-role: none;
-        x: 5px;
-        y: 5px;
-        width: 20px;
-        height: 20px;
-        source: root.icon;
-        colorize: root.on ? Theme.on-accent : root.enabled ? Theme.text : Theme.text-disabled;
-    }
-    touch := TouchArea {
-        clicked => {
-            if (root.enabled) {
-                root.clicked();
-            }
-        }
-    }
-    // O balão some ao clicar e ao sair com o mouse.
-    Tip {
-        x: 0px;
-        y: parent.height + 4px;
-        text: root.said;
-        shown: touch.has-hover && !touch.pressed;
-    }
 }
