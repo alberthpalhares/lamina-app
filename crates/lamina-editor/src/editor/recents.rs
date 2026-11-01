@@ -1,5 +1,5 @@
 //! A lista de recentes no editor (spec TI): quem abre, salva, fecha ou sai atualiza a lista, e
-//! abrir um álbum conhecido vai direto para a lâmina em que o fotógrafo parou (regras 1 e 3).
+//! abrir um álbum conhecido vai direto para onde o fotógrafo parou (regras 1 e 3).
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -7,7 +7,7 @@ use std::sync::Arc;
 use lamina_core::Project;
 
 use super::Editor;
-use crate::recents::{Recent, RecentsStore, now};
+use crate::recents::{Recent, RecentsStore, now, shows_cover};
 use crate::{EditorError, Session};
 
 impl Editor {
@@ -72,16 +72,18 @@ impl Editor {
         true
     }
 
-    /// Guarda a lâmina em que parou (fechar, abrir outro e sair do Lamina).
+    /// Guarda onde parou (fechar, abrir outro e sair do Lamina).
     pub fn remember_current(&mut self) {
-        let Some((file, current)) = self
-            .session
-            .as_ref()
-            .and_then(|s| Some((s.file()?.to_path_buf(), s.last_spread())))
-        else {
+        let Some((file, current, on_cover)) = self.session.as_ref().and_then(|s| {
+            Some((
+                s.file()?.to_path_buf(),
+                s.last_spread(),
+                s.stopped_on_cover(),
+            ))
+        }) else {
             return;
         };
-        if self.recents.remember(&file, current) {
+        if self.recents.remember(&file, current, on_cover) {
             self.change_recents(|_| ());
         }
     }
@@ -94,16 +96,25 @@ impl Editor {
         Some((session.album_shared(), target))
     }
 
-    /// Acabou de abrir: vai para a lâmina em que parou (ou a última, se hoje há menos) e põe o
-    /// álbum no topo da lista.
+    /// Onde gravar a miniatura grande do álbum aberto (spec DI, regra 14).
+    pub fn big_thumbnail_target(&self) -> Option<PathBuf> {
+        self.recents.big_thumb_path(self.session.as_ref()?.file()?)
+    }
+
+    /// Acabou de abrir: vai para onde parou, a capa ou a lâmina (ou a última, se hoje há menos), e
+    /// põe o álbum no topo da lista.
     pub(super) fn after_open(&mut self) {
         let saved = self
             .session
             .as_ref()
             .and_then(|s| self.recents.find(s.file()?))
-            .map(|r| r.current);
-        if let (Some(current), Some(session)) = (saved, self.session.as_mut()) {
+            .map(|r| (r.current, r.on_cover));
+        if let (Some((current, _)), Some(session)) = (saved, self.session.as_mut()) {
             session.go_to(current.min(session.spread_count().saturating_sub(1)));
+        }
+        if saved.is_some_and(|(_, on_cover)| on_cover) {
+            // Se a capa saiu do arquivo, fica na lâmina guardada.
+            self.go_to_cover();
         }
         self.note_session();
         self.warn_missing_fonts();
@@ -136,13 +147,20 @@ impl Editor {
 }
 
 fn recent_of(session: &Session) -> Option<Recent> {
+    // O álbum, não a projeção: com a capa aberta, ela tem a medida e a lâmina só da capa.
+    let album = session.album();
+    let pages = album.spec.edges().active_pages(0, album.spreads.len());
+    let cover_image = shows_cover(album);
     Some(Recent {
+        fold: !cover_image && pages.left && pages.right,
         path: session.file()?.to_path_buf(),
         name: session.title().to_owned(),
         opened_at: now(),
-        spreads: session.album().spreads.len(),
-        photos: session.album().photos.len(),
+        spreads: album.spreads.len(),
+        photos: album.photos.len(),
         current: session.last_spread(),
         pinned: false,
+        on_cover: session.stopped_on_cover(),
+        cover_image,
     })
 }

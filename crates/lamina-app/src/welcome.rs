@@ -37,7 +37,7 @@ pub fn example_source() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from(EXAMPLE_DIR))
 }
 
-/// "Experimentar com o álbum de exemplo" e Arquivo → "Abrir o álbum de exemplo", depois da
+/// "Álbum de exemplo" na tela inicial e Arquivo → "Abrir o álbum de exemplo", depois da
 /// pergunta de salvar (regras 3 e 4).
 pub fn open_example(app: &mut App) {
     match prepare_example(&example_source(), &example_target()) {

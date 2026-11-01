@@ -28,6 +28,9 @@ pub fn entry(path: &Path, name: &str) -> Recent {
         photos: 180,
         current: 0,
         pinned: false,
+        fold: true,
+        on_cover: false,
+        cover_image: false,
     }
 }
 
@@ -268,13 +271,14 @@ fn ti_b13_montar_os_cartoes_e_rapido() {
 
 #[test]
 fn ti_b14_sem_recentes_a_boas_vindas_da_pc() {
+    // Corrigido pela spec DI: sem recentes, o novo álbum é o principal, com o exemplo ao lado.
     assert_eq!(
-        welcome_buttons(false),
-        [Command::OpenExample, Command::NewAlbum, Command::Open]
+        welcome_buttons(false).body,
+        [Command::NewAlbum, Command::OpenExample]
     );
     assert_eq!(
-        welcome_buttons(true),
-        [Command::NewAlbum, Command::OpenExample, Command::Open]
+        welcome_buttons(true).bar,
+        [Command::OpenExample, Command::Open, Command::NewAlbum]
     );
     assert!(cards(&[], &[], NOW).is_empty());
     assert!(Editor::new().available(Command::OpenExample));

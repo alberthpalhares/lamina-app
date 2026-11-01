@@ -9,15 +9,21 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 mod list;
+mod resume;
 mod screen;
 mod thumbs;
 
+pub use resume::{
+    RESUME_SIDE, Resume, card_label, card_tip, grid_cards, grid_columns, no_results, resume,
+    resume_height,
+};
 pub use screen::{
-    Card, Clock, MenuEntry, cards, counts_text, recent_menu, search, show_search, welcome_buttons,
-    when_text,
+    Card, Clock, MenuEntry, WelcomeButtons, cards, counts_text, recent_menu, search, show_search,
+    welcome_buttons, when_text,
 };
 pub use thumbs::{
-    MISSING_GRAY, ThumbCache, missing_files, read_thumbnail, thumbnail_image, write_thumbnail,
+    MISSING_GRAY, THUMB_SIDE, ThumbCache, missing_files, read_thumbnail, shows_cover, spread_image,
+    thumbnail_image, write_big_thumbnail, write_thumbnail,
 };
 
 /// Versão do formato do arquivo.
@@ -26,6 +32,8 @@ const VERSION: u32 = 1;
 pub const RECENTS_FILE: &str = "recentes.json";
 /// Pasta das miniaturas, ao lado da lista.
 pub const THUMBS_DIR: &str = "recentes";
+/// O fim do nome da miniatura grande, para achar e apagar a do álbum anterior.
+const BIG_THUMB_END: &str = "-grande.png";
 /// Até 20 álbuns na lista e 8 fixados (regra 2).
 pub const MAX_RECENTS: usize = 20;
 pub const MAX_PINNED: usize = 8;
@@ -53,6 +61,20 @@ pub struct Recent {
     pub current: usize,
     #[serde(rename = "fixado")]
     pub pinned: bool,
+    /// A imagem do álbum tem dobra: é uma lâmina de duas páginas, não a capa (spec DI, regras 12 e 16).
+    #[serde(rename = "dobra", default = "with_fold")]
+    pub fold: bool,
+    /// Parou na capa, e `current` guarda a última lâmina para quando sair dela (spec DI, regra 13).
+    #[serde(rename = "na_capa", default)]
+    pub on_cover: bool,
+    /// A imagem do álbum é a capa aberta (spec DI, regra 16).
+    #[serde(rename = "imagem_da_capa", default)]
+    pub cover_image: bool,
+}
+
+/// Quem veio de antes da spec DI: a tela só perde a sombra ao abrir o álbum de novo.
+fn with_fold() -> bool {
+    true
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -110,6 +132,12 @@ impl RecentsStore {
         Some(folder.join(format!("{:016x}.png", code(&key(file)))))
     }
 
+    /// Onde fica a miniatura grande de `file` (spec DI, regra 14): só o álbum em andamento tem.
+    pub fn big_thumb_path(&self, file: &Path) -> Option<PathBuf> {
+        let folder = self.path.as_ref()?.parent()?.join(THUMBS_DIR);
+        Some(folder.join(format!("{:016x}{BIG_THUMB_END}", code(&key(file)))))
+    }
+
     /// Grava com segurança (temporário + renomear). `Err` com a mensagem da seção 6.
     pub fn save(&self) -> Result<(), String> {
         let Some(path) = &self.path else {
@@ -122,7 +150,10 @@ impl RecentsStore {
 
     /// Apaga a miniatura de `file` (o álbum saiu da lista). Sem arquivo, nada a apagar.
     fn forget_thumb(&self, file: &Path) {
-        if let Some(thumb) = self.thumb_path(file) {
+        for thumb in [self.thumb_path(file), self.big_thumb_path(file)]
+            .into_iter()
+            .flatten()
+        {
             // A miniatura que não existe (nunca salvou) já está como deveria.
             let _ = std::fs::remove_file(thumb);
         }

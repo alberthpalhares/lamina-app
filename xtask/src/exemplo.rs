@@ -6,8 +6,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use image::imageops::FilterType;
-use image::{DynamicImage, codecs::jpeg::JpegEncoder};
-use lamina_editor::{EXAMPLE_FILE, Editor};
+use image::{DynamicImage, RgbaImage, codecs::jpeg::JpegEncoder};
+use lamina_editor::recents::spread_image;
+use lamina_editor::{Cache, EXAMPLE_FILE, Editor};
 
 /// A pasta do exemplo no repositório.
 pub const EXAMPLE: &str = "crates/lamina-app/exemplo";
@@ -15,6 +16,10 @@ pub const EXAMPLE: &str = "crates/lamina-app/exemplo";
 pub const MAX_BYTES: u64 = 8 * 1024 * 1024;
 pub const LONG_SIDE: u32 = 1600;
 const QUALITY: u8 = 78;
+/// A lâmina que a tela inicial mostra na primeira vez, embutida no programa (spec DI, regra 8).
+pub const FIRST_SPREAD: &str = "crates/lamina-app/icons/exemplo-primeira-lamina.jpg";
+const FIRST_SPREAD_SIDE: u32 = 1200;
+const FIRST_SPREAD_QUALITY: u8 = 80;
 const PHOTOS: std::ops::RangeInclusive<usize> = 16..=20;
 const SPREADS: std::ops::RangeInclusive<usize> = 6..=8;
 
@@ -48,10 +53,13 @@ fn prepare(from: &Path, to: &Path) -> Result<(), String> {
 /// `cargo xtask exemplo <pasta>` prepara as fotos e monta o álbum; `--album` só monta o álbum.
 pub fn run(args: &[String]) -> bool {
     let ok = match args {
+        [flag] if flag == "--imagem" => return first_spread_only(),
         [flag] if flag == "--album" => true,
         [from] => photos(from),
         _ => {
-            eprintln!("uso: cargo xtask exemplo <pasta com as fotos escolhidas> | --album");
+            eprintln!(
+                "uso: cargo xtask exemplo <pasta com as fotos escolhidas> | --album | --imagem"
+            );
             return false;
         }
     };
@@ -62,6 +70,10 @@ pub fn run(args: &[String]) -> bool {
         eprintln!("  ✘ exemplo: o álbum não foi montado: {e}");
         return false;
     }
+    if let Err(e) = write_first_spread(Path::new(EXAMPLE), Path::new(FIRST_SPREAD)) {
+        eprintln!("  ✘ exemplo: a imagem da tela inicial não saiu: {e}");
+        return false;
+    }
     let found = problems(Path::new(EXAMPLE));
     for p in &found {
         eprintln!("  ✘ {p}");
@@ -70,6 +82,20 @@ pub fn run(args: &[String]) -> bool {
         println!("  exemplo ok");
     }
     found.is_empty()
+}
+
+/// `--imagem` só refaz a imagem da tela inicial, sem mexer no álbum (spec DI, regra 8).
+fn first_spread_only() -> bool {
+    match write_first_spread(Path::new(EXAMPLE), Path::new(FIRST_SPREAD)) {
+        Ok(()) => {
+            println!("  imagem da tela inicial ok");
+            true
+        }
+        Err(e) => {
+            eprintln!("  ✘ exemplo: a imagem da tela inicial não saiu: {e}");
+            false
+        }
+    }
 }
 
 fn photos(from: &str) -> bool {
@@ -87,6 +113,28 @@ fn photos(from: &str) -> bool {
         println!("  {name} ← {}", photo.display());
     }
     true
+}
+
+/// A primeira lâmina do exemplo como ela é hoje, no tamanho da tela inicial.
+fn first_spread(dir: &Path) -> Result<RgbaImage, String> {
+    let mut editor = Editor::new();
+    editor
+        .open(&dir.join(EXAMPLE_FILE))
+        .map_err(|e| e.to_string())?;
+    let session = editor.session().ok_or("nenhum álbum aberto")?;
+    let cache = Cache::new(std::env::temp_dir().join("lamina-exemplo-cache"));
+    spread_image(session.project(), &cache, FIRST_SPREAD_SIDE)?
+        .ok_or("o exemplo não tem lâminas".to_owned())
+}
+
+/// Grava a imagem da primeira vez (spec DI, regra 8).
+fn write_first_spread(dir: &Path, to: &Path) -> Result<(), String> {
+    let image = DynamicImage::ImageRgba8(first_spread(dir)?).to_rgb8();
+    let file = fs::File::create(to).map_err(|e| format!("{}: {e}", to.display()))?;
+    let mut out = std::io::BufWriter::new(file);
+    JpegEncoder::new_with_quality(&mut out, FIRST_SPREAD_QUALITY)
+        .encode_image(&image)
+        .map_err(|e| format!("{}: {e}", to.display()))
 }
 
 /// A foto tem dados da câmera (EXIF) ou do editor (XMP)?
@@ -159,11 +207,61 @@ fn album_problems(file: &Path) -> Vec<String> {
 mod tests {
     use super::*;
 
+    /// Diferença média aceita entre a imagem embutida e a lâmina de hoje (o JPEG perde um pouco).
+    const MAX_DIFFERENCE: f64 = 4.0;
+
+    /// A diferença média, por canal, entre duas imagens do mesmo tamanho; `None` se o tamanho mudou.
+    fn difference(a: &RgbaImage, b: &RgbaImage) -> Option<f64> {
+        if a.dimensions() != b.dimensions() {
+            return None;
+        }
+        let total: u64 = a
+            .pixels()
+            .zip(b.pixels())
+            .map(|(x, y)| {
+                (0..3)
+                    .map(|c| u64::from(x.0[c].abs_diff(y.0[c])))
+                    .sum::<u64>()
+            })
+            .sum();
+        Some(total as f64 / (u64::from(a.width()) * u64::from(a.height()) * 3) as f64)
+    }
+
+    /// A imagem embutida ainda é a primeira lâmina de hoje (DI-B13)?
+    fn stale_first_spread(embedded: &RgbaImage, today: &RgbaImage) -> Option<String> {
+        let advice = "rode `cargo xtask exemplo --imagem` e inclua a imagem no PR";
+        match difference(embedded, today) {
+            Some(d) if d <= MAX_DIFFERENCE => None,
+            Some(d) => Some(format!(
+                "a imagem da tela inicial difere da lâmina em {d:.1}; {advice}"
+            )),
+            None => Some(format!(
+                "a imagem da tela inicial mudou de tamanho; {advice}"
+            )),
+        }
+    }
+
     #[test]
     fn pc_b5_o_exemplo_do_repositorio_esta_pronto_para_leigos() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
         let found = problems(&root.join(EXAMPLE));
         assert!(found.is_empty(), "{found:#?}");
+    }
+
+    #[test]
+    fn di_b13_a_imagem_do_exemplo_e_a_primeira_lamina_de_hoje() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+        let file = root.join(FIRST_SPREAD);
+        assert!(fs::metadata(&file).unwrap().len() < 200 * 1024);
+        let embedded = image::open(&file).unwrap().into_rgba8();
+        assert_eq!(embedded.width(), FIRST_SPREAD_SIDE);
+        let today = first_spread(&root.join(EXAMPLE)).unwrap();
+        assert_eq!(stale_first_spread(&embedded, &today), None);
+        // Com outra imagem no lugar, a comparação reprova e diz o que fazer.
+        let mut other = today.clone();
+        other.pixels_mut().for_each(|p| p.0[1] = 255 - p.0[1]);
+        let why = stale_first_spread(&embedded, &other).unwrap();
+        assert!(why.contains("cargo xtask exemplo --imagem"), "{why}");
     }
 
     #[test]
