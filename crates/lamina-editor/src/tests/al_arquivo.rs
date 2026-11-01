@@ -1,4 +1,4 @@
-//! Cenários AL-B9 (o que depende da gravação) e AL-B19 a AL-B27 da spec
+//! Cenários AL-B5 e AL-B9 (o que depende da gravação) e AL-B19 a AL-B27 da spec
 //! `specs/aprendizado-de-layouts.md`: o arquivo, o apagar e a gravação fora da linha da janela.
 
 use std::path::{Path, PathBuf};

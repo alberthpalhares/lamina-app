@@ -11,6 +11,9 @@ use crate::suggestions::{Part, Selection, apply};
 use crate::text::{ALL_REJECTED, option_title};
 use crate::{Command, EditorError};
 
+/// A frase da linha das abas (spec AL, regra 20).
+const FREQUENT_RISE: &str = "Os layouts que você usa com frequência sobem na lista.";
+
 /// O que a janela precisa saber da faixa: se está aberta e a opção da prévia.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Band {
@@ -18,11 +21,11 @@ pub struct Band {
     pub hover: Option<usize>,
 }
 
-/// Um cartão da faixa (seção 4): "3. Linhas", "nota 82" e a estrela do favorito.
+/// Um cartão da faixa (seção 4): "3. Linhas" e a estrela do favorito. A nota só ordena (spec AL,
+/// regra 20).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Card {
     pub title: String,
-    pub score: String,
     pub favorite: bool,
 }
 
@@ -41,7 +44,6 @@ impl Panel {
             .enumerate()
             .map(|(i, c)| Card {
                 title: format!("{}. {}", i + 1, option_title(&c.family)),
-                score: format!("nota {:.0}", c.score.total),
                 favorite: self.favorite.get(i).copied().unwrap_or(false),
             })
             .collect()
@@ -53,6 +55,15 @@ impl Panel {
             (Some(reason), _) => reason.to_string(),
             (None, true) => ALL_REJECTED.to_owned(),
             (None, false) => String::new(),
+        }
+    }
+
+    /// A frase da faixa quando não há aviso: por que a ordem muda com o uso (spec AL, regra 20).
+    pub fn hint(&self) -> &'static str {
+        if self.notice().is_empty() {
+            FREQUENT_RISE
+        } else {
+            ""
         }
     }
 }

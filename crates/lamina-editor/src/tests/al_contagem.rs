@@ -1,4 +1,4 @@
-//! Cenários AL-B6 (o que depende da contagem) e AL-B12 a AL-B18 da spec
+//! Cenários AL-B6 (o que depende da contagem), AL-B12 a AL-B18 e AL-B28 da spec
 //! `specs/aprendizado-de-layouts.md`: a visita da lâmina e o que conta ao sair.
 
 use lamina_core::{CoverMeasures, Mm, Project, RelRect};
@@ -316,6 +316,35 @@ fn al_b18_a_lista_so_muda_depois_da_visita() {
     assert!(editor.go_to_spread(3));
     assert!(editor.go_to_spread(2));
     assert_ne!(keys(&editor), before, "ao voltar, é a nova");
+}
+
+#[test]
+fn al_b28_a_faixa_nao_mostra_a_nota_e_avisa_o_que_sobe() {
+    let (mut editor, _dir) = learning_at(album(), 2);
+    let panel = editor.panel(Part::Spread);
+    let hint = "Os layouts que você usa com frequência sobem na lista.";
+    assert_eq!(panel.hint(), hint);
+    for card in panel.cards() {
+        let text = format!("{card:?}").to_lowercase();
+        assert!(!text.contains("nota"), "{text}");
+    }
+    // Os cartões da janela também não têm campo para a nota.
+    let band = include_str!("../../../lamina-app/ui/band.slint");
+    assert!(!band.contains("score"), "a faixa da janela mostra a nota");
+
+    // Com um aviso da lista, vem o aviso no lugar da frase.
+    for _ in 0..panel.options.len() {
+        if !editor.mark_option(0, false) {
+            break;
+        }
+    }
+    let rejected = editor.panel(Part::Spread);
+    assert!(rejected.all_rejected);
+    assert_eq!(rejected.notice(), crate::text::ALL_REJECTED);
+    assert_eq!(rejected.hint(), "");
+
+    // A nota continua ordenando e a IA continua recebendo a explicação.
+    assert!(crate::score_text(&panel.options[0].score).starts_with("Nota "));
 }
 
 #[test]

@@ -11,7 +11,6 @@ import { Motion } from "motion.slint";
 export struct LayoutItem {
     data: SpreadData,
     title: string,
-    score: string,
     favorite: bool,
 }
 
@@ -25,6 +24,8 @@ export global BandUi {
     in property <int> list;
     in property <bool> has-reordered;
     in property <string> notice;
+    // A frase de quando não há aviso (spec AL, regra 20).
+    in property <string> hint;
     // A altura da faixa aberta: a lâmina desce isso em vez de ficar embaixo dela.
     out property <length> height: 156px;
     callback apply(int);
@@ -194,8 +195,8 @@ export component LayoutBand inherits Rectangle {
                     clicked => { BandUi.list-changed(1); root.done(); }
                 }
                 Text {
-                    text: BandUi.notice;
-                    color: Theme.warning;
+                    text: BandUi.notice != "" ? BandUi.notice : BandUi.hint;
+                    color: BandUi.notice != "" ? Theme.warning : Theme.text-2;
                     font-size: Type.small;
                     vertical-alignment: center;
                     overflow: elide;
@@ -266,17 +267,12 @@ export component LayoutBand inherits Rectangle {
                                     }
                                 }
                             }
-                            HorizontalLayout {
-                                spacing: 4px;
-                                Text {
-                                    text: item.title;
-                                    color: i == BandUi.in-use ? Theme.text-strong : Theme.text;
-                                    font-size: Type.caption;
-                                    font-weight: i == BandUi.in-use ? Type.semibold : Type.regular;
-                                    overflow: elide;
-                                    horizontal-stretch: 1;
-                                }
-                                Text { text: item.score; color: Theme.text-2; font-size: Type.caption; }
+                            Text {
+                                text: item.title;
+                                color: i == BandUi.in-use ? Theme.text-strong : Theme.text;
+                                font-size: Type.caption;
+                                font-weight: i == BandUi.in-use ? Type.semibold : Type.regular;
+                                overflow: elide;
                             }
                         }
                     }

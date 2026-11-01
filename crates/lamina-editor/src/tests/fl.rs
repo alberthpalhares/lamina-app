@@ -149,7 +149,6 @@ fn fl_b2_as_mesmas_opcoes_do_painel_de_layouts() {
             card.title,
             format!("{}. {}", i + 1, option_title(&c.family))
         );
-        assert_eq!(card.score, format!("nota {:.0}", c.score.total));
         assert_eq!(card.favorite, panel.favorite[i]);
     }
     assert_eq!(key(&panel.options[0]), favorite, "o favorito em 1º");
