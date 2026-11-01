@@ -91,11 +91,11 @@ xattr -dr com.apple.quarantine /Applications/Lamina.app
 
 ## Primeiro uso
 
-Na tela de boas-vindas, clique em **Experimentar com o álbum de exemplo**. Abre um álbum pronto,
+Na tela de boas-vindas, clique em **Álbum de exemplo**. Abre um álbum pronto,
 com fotos livres, para você ver como o Lamina funciona: troque layouts com as setas ↑ e ↓, passe
 de lâmina com ← e →, ponha um título, exporte. Nada que você fizer ali afeta as suas fotos.
 
-Quando quiser, volte e escolha **Novo álbum com minhas fotos…**: o Lamina monta o álbum a partir
+Quando quiser, volte e escolha **Novo álbum…**: o Lamina monta o álbum a partir
 de uma pasta de fotos.
 
 ## Atualizações

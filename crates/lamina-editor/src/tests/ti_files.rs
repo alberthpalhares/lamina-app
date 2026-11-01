@@ -151,7 +151,7 @@ fn ti_b12_fechar_o_album_volta_a_tela_inicial() {
     assert!(editor.close_album());
     assert!(editor.session().is_none());
     assert_eq!(editor.recents().list()[0].current, 3);
-    assert_eq!(welcome_buttons(true)[0], Command::NewAlbum);
+    assert!(welcome_buttons(true).bar.contains(&Command::NewAlbum));
     assert!(!editor.available(Command::CloseAlbum));
     assert!(!editor.close_album(), "sem álbum, nada a fechar");
 }

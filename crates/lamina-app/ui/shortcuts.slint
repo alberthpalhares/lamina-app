@@ -1,9 +1,9 @@
 // Ajuda → "Atalhos do teclado…" (spec AT): a lista de atalhos e gestos, com busca. Só desenho: a
 // lista, a busca e o texto das teclas saem do `lamina-editor` (`shortcuts::sheet`).
 
-import { Button, LineEdit, ScrollView } from "std-widgets.slint";
-import { Theme, Type, Radius } from "theme.slint";
-import { Panel } from "widgets.slint";
+import { LineEdit, ScrollView } from "std-widgets.slint";
+import { Theme, Type, Radius, Space, Line } from "theme.slint";
+import { DialogButton, Panel, SectionTitle } from "widgets.slint";
 
 // Uma linha: o que faz e as teclas (o principal e os alternativos) ou, num gesto, como fazer.
 export struct ShortcutRow {
@@ -33,11 +33,11 @@ export global ShortcutsUi {
 // Uma tecla desenhada como teclinha.
 component Keycap inherits Rectangle {
     in property <string> text;
-    width: max(24px, label.preferred-width + 12px);
-    height: 22px;
+    width: max(Space.s5, label.preferred-width + Space.s3);
+    height: Space.s5;
     border-radius: Radius.small;
-    border-width: 1px;
-    border-color: Theme.overlay;
+    border-width: Line.thin;
+    border-color: Theme.line-strong;
     background: Theme.hover;
     label := Text {
         text: root.text;
@@ -50,14 +50,15 @@ component Keycap inherits Rectangle {
 
 component GroupView inherits VerticalLayout {
     in property <ShortcutGroup> group;
-    spacing: 6px;
-    padding-bottom: 14px;
-    Text { text: root.group.title; font-size: Type.title; font-weight: Type.semibold; color: Theme.text; }
+    spacing: Space.s2;
+    padding-bottom: Space.s4;
+    SectionTitle { text: root.group.title; }
     for row in root.group.rows: HorizontalLayout {
-        spacing: 12px;
+        spacing: Space.s3;
         Text {
             text: row.does;
             color: Theme.text;
+            font-size: Type.body;
             wrap: word-wrap;
             horizontal-stretch: 1;
             vertical-alignment: center;
@@ -65,16 +66,17 @@ component GroupView inherits VerticalLayout {
         if row.gesture: Text {
             text: row.keys[0];
             color: Theme.text-2;
+            font-size: Type.small;
             wrap: word-wrap;
-            horizontal-stretch: 1;
+            horizontal-stretch: 2;
             horizontal-alignment: right;
             vertical-alignment: center;
         }
         if !row.gesture: HorizontalLayout {
-            spacing: 4px;
+            spacing: Space.s1;
             alignment: end;
             for key[i] in row.keys: HorizontalLayout {
-                spacing: 4px;
+                spacing: Space.s1;
                 if i > 0: Text { text: "ou"; color: Theme.text-2; font-size: Type.small; vertical-alignment: center; }
                 Keycap { text: key; }
             }
@@ -107,8 +109,8 @@ export component ShortcutsDialog inherits Rectangle {
             // Cliques dentro da janela não fecham.
             TouchArea { }
             VerticalLayout {
-                padding: 24px;
-                spacing: 12px;
+                padding: Space.s5;
+                spacing: Space.s3;
                 Text { text: "Atalhos do teclado e do mouse"; font-size: Type.heading; font-weight: Type.semibold; color: Theme.text; }
                 search := LineEdit {
                     placeholder-text: "Buscar: “lâmina”, “salvar” ou “ctrl+z”";
@@ -116,7 +118,7 @@ export component ShortcutsDialog inherits Rectangle {
                     edited(text) => { ShortcutsUi.search(text); }
                 }
                 if ShortcutsUi.empty != "": VerticalLayout {
-                    spacing: 4px;
+                    spacing: Space.s1;
                     Text { text: ShortcutsUi.empty; color: Theme.text; wrap: word-wrap; }
                     Text { text: ShortcutsUi.hint; color: Theme.text-2; wrap: word-wrap; }
                 }
@@ -124,8 +126,8 @@ export component ShortcutsDialog inherits Rectangle {
                     vertical-stretch: 1;
                     // Duas colunas; numa janela estreita, uma só (seção 4).
                     if root.width >= 760px: HorizontalLayout {
-                        spacing: 32px;
-                        padding-right: 12px;
+                        spacing: Space.s6;
+                        padding-right: Space.s3;
                         VerticalLayout {
                             alignment: start;
                             horizontal-stretch: 1;
@@ -139,13 +141,13 @@ export component ShortcutsDialog inherits Rectangle {
                     }
                     if root.width < 760px: VerticalLayout {
                         alignment: start;
-                        padding-right: 12px;
+                        padding-right: Space.s3;
                         for g in ShortcutsUi.all: GroupView { group: g; }
                     }
                 }
                 HorizontalLayout {
                     alignment: end;
-                    Button {
+                    DialogButton {
                         text: "Fechar";
                         clicked => {
                             ShortcutsUi.show = false;

@@ -13,7 +13,7 @@ ou mandar código.
 - Se algo deu errado, **Ajuda → Abrir pasta de registros** mostra o `lamina.log`: anexe esse
   arquivo.
 - **Nunca anexe fotos de clientes.** Se precisar mostrar uma lâmina, use o álbum de exemplo
-  (tela de boas-vindas → Experimentar com o álbum de exemplo).
+  (tela de boas-vindas → Álbum de exemplo).
 
 ## Mandar código
 

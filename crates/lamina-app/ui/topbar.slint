@@ -1,13 +1,15 @@
 // O topo da janela (spec janela-principal; barra enxuta da spec JE): Início, o título com o
 // contador, e à direita só Fotos, Painel e Exportar. Novo, Abrir e Salvar ficam no menu Arquivo e
 // o Texto na barra da lâmina. Cada botão roda um comando do registro pelo nome estável; as dicas
-// vêm do editor (`bar_tip`).
+// vêm do editor (`bar_tip`). Sem álbum aberto, a mesma barra traz o logo e os botões da tela inicial,
+// que moram em `welcome_cards.slint` (spec DI): a trava JE-B9 continua valendo para os daqui.
 
 import { LineEdit } from "std-widgets.slint";
 import { Theme, Type } from "theme.slint";
 import { Icons } from "icons.slint";
 import { BarButton, IconButton, Tip } from "widgets.slint";
 import { Mark } from "marks.slint";
+import { WelcomeActions } from "welcome_cards.slint";
 
 // O nome do álbum que vira campo com clique duplo (spec NA): Enter ou clicar fora confirma, Esc
 // desiste. Só desenho: o editor limpa o nome e decide se muda.
@@ -147,7 +149,17 @@ export component TopBar inherits Rectangle {
                 Mark { name: "botao-inicio"; }
             }
         }
-        AlbumName {
+        if !root.has-project: VerticalLayout {
+            alignment: center;
+            Image {
+                accessible-role: none;
+                width: 100px;
+                height: 22px;
+                source: @image-url("../icons/lamina-logo-escuro.svg");
+                image-fit: contain;
+            }
+        }
+        if root.has-project: AlbumName {
             title: root.project-title;
             name: root.album-name;
             renaming <=> root.renaming;
@@ -157,6 +169,7 @@ export component TopBar inherits Rectangle {
         if root.counter-warning != "": Text { text: root.counter-warning; color: Theme.warning; vertical-alignment: center; overflow: elide; min-width: 0px; }
         if root.has-project && root.page-meter.text != "": PageMeter { data: root.page-meter; room: root.meter-room; }
         Rectangle { horizontal-stretch: 1; }
+        if !root.has-project: WelcomeActions { command(name) => { root.command(name); } }
         if root.has-project: VerticalLayout {
             alignment: center;
             // As faixas de baixo (spec FX, regras 7 e 8): o desenho da janela com a área de baixo

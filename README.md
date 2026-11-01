@@ -224,8 +224,8 @@ tem cada clique, com as telas.
 
 ## Por dentro do Lamina
 
-Na tela de boas-vindas, **Experimentar com o álbum de exemplo** abre um álbum pronto, com fotos
-livres, para você ver tudo funcionando. Depois, **Novo álbum com minhas fotos…** monta o seu.
+Na tela de boas-vindas, **Álbum de exemplo** abre um álbum pronto, com fotos
+livres, para você ver tudo funcionando. Depois, **Novo álbum…** monta o seu.
 
 <table>
   <tr>
