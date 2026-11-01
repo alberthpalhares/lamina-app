@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use lamina_core::PageSide;
 use lamina_editor::forms::{LookField, mm_text};
+use lamina_editor::new_project::picker_color;
 use lamina_editor::{BAD_COLOR, PALETTE, color_hex, parse_color};
 use slint::{Color, ComponentHandle};
 
@@ -47,8 +48,16 @@ pub fn refresh(app: &App) {
             .is_some_and(|sp| sp.manual)
     });
     ui.set_manual(manual);
-    if ui.get_hex_error().is_empty() {
-        ui.set_hex(color_hex(look.left).into());
+    ui.set_hex(color_hex(look.left).into());
+    ui.set_hex_right(color_hex(look.right).into());
+}
+
+/// O lado que a tela pediu: 0, 1 ou -1 para a lâmina toda.
+fn page_side(side: i32) -> Option<PageSide> {
+    match side {
+        0 => Some(PageSide::Left),
+        1 => Some(PageSide::Right),
+        _ => None,
     }
 }
 
@@ -81,16 +90,18 @@ pub fn connect(window: &AppWindow, app: &Shared) {
         let Some((_, c)) = usize::try_from(i).ok().and_then(|i| PALETTE.get(i)) else {
             return;
         };
-        let side = match side {
-            0 => Some(PageSide::Left),
-            1 => Some(PageSide::Right),
-            _ => None,
-        };
-        app.editor.set_background(*c, side);
+        app.editor.set_background(*c, page_side(side));
         after(&mut app, None);
     });
     let a = app.clone();
-    ui.on_background_hex(move |text| {
+    ui.on_background_at(move |x, y, side| {
+        let mut app = a.borrow_mut();
+        let c = picker_color(f64::from(x), f64::from(y));
+        app.editor.set_background(c, page_side(side));
+        after(&mut app, None);
+    });
+    let a = app.clone();
+    ui.on_background_hex(move |text, side| {
         let mut app = a.borrow_mut();
         let Some(w) = app.window.upgrade() else {
             return;
@@ -98,7 +109,7 @@ pub fn connect(window: &AppWindow, app: &Shared) {
         match parse_color(&text) {
             Some(c) => {
                 w.global::<LookUi>().set_hex_error("".into());
-                app.editor.set_background(c, None);
+                app.editor.set_background(c, page_side(side));
                 after(&mut app, None);
             }
             None => w.global::<LookUi>().set_hex_error(BAD_COLOR.into()),

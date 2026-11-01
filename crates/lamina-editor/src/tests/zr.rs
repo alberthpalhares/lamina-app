@@ -340,10 +340,7 @@ fn zr_b9_esc_ainda_conclui() {
     let o = Command::from_shortcut(Shortcut::key(Key::Char('o'))).unwrap();
     assert!(editor.run(o));
     assert!(editor.organizing());
-    assert_eq!(
-        editor.organize_title(),
-        "Organizando a lâmina 1 · Esc volta"
-    );
+    assert_eq!(editor.organize_title(), "Organizar a lâmina 1");
     let menu = editor.context_menu(None);
     assert!(menu_labels(&menu).iter().any(|l| l == "Voltar"));
     assert!(editor.run(o));

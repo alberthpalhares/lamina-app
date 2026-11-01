@@ -152,7 +152,7 @@ export component Stage inherits Rectangle {
     // layouts empurra a lâmina (e o rolo) para baixo, junto com ela (spec FL, regra 12).
     property <length> band-room: BandUi.open ? BandUi.height : 0px;
     animate band-room { duration: Motion.on ? Motion.band-ms * 1ms : 0ms; easing: ease-out; }
-    property <length> top-room: OrganizeUi.on ? 52px : self.band-room;
+    property <length> top-room: OrganizeUi.on ? 58px : self.band-room;
     // Com o rolo (spec RL, regra 2), a largura vem do Rust (`roll_width`), deixando 8% de cada
     // lado para as vizinhas.
     property <length> canvas-width: RollUi.on ? RollUi.width : root.current.aspect > 0
@@ -372,11 +372,11 @@ export component Stage inherits Rectangle {
         unit: big.width;
     }
     if OrganizeUi.on: OrganizeRulers {
-        y: 34px;
+        y: 40px;
         width: parent.width;
-        height: parent.height - 34px;
+        height: parent.height - 40px;
         lx: big.x;
-        ly: big.y - 34px;
+        ly: big.y - 40px;
         unit: big.width;
     }
     if OrganizeUi.on && (OrganizeUi.tool != 0 || OrganizeUi.hand): OrganizeTools {

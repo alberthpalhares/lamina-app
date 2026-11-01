@@ -140,3 +140,21 @@ export component CheckRow inherits Rectangle {
         }
     }
 }
+
+// O quadro de cores (specs NP e DG): matiz na horizontal; do branco (topo) à cor pura (meio) e ao
+// preto (embaixo). Devolve o ponto clicado, em frações; a conta é do editor (`picker_color`).
+export component ColorArea inherits Rectangle {
+    callback picked(float, float);
+    accessible-role: image;
+    accessible-label: "Quadro de cores";
+    height: 70px;
+    width: 176px;
+    border-radius: Radius.small;
+    clip: true;
+    background: @linear-gradient(90deg, Fixed.red 0%, Fixed.yellow 17%, Fixed.lime 33%, Fixed.cyan 50%, Fixed.blue 67%, Fixed.pink 83%, Fixed.red 100%);
+    Rectangle { background: @linear-gradient(180deg, Fixed.paper 0%, Fixed.white-clear 50%, Fixed.black-clear 50%, Fixed.ink 100%); }
+    TouchArea {
+        mouse-cursor: crosshair;
+        clicked => { root.picked(self.mouse-x / root.width, self.mouse-y / root.height); }
+    }
+}

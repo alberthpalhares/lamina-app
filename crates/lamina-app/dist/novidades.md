@@ -13,6 +13,10 @@ botão "Experimente agora": `<!-- imagem: atalhos.png; comando: ajuda.atalhos --
 
 ## [Não lançado]
 
+- **O modo organizar mais limpo.** No notebook, Alinhar, Igualar e Distribuir ficam à vista, e as margens de
+  segurança passam a cinza, para não parecerem seleção. O fundo ganhou "Outra cor…", com um quadro para escolher a
+  cor no clique. Experimente: dê dois cliques fora dos quadros de uma lâmina e abra "Outra cor…" no painel.
+
 ## [0.1.0-beta.8.1] - 2026-10-31
 
 Esta versão corrige a recuperação do trabalho depois de uma queda.

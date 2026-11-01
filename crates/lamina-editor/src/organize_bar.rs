@@ -3,15 +3,15 @@
 
 use crate::Command;
 
-/// Voltar, as ferramentas, o zoom (−, controle, +, valor), os botões de painel, o ⋯ e as bordas:
-/// nunca saem da barra (regra 3), em px lógicos.
-pub const BAR_FIXED: f64 = 740.0;
+/// Voltar, as ferramentas, o zoom (−, controle, +, valor), o ⋯ e as bordas: nunca saem da barra
+/// (regra 3), em px lógicos (spec DG, regra 3).
+pub const BAR_FIXED: f64 = 590.0;
 /// Ajustar e 1:1.
 pub const BAR_FIT: f64 = 72.0;
 /// Alinhar, Igualar e Distribuir.
 pub const BAR_MENUS: f64 = 270.0;
 /// X, Y, L, A e o cadeado.
-pub const BAR_FIELDS: f64 = 330.0;
+pub const BAR_FIELDS: f64 = 360.0;
 
 /// Os grupos que cabem na barra; o resto vai para o ⋯.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

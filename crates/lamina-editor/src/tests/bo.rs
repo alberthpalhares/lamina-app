@@ -28,7 +28,7 @@ fn bo_b1_o_que_cabe_na_barra() {
         }
     );
     assert_eq!(
-        bar_fit(800.0),
+        bar_fit(640.0),
         BarFit {
             fit: false,
             menus: false,
