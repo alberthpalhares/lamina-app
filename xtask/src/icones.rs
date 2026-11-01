@@ -21,7 +21,7 @@ const SURFACES: &[&str] = &[
     "Knob",
     "LayoutBand",
     "ModelsDialog",
-    "NewsDialog",
+    "NewsPage",
     "OrganizeTools",
     "PanelDivider",
     "PhotoGrid",

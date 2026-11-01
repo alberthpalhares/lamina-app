@@ -104,14 +104,12 @@ fn row(slot: &Slot, rows: &[FrameData], old: Option<FrameData>) -> FrameData {
 mod tests {
     use std::rc::Rc;
 
-    use slint::platform::software_renderer::{MinimalSoftwareWindow, RepaintBufferType};
-    use slint::platform::{Platform, WindowAdapter};
     use slint::{
-        Color, ComponentHandle, Image, Model, ModelRc, PhysicalSize, Rgb8Pixel, Rgba8Pixel,
-        SharedPixelBuffer, VecModel,
+        Color, ComponentHandle, Image, Model, ModelRc, Rgb8Pixel, Rgba8Pixel, SharedPixelBuffer,
+        VecModel,
     };
 
-    use crate::{AppWindow, BoxData, FrameData, SpreadData};
+    use crate::{BoxData, FrameData, SpreadData, headless};
 
     const WIDTH: u32 = 1600;
     const HEIGHT: u32 = 1000;
@@ -119,24 +117,6 @@ mod tests {
     const GREY: (u8, u8, u8) = (128, 128, 128);
     /// Mais que isto, é uma área: alguns poucos pixels dessa cor saem da borda das letras.
     const LOTS: usize = 1000;
-
-    /// A janela de verdade, sem tela: desenha num buffer e deixa o teste escolher quando desenhar.
-    struct Headless(Rc<MinimalSoftwareWindow>);
-
-    impl Platform for Headless {
-        fn create_window_adapter(&self) -> Result<Rc<dyn WindowAdapter>, slint::PlatformError> {
-            Ok(self.0.clone())
-        }
-    }
-
-    fn draw(window: &MinimalSoftwareWindow) -> Vec<Rgb8Pixel> {
-        let mut pixels = vec![Rgb8Pixel::default(); (WIDTH * HEIGHT) as usize];
-        slint::platform::update_timers_and_animations();
-        window.draw_if_needed(|r| {
-            r.render(&mut pixels, WIDTH as usize);
-        });
-        pixels
-    }
 
     fn count(pixels: &[Rgb8Pixel], (r, g, b): (u8, u8, u8)) -> usize {
         pixels
@@ -195,11 +175,8 @@ mod tests {
 
     #[test]
     fn rl_b30_a_foto_que_chega_entre_dois_desenhos_aparece_na_vaga() {
-        let window = MinimalSoftwareWindow::new(RepaintBufferType::NewBuffer);
-        slint::platform::set_platform(Box::new(Headless(window.clone()))).unwrap();
-        let w = AppWindow::new().unwrap();
-        window.set_size(PhysicalSize::new(WIDTH, HEIGHT));
-        w.show().unwrap();
+        let screen = headless::open(WIDTH, HEIGHT).unwrap();
+        let w = &screen.app;
         w.set_has_project(true);
         w.set_spreads(ModelRc::from(Rc::new(VecModel::from(vec![
             SpreadData::default(),
@@ -212,14 +189,14 @@ mod tests {
         let rows = Rc::new(VecModel::from(vec![slot(None)]));
         w.set_slots(ModelRc::from(rows.clone()));
         w.set_current(spread(&rows));
-        let before = draw(&window);
+        let before = screen.draw();
         assert!(count(&before, GREY) > LOTS, "a vaga sem foto aparece cinza");
 
         // Duas atualizações da lâmina antes do próximo desenho: a miniatura chega na segunda.
         w.set_current(spread(&rows));
         rows.set_row_data(0, slot(Some(red_image())));
         w.set_current(spread(&rows));
-        let after = draw(&window);
+        let after = screen.draw();
 
         assert!(count(&after, GREY) < LOTS, "a vaga ficou cinza");
         assert!(count(&after, (255, 0, 0)) > LOTS, "a foto não entrou");

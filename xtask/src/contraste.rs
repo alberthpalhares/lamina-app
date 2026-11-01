@@ -63,6 +63,7 @@ pub fn ratio(a: [u8; 3], b: [u8; 3]) -> f64 {
     (la.max(lb) + 0.05) / (la.min(lb) + 0.05)
 }
 
+const TAG_BACKGROUNDS: &[&str] = &["tag-new-bg", "tag-bg"];
 const SURFACES: &[&str] = &["stage", "strip", "panel", "bar", "raised", "field"];
 const NEUTRALS: &[&str] = &[
     "g1",
@@ -116,6 +117,9 @@ pub fn problems(theme: &str, p: &Palette, brand: [u8; 3]) -> Vec<String> {
             need(fg, bg, 3.0);
         }
     }
+    for bg in TAG_BACKGROUNDS {
+        need("tag-text", bg, 4.5);
+    }
     need("on-accent", "accent", 4.5);
     need("on-accent", "accent-hover", 4.5);
     out.extend(hue_problems(theme, p));
@@ -136,6 +140,34 @@ fn hue_problems(theme: &str, p: &Palette) -> Vec<String> {
         })
         .map(|k| format!("{theme}: {k} tem matiz (R, G e B diferentes)"))
         .collect()
+}
+
+/// Fundos de etiqueta com alfa: a conta de contraste ignora o alfa, então eles precisam ser opacos
+/// (spec PV, regra 13).
+pub fn alpha_problems(text: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut theme = "";
+    for line in text.lines().map(str::trim) {
+        if let Some(name) = line
+            .strip_prefix("out property <Colors> ")
+            .and_then(|r| r.strip_suffix(": {"))
+        {
+            theme = name;
+        }
+        for (name, value) in line.split(',').filter_map(|p| p.split_once(':')) {
+            let name = name.trim();
+            let value = value.trim();
+            if TAG_BACKGROUNDS.contains(&name)
+                && value.starts_with('#')
+                && value.len() != "#rrggbb".len()
+            {
+                out.push(format!(
+                    "{theme}: {name} tem alfa: o fundo da etiqueta precisa ser opaco"
+                ));
+            }
+        }
+    }
+    out
 }
 
 /// Palco < faixa < painel em claridade, com pelo menos 1,1:1 entre vizinhas (regra 5 da DF), nos
@@ -195,6 +227,7 @@ pub fn run() -> bool {
     found.extend(problems("light", light, light_cyan));
     found.extend(surface_problems("dark", dark));
     found.extend(surface_problems("light", light));
+    found.extend(alpha_problems(&text));
     found.extend(
         missing(dark, light)
             .into_iter()

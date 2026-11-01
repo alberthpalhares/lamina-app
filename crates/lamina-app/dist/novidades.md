@@ -9,13 +9,21 @@ Cada item diz o que mudou e como ver a mudança, em linguagem de fotógrafo:
 `- **O que mudou.** Explicação curta. Experimente: o que fazer para ver.` O `cargo xtask versao`
 avisa (sem impedir a versão) quando um item não tem "Experimente:". No fim do item, um comentário
 que a página da versão não mostra põe a ilustração (um arquivo de `novidades/`) e o comando do
-botão "Experimente agora": `<!-- imagem: atalhos.png; comando: ajuda.atalhos -->`.
+botão "Experimente agora": `<!-- imagem: atalhos.png; comando: ajuda.atalhos -->`. O comentário também
+aceita `tipo: novo` ou `melhoria`, `video:` com o endereço de uma página `site/v/<nome>.html`, `fixada: sim`
+(no máximo 3 por versão) e `so: windows`, `mac` ou `linux`. A imagem, quando existe, vem sempre primeiro, e
+todo item com `video` ou `fixada` precisa dela.
 
 ## [Não lançado]
 
 - **O modo organizar mais limpo.** No notebook, Alinhar, Igualar e Distribuir ficam à vista, e as margens de
   segurança passam a cinza, para não parecerem seleção. O fundo ganhou "Outra cor…", com um quadro para escolher a
   cor no clique. Experimente: dê dois cliques fora dos quadros de uma lâmina e abra "Outra cor…" no painel.
+- **Uma página de novidades.** "O que há de novo" agora cobre a janela e mostra tudo de uma vez: em cada versão, a data e
+  as novidades inteiras, sem precisar clicar para ler. Dá para filtrar e buscar sem internet, e cada novidade tem o botão
+  que já abre o recurso. A animação de cada novidade toca com um clique. Experimente: abra Ajuda, "O que há de novo…", e
+  digite uma palavra na busca.
+  <!-- tipo: novo -->
 
 ## [0.1.0-beta.8.1] - 2026-10-31
 

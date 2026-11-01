@@ -1,4 +1,4 @@
-//! Toca a animação da novidade escolhida no "O que há de novo" (spec NV, regra 12). O que cada
+//! Toca a animação de uma novidade na própria capa, com um clique (spec PV, regra 9). O que cada
 //! quadro mostra e quando o laço volta sai do `lamina_editor::updates::news::Animation`; aqui só o
 //! temporizador e a troca da imagem na janela.
 
@@ -10,12 +10,11 @@ use slint::{ComponentHandle, Image, Rgba8Pixel, SharedPixelBuffer};
 
 use crate::{AppWindow, NewsUi};
 
-/// As ilustrações da lista, a animação que toca e a geração dela: escolher outra novidade muda a
-/// geração, e o quadro agendado da anterior não troca mais nada.
+/// O item que toca, a animação dele e a geração: tocar outro item ou parar muda a geração, e o quadro
+/// agendado da anterior não troca mais nada.
 #[derive(Default)]
 struct Player {
-    entries: Vec<Option<&'static [u8]>>,
-    reduce_motion: bool,
+    item: Option<usize>,
     generation: u64,
     animation: Option<Animation<'static>>,
 }
@@ -36,37 +35,45 @@ pub fn image(picture: &Illustration) -> Image {
     Image::from_rgba8(buffer)
 }
 
-/// Guarda as ilustrações de cada linha da lista (na ordem da lista) ao abrir a janela.
-pub fn load(entries: Vec<Option<&'static [u8]>>, reduce_motion: bool) {
-    PLAYER.with_borrow_mut(|p| {
-        p.entries = entries;
-        p.reduce_motion = reduce_motion;
-    });
+/// O item que toca agora: identifica o item, não a linha, porque com filtro as linhas mudam.
+pub fn playing() -> Option<usize> {
+    PLAYER.with_borrow(|p| p.item)
 }
 
-/// Começa a tocar a ilustração da linha `index`. Parada, sem ilustração ou com "Reduzir
-/// movimento", só para a anterior: a janela mostra o primeiro quadro, que já está na lista.
-pub fn choose(window: &AppWindow, index: usize) {
-    window.global::<NewsUi>().set_playing(false);
-    let delay = PLAYER.with_borrow_mut(|p| {
-        p.generation += 1;
-        let bytes = p.entries.get(index).copied().flatten();
-        p.animation = bytes
-            .and_then(|b| Animation::open(b, p.reduce_motion))
-            .filter(Animation::animated);
-        p.animation
-            .as_ref()
-            .map(|a| (p.generation, a.first().delay_ms))
+/// Um clique na capa do item: toca; se ele já toca, para. Só uma toca por vez.
+pub fn toggle(window: &AppWindow, item: usize, bytes: &'static [u8]) {
+    let again = playing() == Some(item);
+    stop(window);
+    if again {
+        return;
+    }
+    let started = PLAYER.with_borrow_mut(|p| {
+        let animation = Animation::open(bytes, false).filter(Animation::animated)?;
+        let first = animation.first().clone();
+        p.animation = Some(animation);
+        p.item = Some(item);
+        Some((p.generation, first))
     });
-    if let Some((generation, delay_ms)) = delay {
-        schedule(window.as_weak(), generation, delay_ms);
+    if let Some((generation, first)) = started {
+        let ui = window.global::<NewsUi>();
+        ui.set_frame(image(&first.picture));
+        ui.set_playing(i32::try_from(item).unwrap_or(-1));
+        schedule(window.as_weak(), generation, first.delay_ms);
     }
 }
 
-/// Para de tocar (a janela fechou).
-pub fn stop() {
+/// Para de tocar e solta o quadro da memória: a capa volta ao primeiro quadro.
+pub fn stop(window: &AppWindow) {
+    forget();
+    let ui = window.global::<NewsUi>();
+    ui.set_playing(-1);
+    ui.set_frame(Image::default());
+}
+
+fn forget() {
     PLAYER.with_borrow_mut(|p| {
         p.generation += 1;
+        p.item = None;
         p.animation = None;
     });
 }
@@ -77,14 +84,14 @@ fn schedule(window: slint::Weak<AppWindow>, generation: u64, delay_ms: u32) {
     });
 }
 
-/// Troca para o quadro seguinte e agenda o próximo; fechar a janela para o laço.
+/// Troca para o quadro seguinte e agenda o próximo; fechar a página para o laço.
 fn tick(window: &slint::Weak<AppWindow>, generation: u64) {
     let Some(w) = window.upgrade() else {
-        return stop();
+        return forget();
     };
     let ui = w.global::<NewsUi>();
     if !ui.get_show() {
-        return stop();
+        return stop(&w);
     }
     let frame = PLAYER.with_borrow_mut(|p| {
         if p.generation != generation {
@@ -96,6 +103,5 @@ fn tick(window: &slint::Weak<AppWindow>, generation: u64) {
         return;
     };
     ui.set_frame(image(&frame.picture));
-    ui.set_playing(true);
     schedule(window.clone(), generation, frame.delay_ms);
 }
