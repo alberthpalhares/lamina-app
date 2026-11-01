@@ -21,7 +21,6 @@ const SURFACES: &[&str] = &[
     "Knob",
     "LayoutBand",
     "PageBody",
-    "OrganizeBar",
     "OrganizeTools",
     "PanelDivider",
     "PhotoGrid",

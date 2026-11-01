@@ -2,8 +2,8 @@
 // linha e "Outra cor…", que abre o quadro de cores e o código. Só desenho: a conta é do editor.
 
 import { LineEdit } from "std-widgets.slint";
-import { Theme, Fixed, Radius, Line, Space } from "theme.slint";
-import { BarButton, FocusStop } from "widgets.slint";
+import { Theme, Radius, Line, Space } from "theme.slint";
+import { BarButton, ColorArea, FocusStop } from "widgets.slint";
 import { NewProjectUi } from "new_project_ui.slint";
 
 // Uma cor pronta.
@@ -26,8 +26,7 @@ export component ColorSwatch inherits Rectangle {
     FocusStop { activated => { root.picked(); } }
 }
 
-// "Outra cor…": o código e o quadro de cores, num balão por cima do diálogo. Matiz na horizontal;
-// do branco (topo) à cor pura (meio) e ao preto (embaixo).
+// "Outra cor…": o código e o quadro de cores do painel (spec DG, regra 9), num balão por cima do diálogo.
 export component OtherColor inherits BarButton {
     in property <int> which;
     in-out property <string> hex;
@@ -53,20 +52,7 @@ export component OtherColor inherits BarButton {
                     text <=> root.hex;
                     edited => { NewProjectUi.mount-changed(); }
                 }
-                area := Rectangle {
-                    height: 70px;
-                    width: 176px;
-                    border-radius: Radius.small;
-                    clip: true;
-                    accessible-role: image;
-                    accessible-label: "Quadro de cores";
-                    background: @linear-gradient(90deg, Fixed.red 0%, Fixed.yellow 17%, Fixed.lime 33%, Fixed.cyan 50%, Fixed.blue 67%, Fixed.pink 83%, Fixed.red 100%);
-                    Rectangle { background: @linear-gradient(180deg, Fixed.paper 0%, Fixed.white-clear 50%, Fixed.black-clear 50%, Fixed.ink 100%); }
-                    TouchArea {
-                        mouse-cursor: crosshair;
-                        clicked => { NewProjectUi.color-at(root.which, self.mouse-x / area.width, self.mouse-y / area.height); }
-                    }
-                }
+                ColorArea { picked(x, y) => { NewProjectUi.color-at(root.which, x, y); } }
             }
         }
     }

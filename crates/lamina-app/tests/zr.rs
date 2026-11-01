@@ -16,9 +16,11 @@ fn ui(file: &str) -> String {
 #[test]
 fn zr_b1_balao_na_janela_e_linha_de_ajuda_na_destacada() {
     // Desde a spec BO, os botões moram na barra de cima e a paleta destacada saiu: o balão vale
-    // sempre, e os comandos de Alinhar, Igualar e Distribuir viraram menus (BO-B4).
+    // sempre, e os comandos de Alinhar, Igualar e Distribuir viraram menus (BO-B4). Desde a DG, o
+    // balão é o do `IconButton`.
     let palette = ui("palette.slint");
-    assert!(palette.contains("    Tip {"), "o balão, dentro da janela");
+    let buttons = ui("widgets/buttons.slint");
+    assert!(buttons.contains("Tip {"), "o balão, dentro da janela");
     assert!(
         !palette.contains("detached"),
         "não há mais paleta destacada"
@@ -26,9 +28,9 @@ fn zr_b1_balao_na_janela_e_linha_de_ajuda_na_destacada() {
     let bar = ui("organize.slint");
     // As dicas das ferramentas e do zoom vêm do editor, uma por botão, na ordem da paleta.
     let used: Vec<usize> = bar
-        .split("tip: ")
+        .split("tip: PaletteUi.tips[")
         .skip(1)
-        .filter_map(|p| p.split(';').next()?.trim().parse().ok())
+        .filter_map(|p| p.split(']').next()?.trim().parse().ok())
         .collect();
     let mut sorted = used.clone();
     sorted.sort_unstable();

@@ -128,6 +128,8 @@ export component IconButton inherits Rectangle {
     in property <image> icon;
     in property <string> tip;
     in property <bool> checked;
+    // A escolha atual de um grupo, como a ferramenta do modo organizar: no destaque da marca.
+    in property <bool> selected;
     in property <bool> enabled: true;
     // Onde o balão fica, para não sair da janela: -1 começa no botão, 0 no meio, 1 termina nele.
     in property <int> tip-side;
@@ -137,12 +139,12 @@ export component IconButton inherits Rectangle {
     accessible-role: button;
     accessible-label: root.tip;
     accessible-enabled: root.enabled;
-    accessible-checked: root.checked;
+    accessible-checked: root.checked || root.selected;
     accessible-action-default => { root.clicked(); }
     width: 32px;
     height: 32px;
     border-radius: Radius.small;
-    background: root.checked ? Theme.press
+    background: root.selected ? Theme.accent : root.checked ? Theme.press
         : (touch.has-hover && root.enabled ? Theme.hover : transparent);
     animate background { duration: Motion.on ? 120ms : 0ms; }
     Image {
@@ -150,7 +152,7 @@ export component IconButton inherits Rectangle {
         width: root.icon-size;
         height: root.icon-size;
         source: root.icon;
-        colorize: root.enabled ? (root.checked ? Theme.text-strong : Theme.text) : Theme.text-disabled;
+        colorize: !root.enabled ? Theme.text-disabled : root.selected ? Theme.on-accent : root.checked ? Theme.text-strong : Theme.text;
     }
     touch := TouchArea {
         enabled: root.enabled;

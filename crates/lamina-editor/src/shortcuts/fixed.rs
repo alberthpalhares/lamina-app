@@ -71,7 +71,7 @@ const FIXED: [(&str, &str, &str); 22] = [
     ),
     (
         ORGANIZE,
-        "Selecionar com o laço",
+        "Selecionar vários arrastando no vazio",
         "arrastar no vazio (com Shift, soma)",
     ),
     (
