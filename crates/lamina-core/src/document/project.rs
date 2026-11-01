@@ -9,11 +9,11 @@ use super::{
     AlbumLook, Border, ExportPrefs, Frame, FrameContent, FrameId, Mounting, PageLimits, Photo,
     PhotoId, Spread, SpreadId, migration,
 };
-use crate::{AlbumSpec, CoreError, Mm, Rect, RelRect};
+use crate::{ActivePages, AlbumSpec, CoreError, Mm, Rect, RelRect};
 
 /// Versão atual do formato do arquivo de projeto. Suba ao mudar a estrutura e
 /// escreva a migração correspondente em [`Project::from_json`].
-pub const CURRENT_SCHEMA_VERSION: u32 = 7;
+pub const CURRENT_SCHEMA_VERSION: u32 = 8;
 
 /// Espaço entre fotos padrão: 8 pontos tipográficos (spec TP; spec AP, regra 2).
 pub const DEFAULT_GAP: Mm = Mm(8.0 * 25.4 / 72.0);
@@ -148,8 +148,23 @@ impl Project {
             frames: Vec::new(),
             manual: false,
             model: None,
+            blank: super::BlankPages::default(),
         });
         id
+    }
+
+    /// As páginas da lâmina `index` onde entra foto: as ativas menos as em branco (spec PB,
+    /// regra 2). O que é impresso continua com `active_pages`.
+    pub fn content_pages(&self, index: usize) -> ActivePages {
+        let active = self.spec.edges().active_pages(index, self.spreads.len());
+        let blank = self
+            .spreads
+            .get(index)
+            .map_or_else(super::BlankPages::default, |s| s.blank);
+        ActivePages {
+            left: active.left && !blank.left,
+            right: active.right && !blank.right,
+        }
     }
 
     pub fn add_frame(

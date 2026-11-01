@@ -64,6 +64,9 @@ impl Editor {
         let session = self.session.as_ref().ok_or(Unavailable::NoPhotos)?;
         let (project, index) = (session.project(), session.current());
         let cap = capacity(project, index);
+        if cap == 0 && !project.spreads.is_empty() {
+            return Err(Unavailable::BlankSpread);
+        }
         if self.selection.len() > cap {
             return Err(Unavailable::TooMany(cap));
         }
@@ -77,10 +80,7 @@ impl Editor {
                     .map(lamina_core::Photo::aspect_ratio)
             })
             .collect();
-        let active = project
-            .spec
-            .edges()
-            .active_pages(index, project.spreads.len());
+        let active = project.content_pages(index);
         Ok(Selection {
             photos: self.selection.clone(),
             aspects,

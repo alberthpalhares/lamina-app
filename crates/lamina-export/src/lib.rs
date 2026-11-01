@@ -150,6 +150,9 @@ mod lv;
 #[path = "tests/op.rs"]
 mod op;
 #[cfg(test)]
+#[path = "tests/pb.rs"]
+mod pb;
+#[cfg(test)]
 #[path = "tests/pd.rs"]
 mod pd;
 #[cfg(test)]

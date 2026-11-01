@@ -64,6 +64,8 @@ export struct SpreadData {
     safe-r: BoxData,
     spine-x: float,
     inactive: [BoxData],
+    // Páginas em branco de propósito, com o rótulo só de tela (spec PB).
+    blank: [BoxData],
     frames: [FrameData],
     warning: bool,
     // Linhas das guias que pegaram no ímã (spec TX, regra 7).
@@ -230,7 +232,8 @@ export component SpreadCanvas inherits Rectangle {    in property <SpreadData> d
     in property <image> preview-img;
     callback frame-double(int);
     // Clique direito num quadro (-1 = no fundo), em pixels da janela: o menu de contexto (spec EG).
-    callback context(int, length, length);
+    // O quadro (-1 = fundo), o ponto na janela e a fração da largura da lâmina.
+    callback context(int, length, length, float);
     // A grade do recorte (spec AF): os terços, e a grade fina enquanto o ângulo muda. Só na tela.
     in property <bool> grid-thirds;
     in property <bool> grid-fine;
@@ -267,7 +270,7 @@ export component SpreadCanvas inherits Rectangle {    in property <SpreadData> d
         moved => { root.back-press(1, self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y, false); }
         pointer-event(e) => {
             if (e.button == PointerEventButton.right && e.kind == PointerEventKind.up) {
-                root.context(-1, self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
+                root.context(-1, self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y, self.mouse-x / root.width);
             }
             if (e.button == PointerEventButton.left && e.kind == PointerEventKind.down) {
                 root.back-press(0, self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y, e.modifiers.shift);
@@ -320,7 +323,7 @@ export component SpreadCanvas inherits Rectangle {    in property <SpreadData> d
         }
         pointer-event(e) => {
             if (e.button == PointerEventButton.right && e.kind == PointerEventKind.up) {
-                root.context(f.index, self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
+                root.context(f.index, self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y, 0);
                 return;
             }
             // No modo organizar, o corpo de qualquer quadro segura o grupo (nenhuma foto troca de
@@ -367,6 +370,21 @@ export component SpreadCanvas inherits Rectangle {    in property <SpreadData> d
         width: b.w * root.width;
         height: b.h * root.width;
         background: Theme.line;
+    }
+
+    // O rótulo da página em branco, só na tela (spec PB): a exportação não passa por aqui.
+    if root.interactive: Rectangle {
+        z: 1000;
+        for b in root.data.blank: Text {
+            x: b.x * root.width;
+            y: b.y * root.width;
+            width: b.w * root.width;
+            height: b.h * root.width;
+            text: "Página em branco";
+            color: Theme.text-2;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
     }
 
     // A sombra da dobra: 7% da largura, no máximo 10% no centro.

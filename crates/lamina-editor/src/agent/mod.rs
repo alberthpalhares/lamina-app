@@ -46,10 +46,10 @@ mod values;
 
 pub use album::SPREADS_NEED_BUILD;
 pub use calls::{
-    ApplyLayout, BuildAlbumCall, BuildSpread, ColorArg, ExportCall, FormatArg, FrameArg,
-    LeaveAlbum, ListPhotos, MovePhoto, MoveSpread, NewAlbumCall, NoArgs, OpenAlbum, OrderArg,
-    PartArg, PhotoFilter, PlacePhoto, Position, RenameAlbum, RunCommand, SaveAlbum, SpreadArg,
-    Steps, SuggestLayouts, SwapPhotos, ViewPhotos, ViewSpread,
+    ApplyLayout, BlankPageCall, BlankSide, BuildAlbumCall, BuildSpread, ColorArg, ExportCall,
+    FormatArg, FrameArg, LeaveAlbum, ListPhotos, MovePhoto, MoveSpread, NewAlbumCall,
+    NewSpreadCall, NoArgs, OpenAlbum, OrderArg, PartArg, PhotoFilter, PlacePhoto, RenameAlbum,
+    RunCommand, SaveAlbum, SpreadArg, Steps, SuggestLayouts, SwapPhotos, ViewPhotos, ViewSpread,
 };
 pub use catalog::{ToolCall, ToolInfo, tools};
 pub use error::ToolError;
@@ -162,7 +162,8 @@ impl Agent {
             ToolCall::LeaveAlbum(a) => self.leave_album(editor, &a),
             ToolCall::BuildSpread(a) => self.build_spread(editor, &a),
             ToolCall::BuildAlbum(a) => self.build_album(editor, &a, progress),
-            ToolCall::NewSpread(a) => self.new_spread(editor, a.posicao),
+            ToolCall::NewSpread(a) => self.new_spread(editor, &a),
+            ToolCall::BlankPage(a) => self.blank_page(editor, &a),
             ToolCall::DeleteSpread(a) => self.delete_spread(editor, a.lamina),
             ToolCall::MoveSpread(a) => self.move_spread(editor, &a),
             ToolCall::Undo(a) => spreads::undo_redo(editor, a.passos, true),

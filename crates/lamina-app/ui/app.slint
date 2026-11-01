@@ -345,6 +345,9 @@ export component AppWindow inherits Window {
             MenuItem { title: "Primeira lâmina  (Home)"; enabled: root.has-project; activated => { root.command("lamina.primeira"); } }
             MenuItem { title: "Última lâmina  (End)"; enabled: root.has-project; activated => { root.command("lamina.ultima"); } }
             MenuSeparator { }
+            MenuItem { title: "Nova lâmina em branco"; enabled: root.has-project; activated => { root.command("lamina.nova-em-branco"); } }
+            MenuItem { title: "Nova lâmina em branco antes"; enabled: root.has-project; activated => { root.command("lamina.nova-em-branco-antes"); } }
+            MenuSeparator {}
             MenuItem { title: "Novo texto  (T)"; enabled: root.has-project; activated => { root.command("lamina.novo-texto"); } }
             MenuItem { title: "Editar texto"; enabled: root.has-project; activated => { root.command("lamina.editar-texto"); } }
             MenuItem { title: "Novo quadro de foto"; enabled: root.has-project; activated => { root.command("lamina.novo-quadro"); } }

@@ -4,7 +4,7 @@
 
 use crate::{CURRENT_SCHEMA_VERSION, CoreError, Project};
 
-/// `projeto-v7.schema.json`: o nome muda junto com a versão do formato.
+/// `projeto-v8.schema.json`: o nome muda junto com a versão do formato.
 pub fn schema_file_name() -> String {
     format!("projeto-v{CURRENT_SCHEMA_VERSION}.schema.json")
 }
@@ -92,6 +92,6 @@ mod tests {
             "{} desatualizado: rode cargo xtask esquema",
             published.display()
         );
-        assert_eq!(schema_file_name(), "projeto-v7.schema.json");
+        assert_eq!(schema_file_name(), "projeto-v8.schema.json");
     }
 }

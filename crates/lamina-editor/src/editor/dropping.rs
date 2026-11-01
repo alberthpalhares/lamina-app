@@ -97,6 +97,10 @@ impl Editor {
         let Some(session) = &self.session else {
             return false;
         };
+        if crate::edits::capacity(session.project(), session.current()) == 0 {
+            self.notice = Some(crate::blank::BLANK_SPREAD.to_owned());
+            return false;
+        }
         let current = spread_photos(session.project(), session.current());
         let mut all = current.clone();
         all.extend(photos.iter().filter(|p| !current.contains(p)));

@@ -40,12 +40,9 @@ pub fn spread_photos(project: &Project, index: usize) -> Vec<PhotoId> {
     out
 }
 
-/// Quantas fotos cabem na lâmina `index` (até 12 por página ativa).
+/// Quantas fotos cabem na lâmina `index` (até 12 por página com conteúdo; spec PB, regra 7).
 pub fn capacity(project: &Project, index: usize) -> usize {
-    let active = project
-        .spec
-        .edges()
-        .active_pages(index, project.spreads.len());
+    let active = project.content_pages(index);
     MAX_PER_PAGE * (usize::from(active.left) + usize::from(active.right))
 }
 
@@ -113,7 +110,6 @@ pub fn layout_with(
     index: usize,
     photos: &[PhotoId],
 ) -> Result<(), EditorError> {
-    let n = project.spreads.len();
     let id = project.spreads.get(index).ok_or(EditorError::NoFrame)?.id;
     let mut frames = Vec::new();
     if !photos.is_empty() {
@@ -121,7 +117,7 @@ pub fn layout_with(
             .iter()
             .map(|p| Ok(project.photo(*p)?.aspect_ratio()))
             .collect::<Result<Vec<f64>, EditorError>>()?;
-        let active = project.spec.edges().active_pages(index, n);
+        let active = project.content_pages(index);
         let lists = layout_options(
             &project.spec,
             active,

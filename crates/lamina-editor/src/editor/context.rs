@@ -16,6 +16,8 @@ pub enum ContextEntry {
         command: Command,
         label: String,
         enabled: bool,
+        /// O item mostra a marca (a página já está em branco; spec PB).
+        checked: bool,
     },
     Sub {
         title: &'static str,
@@ -44,6 +46,7 @@ impl Editor {
     pub fn context_menu(&mut self, frame: Option<usize>) -> Vec<ContextEntry> {
         match frame {
             Some(f) => {
+                self.context_side = None;
                 if !self.selected_frames().contains(&f) {
                     self.exit_crop();
                     self.organize_click(f, false, false);
@@ -59,6 +62,7 @@ impl Editor {
             command,
             label: self.context_label(command),
             enabled: self.available(command) && command.in_mode(self.mode()),
+            checked: command == Command::BlankPage && self.context_page_is_blank(),
         }
     }
 
@@ -123,10 +127,16 @@ impl Editor {
 
     fn background_menu(&self) -> Vec<ContextEntry> {
         use Command as C;
-        let groups: [&[Command]; 4] = [
+        let groups: [&[Command]; 5] = [
             &[C::PasteFrames, C::SelectAllFrames],
             &[C::NewText, C::NewPhotoFrame],
-            &[C::Mirror, C::NewSpread, C::DeleteSpread, C::SaveModel],
+            &[C::BlankPage, C::Mirror, C::SaveModel],
+            &[
+                C::NewSpread,
+                C::NewBlankSpread,
+                C::NewBlankSpreadBefore,
+                C::DeleteSpread,
+            ],
             &[C::ToggleGuides, C::Organize],
         ];
         let mut menu = Vec::new();

@@ -18,6 +18,7 @@ mod adjust;
 mod arrange_cmd;
 mod backup;
 mod band;
+mod blank;
 mod bottom_strips;
 mod build_album;
 mod clear_all;
@@ -94,6 +95,8 @@ pub struct Editor {
     prefs: PrefsStore,
     lists: RefCell<HashMap<ListsKey, LayoutLists>>,
     notice: Option<String>,
+    /// A página do último clique direito no fundo da lâmina (spec PB).
+    context_side: Option<lamina_core::PageSide>,
     selected_frame: Option<usize>,
     selection: Vec<PhotoId>,
     /// Última foto clicada sem Shift: começo do intervalo do Shift+clique.
@@ -173,6 +176,7 @@ impl Editor {
             prefs,
             lists: RefCell::new(HashMap::new()),
             notice,
+            context_side: None,
             selected_frame: None,
             selection: Vec::new(),
             anchor: None,

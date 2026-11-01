@@ -89,7 +89,8 @@ impl Editor {
             Command::BuildFromSelection | Command::NewSpreadFromSelection => {
                 !self.selection.is_empty() && self.photo_selection().is_ok()
             }
-            Command::NewSpread => true,
+            Command::NewSpread | Command::NewBlankSpread | Command::NewBlankSpreadBefore => true,
+            Command::BlankPage => self.can_toggle_blank(),
             Command::DeleteSpread => s.spread_count() > 1,
             Command::ClearAllPhotos => self.clear_counts().0 > 0,
             Command::DeleteAllSpreads => s.spread_count() > 0,
@@ -243,6 +244,9 @@ impl Editor {
             Command::BuildFromSelection => self.build_from_selection(0),
             Command::NewSpreadFromSelection => self.new_spread_from_selection(),
             Command::NewSpread => self.new_spread(),
+            Command::NewBlankSpread => self.new_blank_spread(false),
+            Command::NewBlankSpreadBefore => self.new_blank_spread(true),
+            Command::BlankPage => self.toggle_blank_page(),
             Command::DeleteSpread => self.delete_current(),
             Command::ClearAllPhotos => self.clear_all_photos(),
             Command::DeleteAllSpreads => self.delete_all_spreads(),

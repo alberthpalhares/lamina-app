@@ -79,6 +79,7 @@ mod nv;
 mod nv_animacao;
 mod nv_janela;
 mod op;
+mod pb;
 mod pc;
 mod pf;
 mod pf_rapido;

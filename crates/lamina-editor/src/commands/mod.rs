@@ -55,6 +55,9 @@ pub enum Command {
     BuildFromSelection,
     NewSpreadFromSelection,
     NewSpread,
+    NewBlankSpread,
+    NewBlankSpreadBefore,
+    BlankPage,
     DeleteSpread,
     /// Limpar as lâminas (spec LL): tirar as fotos de todas e apagar todas; a janela pergunta.
     ClearAllPhotos,

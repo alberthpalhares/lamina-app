@@ -34,6 +34,10 @@ impl Agent {
             },
             "laminas": p.spreads.len(),
             "paginas": pages,
+            "paginas_em_branco": p.spreads.iter().enumerate()
+                .filter(|(_, spread)| !spread.blank.is_none())
+                .map(|(i, spread)| json!({ "lamina": i + 1, "lados": blank_sides(spread.blank) }))
+                .collect::<Vec<_>>(),
             "aviso_de_paginas": s.page_warning(),
             "fotos": {
                 "total": p.photos.len(),
@@ -116,6 +120,15 @@ impl Agent {
 }
 
 /// Os dados da lâmina `index`: fundo, espaço, avisos e os quadros (seção 3).
+/// Os lados em branco de uma lâmina, como a IA os escreve (spec PB, regra 12).
+fn blank_sides(blank: lamina_core::BlankPages) -> Vec<&'static str> {
+    [(blank.left, "esquerda"), (blank.right, "direita")]
+        .into_iter()
+        .filter(|(on, _)| *on)
+        .map(|(_, side)| side)
+        .collect()
+}
+
 pub(super) fn spread_data(s: &Session, index: usize) -> Value {
     let p = s.project();
     let spread = &p.spreads[index];
@@ -138,6 +151,7 @@ pub(super) fn spread_data(s: &Session, index: usize) -> Value {
         "espaco_mm": round(p.spread_gap(spread).get()),
         "a_mao": spread.manual,
         "modelo": spread.model,
+        "paginas_em_branco": blank_sides(spread.blank),
         "avisos": warnings,
         "quadros": frames,
     })

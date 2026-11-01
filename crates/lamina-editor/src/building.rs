@@ -32,12 +32,14 @@ pub struct AlbumBuild {
     pub suggestion: usize,
 }
 
-/// Uma lâmina sem foto e sem texto (os quadros vazios não contam).
+/// Uma lâmina sem foto, sem texto e sem página em branco de propósito (os quadros vazios não
+/// contam; spec PB, regra 8).
 fn is_empty(spread: &Spread) -> bool {
-    spread
-        .frames
-        .iter()
-        .all(|f| matches!(f.content, FrameContent::Empty))
+    spread.blank.is_none()
+        && spread
+            .frames
+            .iter()
+            .all(|f| matches!(f.content, FrameContent::Empty))
 }
 
 /// As fotos usadas em alguma lâmina.

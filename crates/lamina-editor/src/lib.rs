@@ -40,6 +40,7 @@ mod applying;
 pub mod arrange;
 pub mod backup;
 pub mod bar_tips;
+pub mod blank;
 pub mod building;
 pub mod cache;
 pub mod calibration;

@@ -104,6 +104,24 @@ impl Command {
                 Menu::Spread,
                 Some(S::ctrl_shift('n')),
             ),
+            C::NewBlankSpread => (
+                "lamina.nova-em-branco",
+                "Nova lâmina em branco",
+                Menu::Spread,
+                None,
+            ),
+            C::NewBlankSpreadBefore => (
+                "lamina.nova-em-branco-antes",
+                "Nova lâmina em branco antes",
+                Menu::Spread,
+                None,
+            ),
+            C::BlankPage => (
+                "lamina.pagina-em-branco",
+                "Página em branco",
+                Menu::Spread,
+                None,
+            ),
             C::DeleteSpread => (
                 "lamina.apagar",
                 "Apagar lâmina",

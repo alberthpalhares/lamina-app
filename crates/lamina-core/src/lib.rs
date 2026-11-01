@@ -28,10 +28,10 @@ mod error;
 pub use color::ColorSpace;
 pub use document::{AlbumLook, CropLevel, LIGHT_MAX_CROP, Mounting, Opacity};
 pub use document::{
-    Border, CURRENT_SCHEMA_VERSION, Crop, DEFAULT_GAP, ExportPrefs, Frame, FrameContent, FrameId,
-    Orientation, OutputFormat, PageLimits, Photo, PhotoAdjust, PhotoId, PixelRegion, Project, Rgb,
-    Spread, SpreadId, TextAlign, TextBox, TextVAlign, lexical_path, relative_path,
-    validate_project_name,
+    BlankPages, Border, CURRENT_SCHEMA_VERSION, Crop, DEFAULT_GAP, ExportPrefs, Frame,
+    FrameContent, FrameId, Orientation, OutputFormat, PageLimits, Photo, PhotoAdjust, PhotoId,
+    PixelRegion, Project, Rgb, Spread, SpreadId, TextAlign, TextBox, TextVAlign, lexical_path,
+    relative_path, validate_project_name,
 };
 pub use document::{DEFAULT_FONT, LINE_SPACING, MAX_TEXT_CHARS, TEXT_SIZE_PT, clean_text};
 pub use document::{cover_factor, screen_to_photo, turned_box};

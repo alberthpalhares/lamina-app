@@ -7,7 +7,7 @@ use std::path::PathBuf;
 
 use lamina_core::{project_schema, schema_file_name};
 
-/// `docs/formato/projeto-v7.schema.json`.
+/// `docs/formato/projeto-v8.schema.json`.
 pub fn path() -> PathBuf {
     PathBuf::from("docs/formato").join(schema_file_name())
 }

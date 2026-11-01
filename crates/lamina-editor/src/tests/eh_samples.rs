@@ -226,6 +226,7 @@ fn editor() -> Vec<Sample> {
         EditorError::Core(CoreError::InvalidDpi(0)),
         EditorError::Layout(LayoutError::GapTooLarge),
         EditorError::NoFrame,
+        EditorError::BlankPage,
         EditorError::NoProject,
         EditorError::NoFile,
         EditorError::NoExample("/programa/exemplo".into()),

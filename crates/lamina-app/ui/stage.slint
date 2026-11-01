@@ -52,7 +52,7 @@ export component Stage inherits Rectangle {
     callback frame-release();
     callback frame-selected(int);
     callback frame-clicked(int, bool, bool);
-    callback context-requested(int, length, length);
+    callback context-requested(int, length, length, float);
     callback drop-frame(int, float, float);
     // O quadro onde a soltura cairia, em frações da largura da lâmina (spec MV, regra 12).
     pure callback drop-at(float, float) -> BoxData;
@@ -275,7 +275,7 @@ export component Stage inherits Rectangle {
         preview: root.preview;
         preview-img: root.preview-img;
         frame-double(i) => { root.frame-double(i); root.focus-main(); }
-        context(i, x, y) => { root.context-requested(i, x, y); }
+        context(i, x, y, fx) => { root.context-requested(i, x, y, fx); }
         grid-thirds: root.crop-grid-thirds;
         grid-fine: root.crop-grid-fine;
         crop-drag(dx, dy) => { root.crop-drag(dx, dy); }

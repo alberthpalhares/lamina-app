@@ -96,6 +96,53 @@ pub struct Spread {
     /// da especificação mantêm os quadros dele.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
+    /// As páginas em branco de propósito (spec PB, regra 1): impressas, mas fora da diagramação.
+    #[serde(
+        rename = "em_branco",
+        default,
+        skip_serializing_if = "BlankPages::is_none"
+    )]
+    pub blank: BlankPages,
+}
+
+/// Quais páginas de uma lâmina estão em branco de propósito (spec PB, regra 1).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, JsonSchema)]
+pub struct BlankPages {
+    #[serde(
+        rename = "esquerda",
+        default,
+        skip_serializing_if = "std::ops::Not::not"
+    )]
+    pub left: bool,
+    #[serde(
+        rename = "direita",
+        default,
+        skip_serializing_if = "std::ops::Not::not"
+    )]
+    pub right: bool,
+}
+
+impl BlankPages {
+    /// Nenhuma página em branco: o campo nem vai para o arquivo.
+    pub fn is_none(&self) -> bool {
+        !self.left && !self.right
+    }
+
+    /// A página `side` está em branco?
+    pub fn has(self, side: PageSide) -> bool {
+        match side {
+            PageSide::Left => self.left,
+            PageSide::Right => self.right,
+        }
+    }
+
+    /// Marca ou desmarca a página `side`.
+    pub fn set(&mut self, side: PageSide, blank: bool) {
+        match side {
+            PageSide::Left => self.left = blank,
+            PageSide::Right => self.right = blank,
+        }
+    }
 }
 
 impl Spread {

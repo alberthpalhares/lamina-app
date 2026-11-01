@@ -187,10 +187,7 @@ pub fn model_from_spread(
     if slots.is_empty() {
         return Err(ModelError::NoPhotoFrame);
     }
-    let pages = project
-        .spec
-        .edges()
-        .active_pages(index, project.spreads.len());
+    let pages = project.content_pages(index);
     // Lâmina sem página ativa conta como a direita, como no motor.
     let (left, right) = (pages.left, pages.right || !pages.left);
     let count = usize::from(left) + usize::from(right);

@@ -6,6 +6,8 @@
 
 #[cfg(test)]
 mod adjust_tests;
+#[cfg(test)]
+mod blank_tests;
 mod content;
 mod crop;
 mod ids;
@@ -23,7 +25,7 @@ mod turn;
 #[cfg(test)]
 mod turn_tests;
 
-pub use content::{Border, Frame, FrameContent, Rgb, Spread};
+pub use content::{BlankPages, Border, Frame, FrameContent, Rgb, Spread};
 pub use crop::{Crop, PixelRegion};
 pub use ids::{FrameId, PhotoId, SpreadId};
 pub use mounting::{AlbumLook, CropLevel, LIGHT_MAX_CROP, Mounting};

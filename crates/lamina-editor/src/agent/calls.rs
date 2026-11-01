@@ -213,9 +213,29 @@ pub struct LeaveAlbum {
 
 #[derive(Debug, Clone, Default, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct Position {
+pub struct NewSpreadCall {
     /// Posição da lâmina nova (padrão: no fim).
     pub posicao: Option<usize>,
+    /// A lâmina nasce com as páginas em branco (padrão: não).
+    #[serde(default)]
+    pub em_branco: bool,
+}
+
+/// Lado de uma lâmina, para a página em branco.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum BlankSide {
+    Esquerda,
+    Direita,
+    Ambas,
+}
+
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct BlankPageCall {
+    pub lamina: usize,
+    pub lado: BlankSide,
+    pub em_branco: bool,
 }
 
 #[derive(Debug, Clone, Deserialize, JsonSchema)]

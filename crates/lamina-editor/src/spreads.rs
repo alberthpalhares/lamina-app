@@ -4,6 +4,7 @@
 use lamina_core::Project;
 
 use crate::EditorError;
+use crate::blank::clear_lost_marks;
 use crate::edits::{layout_with, spread_photos};
 
 /// Lâmina vazia nova depois de `after`; devolve a posição dela (regra 6).
@@ -22,6 +23,7 @@ pub fn delete_spread(project: &mut Project, index: usize) -> Result<(), EditorEr
         return Err(EditorError::NoFrame);
     }
     project.spreads.remove(index);
+    clear_lost_marks(project);
     fix_edges(project)
 }
 
@@ -34,6 +36,7 @@ pub fn move_spread(project: &mut Project, from: usize, to: usize) -> Result<(), 
     let before = pages_by_id(project);
     let spread = project.spreads.remove(from);
     project.spreads.insert(to, spread);
+    clear_lost_marks(project);
     fix_changed(project, &before)
 }
 
@@ -60,6 +63,7 @@ fn fix_changed(project: &mut Project, before: &Pages) -> Result<(), EditorError>
         let old = before.iter().find(|(b, _)| b == id).map(|(_, p)| *p);
         if old.is_some_and(|o| o != *pages) {
             let photos = spread_photos(project, index);
+            crate::blank::free_stuck_photos(project, index, &photos);
             layout_with(project, index, &photos)?;
         }
     }
@@ -95,5 +99,24 @@ pub fn append_spreads(
 ) -> Result<(), EditorError> {
     let before = pages_by_id(project);
     project.spreads.extend(new);
+    clear_lost_marks(project);
+    fix_changed(project, &before)
+}
+
+/// Lâmina nova na posição `at`, com as páginas dela em branco (spec PB, regra 6). A vizinha que
+/// deixou de ser ponta é rearranjada.
+pub fn insert_blank(project: &mut Project, at: usize) -> Result<(), EditorError> {
+    let before = pages_by_id(project);
+    project.add_spread();
+    let at = at.min(project.spreads.len() - 1);
+    if let Some(new) = project.spreads.pop() {
+        project.spreads.insert(at, new);
+    }
+    let active = project.spec.edges().active_pages(at, project.spreads.len());
+    project.spreads[at].blank = lamina_core::BlankPages {
+        left: active.left,
+        right: active.right,
+    };
+    clear_lost_marks(project);
     fix_changed(project, &before)
 }
