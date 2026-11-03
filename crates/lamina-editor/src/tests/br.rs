@@ -89,7 +89,7 @@ fn br_b2_com_a_caixa_marcada_como_antes() {
         ..blank_request(&base)
     };
     let (now, _) = create_album(&new, &base.cache(), &|_| {}).unwrap();
-    // O caminho de antes da BR: importar, aparência, Auto Build e a aparência nas lâminas.
+    // O caminho de antes da BR: importar, aparência, montagem automática e a aparência nas lâminas.
     let mut imported = import_project(
         &new.folder,
         new.name.as_deref(),

@@ -29,7 +29,7 @@ fn first_part() -> Vec<ToolInfo> {
             "novo_album",
             "Cria um álbum a partir de uma pasta de fotos e grava o .lamina, como o Novo álbum da \
              janela: o álbum começa em branco, com todas as fotos e nenhuma lâmina. Com montar: \
-             true, já monta as lâminas pelo Auto Build (laminas só vale com montar).",
+             true, já monta as lâminas pela montagem automática (laminas só vale com montar).",
         ),
         info::<SaveAlbum>(
             "salvar_album",
@@ -104,7 +104,7 @@ fn first_part() -> Vec<ToolInfo> {
         info::<BuildAlbumCall>(
             "montar_album",
             "Monta de uma vez as fotos ainda não usadas em lâminas novas, depois da última, pelo \
-             Auto Build (como Montar o álbum… da janela). Num álbum em branco, monta todas.",
+             montagem automática (como Montar o álbum… da janela). Num álbum em branco, monta todas.",
         ),
         info::<NewSpreadCall>(
             "nova_lamina",

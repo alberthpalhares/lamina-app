@@ -47,8 +47,9 @@ tempfile = "3"
 windows = { version = "0.62", features = ["UI", "UI_ViewManagement"] }
 # Pico de memória nos testes da importação (spec TR, TR-B1); só como dependência de testes.
 dhat = "0.3"
-# Instalador e atualização automática (ADR 0009). Versão presa: o spike provou esta.
-velopack = "=1.2.161"
+# Instalador e atualização automática (ADR 0009). Versão presa: a 1.2.161 foi a provada no spike;
+# a 1.3.39-g8d2844f entrou em 2026-11-03 para tirar o RUSTSEC-2026-0429 (zip 8.6.0, extração de symlink).
+velopack = "=1.3.39-g8d2844f"
 # Os arquivos abertos pelo Finder no Mac (spec MA; ADR 0013), presa na versão lida linha a linha.
 fmv-macos-events = "=0.1.0"
 # Esquema JSON do formato do projeto, gerado dos tipos (spec EI, regra 9).

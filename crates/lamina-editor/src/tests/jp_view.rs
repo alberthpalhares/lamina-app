@@ -52,7 +52,7 @@ fn jp_b2_a_visao_da_lamina_e_a_da_impressao() {
         );
 
         let FrameContent::Photo { photo, crop } = &frame.content else {
-            panic!("o Auto Build só põe fotos");
+            panic!("a montagem automática só põe fotos");
         };
         let p = project.photo(*photo).unwrap();
         let (pw, ph) = (f64::from(p.width_px), f64::from(p.height_px));

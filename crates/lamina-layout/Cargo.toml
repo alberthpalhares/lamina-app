@@ -1,6 +1,6 @@
 [package]
 name = "lamina-layout"
-description = "Motor de diagramação: templates relativos, agrupamento e Auto Build."
+description = "Motor de diagramação: templates relativos, agrupamento e montagem automática."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

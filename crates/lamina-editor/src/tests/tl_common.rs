@@ -20,7 +20,7 @@ pub fn spec(width_cm: f64, height_cm: f64) -> AlbumSpec {
     .unwrap()
 }
 
-/// Projeto com estas fotos, montado pelo Auto Build em `spreads` lâminas.
+/// Projeto com estas fotos, montado pela montagem automática em `spreads` lâminas.
 pub fn built(spec: AlbumSpec, photos: &[(u32, u32)], spreads: usize) -> Project {
     let mut project = Project::new("teste", spec);
     for (i, (w, h)) in photos.iter().enumerate() {

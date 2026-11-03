@@ -358,7 +358,7 @@ mod tests {
         assert_eq!(loaded, project);
     }
 
-    /// Defeito achado pelo Auto Build (AB-B6): sem `float_roundtrip`, o serde_json lia
+    /// Defeito achado pela montagem automática (AB-B6): sem `float_roundtrip`, o serde_json lia
     /// 0.21321367521367526 de volta como 0.2132136752136753, e o projeto aberto ficava diferente
     /// do salvo.
     #[test]

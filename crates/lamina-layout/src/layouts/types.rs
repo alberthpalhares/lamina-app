@@ -176,7 +176,7 @@ pub struct LayoutOptions {
     pub gap: Mm,
     /// Máximo de candidatos em cada lista (padrão 200).
     pub max_candidates: usize,
-    /// Calcular também as sugestões reordenadas (padrão sim; o Auto Build usa só "na ordem").
+    /// Calcular também as sugestões reordenadas (padrão sim; a montagem automática usa só "na ordem").
     pub reordered: bool,
     /// Quanto recortar e quais famílias opcionais usar (spec NP; padrão = o de sempre).
     pub mounting: lamina_core::Mounting,

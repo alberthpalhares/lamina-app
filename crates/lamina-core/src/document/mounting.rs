@@ -22,7 +22,7 @@ pub enum CropLevel {
     Free,
 }
 
-/// A montagem do álbum, guardada no projeto: vale para o Auto Build, o painel de layouts e
+/// A montagem do álbum, guardada no projeto: vale para a montagem automática, o painel de layouts e
 /// "Montar lâmina", hoje e depois de reabrir o álbum.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct Mounting {

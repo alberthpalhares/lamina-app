@@ -34,7 +34,7 @@ fn tl_b1_sugestoes_da_lamina_atual() {
     assert_eq!(
         panel.in_use,
         Some(built.report[index].position - 1),
-        "a escolha do Auto Build"
+        "a escolha da montagem automática"
     );
 }
 

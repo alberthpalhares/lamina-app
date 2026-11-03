@@ -22,7 +22,7 @@ impl Editor {
         self.mode() == crate::commands::Mode::Normal && self.album_build().is_ok()
     }
 
-    /// As opções do Auto Build da janela: a variedade escolhida, os favoritos, os rejeitados, os
+    /// As opções da montagem automática da janela: a variedade escolhida, os favoritos, os rejeitados, os
     /// modelos do fotógrafo (regra 6) e o aprendizado (spec AL, regra 5).
     pub fn build_options(&self, reuse: Reuse) -> BuildOptions {
         BuildOptions {
@@ -59,7 +59,7 @@ impl Editor {
     }
 
     /// Monta já, na mesma linha (a IA e os testes): `spreads` lâminas novas, ou a sugestão.
-    /// Devolve o relatório do Auto Build, uma linha por lâmina nova. Quem chama confere antes
+    /// Devolve o relatório da montagem automática, uma linha por lâmina nova. Quem chama confere antes
     /// [`Editor::album_build`], que tem as mensagens da seção 6.
     pub fn build_album(
         &mut self,

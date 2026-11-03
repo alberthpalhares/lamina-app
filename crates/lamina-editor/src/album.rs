@@ -1,4 +1,4 @@
-//! Novo álbum a partir de uma pasta (spec JP, regra 3): importar → sugerir lâminas → Auto Build.
+//! Novo álbum a partir de uma pasta (spec JP, regra 3): importar → sugerir lâminas → montagem automática.
 //! A janela e o `lamina build` passam por aqui, então montam o mesmo álbum.
 
 use std::path::{Path, PathBuf};
@@ -148,7 +148,7 @@ pub struct NewAlbum {
     pub preferences: Preferences,
     /// O que o fotógrafo mais escolhe (spec AL, regra 5); vazio = escolha de sempre.
     pub learned: lamina_layout::Learned,
-    /// Modelos do fotógrafo que o Auto Build pode usar (spec MD, regra 9).
+    /// Modelos do fotógrafo que a montagem automática pode usar (spec MD, regra 9).
     pub models: Vec<lamina_layout::SpreadModel>,
     /// Faixa de páginas e exportação do preset (spec PR); padrão = sem limite, JPEG em sRGB.
     pub limits: PageLimits,
@@ -159,7 +159,7 @@ pub struct NewAlbum {
     /// entram, no lugar de `folder`.
     pub files: Vec<PathBuf>,
     /// Montar as lâminas agora (spec BR, regra 2): desligado, o álbum começa em branco, só com as
-    /// fotos; ligado, o Auto Build de antes.
+    /// fotos; ligado, a montagem automática de antes.
     pub build: bool,
 }
 

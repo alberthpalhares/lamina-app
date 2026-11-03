@@ -1,7 +1,7 @@
 //! `lamina`: o Lamina pela linha de comando.
 //!
 //! Serve para testar o núcleo sem interface e para demonstrações. A entrega do Marco 1 é o
-//! `lamina build` (importar → Auto Build → projeto → exportar).
+//! `lamina build` (importar → montagem automática → projeto → exportar).
 
 use std::path::PathBuf;
 use std::process::ExitCode;

@@ -1,4 +1,4 @@
-//! O que os comandos `auto`, `build` e `exportar` mostram na tela: relatório do Auto Build,
+//! O que os comandos `auto`, `build` e `exportar` mostram na tela: relatório da montagem automática,
 //! pré-impressão e andamento da exportação.
 
 use std::io::Write as _;

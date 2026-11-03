@@ -1,4 +1,4 @@
-//! Cenários AL-B1, AL-B6, AL-B7 e AL-B9 da spec `specs/aprendizado-de-layouts.md`: o Auto Build.
+//! Cenários AL-B1, AL-B6, AL-B7 e AL-B9 da spec `specs/aprendizado-de-layouts.md`: a montagem automática.
 
 use lamina_core::{FrameContent, PhotoId, Project};
 

@@ -210,7 +210,7 @@ fn first_difference(a: &[u8], b: &[u8]) -> String {
     }
 }
 
-/// Regra 12 no álbum de teste: montado duas vezes (importar e Auto Build), dá o mesmo arquivo.
+/// Regra 12 no álbum de teste: montado duas vezes (importar e montagem automática), dá o mesmo arquivo.
 #[test]
 fn album_de_teste_montado_duas_vezes_e_o_mesmo() {
     let base = Base::with_photos(30, (600, 400));

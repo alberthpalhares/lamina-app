@@ -1,4 +1,4 @@
-//! Auto Build (spec `specs/auto-build.md`): monta o álbum inteiro. O plano de lâminas decide as
+//! montagem automática (spec `specs/auto-build.md`): monta o álbum inteiro. O plano de lâminas decide as
 //! fotos de cada lâmina e, para cada uma, um layout é escolhido entre as primeiras sugestões da
 //! variedade, cuidando de ritmo e variedade, com um relatório do porquê.
 
@@ -17,7 +17,7 @@ use crate::plan::{PlanError, PlanOptions, SpreadPlan, SpreadRole, plan_spreads};
 use crate::prefs::{Preferences, design_key};
 use window::{WINDOW, Window, window};
 
-/// Quanto o Auto Build aceita repetir o mesmo desenho geral.
+/// Quanto a montagem automática aceita repetir o mesmo desenho geral.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Reuse {
     /// Pouca repetição: mais variedade.
@@ -28,7 +28,7 @@ pub enum Reuse {
     High,
 }
 
-/// Opções do Auto Build.
+/// Opções da montagem automática.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct BuildOptions {
     pub reuse: Reuse,
@@ -65,7 +65,7 @@ pub struct AutoBuild {
     pub report: Vec<SpreadReport>,
 }
 
-/// Erros do Auto Build: os do plano, da variedade e do núcleo passam com as mesmas mensagens.
+/// Erros da montagem automática: os do plano, da variedade e do núcleo passam com as mesmas mensagens.
 #[derive(Debug, Error)]
 pub enum BuildError {
     #[error("A foto {0} não tem tamanho válido.")]

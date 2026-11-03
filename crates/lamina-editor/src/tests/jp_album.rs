@@ -93,7 +93,7 @@ fn jp_b8_navegador_de_fotos() {
     let all = photo_list(&project, Filter::All);
     assert!(
         all.iter().all(|p| p.uses == 1),
-        "o Auto Build usa cada foto uma vez"
+        "a montagem automática usa cada foto uma vez"
     );
     // A primeira foto sai do quadro dela, que passa a mostrar a última (usada duas vezes).
     let (gone, twice) = (all[0].id, all[11].id);

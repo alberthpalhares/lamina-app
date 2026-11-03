@@ -1,4 +1,4 @@
-//! As sugestões que o Auto Build considera em cada lâmina, com as preferências do fotógrafo
+//! As sugestões que a montagem automática considera em cada lâmina, com as preferências do fotógrafo
 //! (spec TL, regra 8): as primeiras da variedade mais os favoritos que vierem depois delas, sem
 //! os rejeitados.
 

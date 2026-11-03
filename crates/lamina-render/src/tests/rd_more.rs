@@ -13,7 +13,7 @@ fn gradient(w: u32, h: u32) -> RgbaImage {
     })
 }
 
-/// Três fotos numa lâmina sem sangria, como o Auto Build arrumaria.
+/// Três fotos numa lâmina sem sangria, como a montagem automática arrumaria.
 fn three_frames() -> (Album, [[f64; 4]; 3]) {
     let mut album = Album::new(0.0);
     let frames = [

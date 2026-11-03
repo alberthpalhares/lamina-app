@@ -1,4 +1,4 @@
-//! Comando `lamina auto`: importa uma pasta, monta o álbum com o Auto Build (spec AB) e desenha
+//! Comando `lamina auto`: importa uma pasta, monta o álbum com a montagem automática (spec AB) e desenha
 //! todas as lâminas num SVG, com o relatório na tela. É para conferência; o comando final é
 //! `lamina build` (pedaço CB).
 

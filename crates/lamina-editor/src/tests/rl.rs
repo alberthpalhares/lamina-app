@@ -327,7 +327,7 @@ fn rl_b22_outro_album_descarta_pedidos_e_imagens_e_revisoes_recomecam() {
 
 #[test]
 fn rl_b26_revisoes_e_plano_rapido() {
-    // O Auto Build põe no máximo 8 fotos por lâmina: 1.600 nas lâminas e 400 só no álbum.
+    // A montagem automática põe no máximo 8 fotos por lâmina: 1.600 nas lâminas e 400 só no álbum.
     let photos: Vec<(u32, u32)> = (0..1600).map(|i| if i % 4 == 3 { V } else { H }).collect();
     let mut project = built(spec(30.0, 30.0), &photos, 200);
     for i in 0..400 {

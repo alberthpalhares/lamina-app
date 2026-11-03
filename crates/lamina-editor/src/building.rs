@@ -1,5 +1,5 @@
 //! "Montar o álbum…" (spec BR): as fotos ainda não usadas viram lâminas novas depois da última,
-//! pelo Auto Build, numa edição só. A conta ([`build_unused`]) roda fora da linha da janela; a
+//! pela montagem automática, numa edição só. A conta ([`build_unused`]) roda fora da linha da janela; a
 //! edição entra no histórico pelo editor (`Editor::finish_build`).
 
 use std::collections::HashSet;
@@ -54,7 +54,7 @@ fn used(project: &Project) -> HashSet<PhotoId> {
         .collect()
 }
 
-/// O projeto que o Auto Build monta: só as fotos não usadas, sem lâminas. Com lâminas que ficam,
+/// O projeto que a montagem automática monta: só as fotos não usadas, sem lâminas. Com lâminas que ficam,
 /// as novas são miolo: a primeira nunca começa com página simples (regra 7).
 fn unused_project(project: &Project) -> Project {
     let used = used(project);
@@ -138,7 +138,7 @@ pub fn build_label(spreads: usize, photos: usize) -> String {
 /// O álbum depois de montar as fotos não usadas em `spreads` lâminas novas depois da última
 /// (regras 5 a 7 e 10): as lâminas vazias saem, as outras ficam (menos a antiga última de um
 /// álbum que termina com página simples, rearranjada), as novas ganham a aparência do álbum e
-/// ids novos. Devolve também o relatório do Auto Build, uma linha por lâmina nova.
+/// ids novos. Devolve também o relatório da montagem automática, uma linha por lâmina nova.
 pub fn build_unused(
     project: &Project,
     spreads: usize,

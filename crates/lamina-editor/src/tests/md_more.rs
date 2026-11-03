@@ -1,4 +1,4 @@
-//! Cenários da spec `modelos` (MD) no editor: o Auto Build com modelos (B8) e a velocidade com
+//! Cenários da spec `modelos` (MD) no editor: a montagem automática com modelos (B8) e a velocidade com
 //! muitos modelos (B12). Os outros estão em `md.rs`.
 
 use std::time::{Duration, Instant};

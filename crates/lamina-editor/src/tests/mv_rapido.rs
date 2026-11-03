@@ -12,7 +12,7 @@ use crate::motion::{Slots, row_ops, strip_rows};
 use crate::screens::ScreenPlan;
 use crate::view::{Area, FrameView, spread_view};
 
-/// 60 lâminas com 8 fotos cada (480 fotos: o Auto Build põe no máximo 8 por lâmina; as 600 da
+/// 60 lâminas com 8 fotos cada (480 fotos: a montagem automática põe no máximo 8 por lâmina; as 600 da
 /// spec pediriam 75 lâminas).
 fn album() -> Project {
     let photos: Vec<(u32, u32)> = (0..480).map(|i| if i % 4 == 3 { V } else { H }).collect();

@@ -54,7 +54,7 @@ pub struct BuildArgs {
     /// Pasta do catálogo e das miniaturas (padrão: cache do sistema).
     #[arg(long)]
     pub cache: Option<PathBuf>,
-    /// Usa no Auto Build os modelos do fotógrafo e os favoritos dele (os mesmos da janela;
+    /// Usa na montagem automática os modelos do fotógrafo e os favoritos dele (os mesmos da janela;
     /// spec MD). Sem a opção, o álbum não depende da máquina.
     #[arg(long)]
     pub modelos: bool,

@@ -4,7 +4,7 @@
 //! Slint (`lamina-app`) só desenha estes dados e chama estes comandos; a linha de comando usa o
 //! mesmo caminho para montar um álbum novo.
 //!
-//! - [`album`]: novo álbum a partir de uma pasta (importar → sugerir lâminas → Auto Build).
+//! - [`album`]: novo álbum a partir de uma pasta (importar → sugerir lâminas → montagem automática).
 //! - [`building`]: "Montar o álbum…", as fotos não usadas em lâminas novas (spec BR).
 //! - [`cache`]: catálogo, miniaturas e imagens de tela no cache do sistema.
 //! - [`session`]: o projeto aberto, o arquivo dele, a lâmina atual e as alterações não salvas.

@@ -1,4 +1,4 @@
-//! TL-B9 (spec `specs/trocar-layouts.md`): o Auto Build com favoritos e rejeitados.
+//! TL-B9 (spec `specs/trocar-layouts.md`): a montagem automática com favoritos e rejeitados.
 
 use std::collections::HashMap;
 

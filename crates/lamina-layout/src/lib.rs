@@ -7,7 +7,7 @@
 //!   `variedade-de-layouts`).
 //! - [`grid`]: gerador de grades em coordenadas relativas.
 //!
-//! - [`build`]: Auto Build, o álbum inteiro com um layout por lâmina (spec `auto-build`).
+//! - [`build`]: montagem automática, o álbum inteiro com um layout por lâmina (spec `auto-build`).
 
 pub mod build;
 pub mod layouts;

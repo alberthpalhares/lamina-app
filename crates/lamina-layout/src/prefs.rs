@@ -11,7 +11,7 @@ use crate::layouts::{
     SupportSide,
 };
 
-/// Pontos que um favorito ganha na escolha do Auto Build (regra 8).
+/// Pontos que um favorito ganha na escolha da montagem automática (regra 8).
 pub const FAVORITE_BONUS: f64 = 10.0;
 
 /// Os desenhos marcados pelo fotógrafo, pelo identificador de [`design_key`].
