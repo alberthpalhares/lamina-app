@@ -10,6 +10,11 @@ authors.workspace = true
 publish = false
 
 [dependencies]
+# O código da prova da aprovação do cliente (spec AC, regra 20).
+blake3 = { workspace = true }
+serde_json = { workspace = true }
+# As imagens dentro do HTML da aprovação do cliente (spec AH).
+base64 = { workspace = true }
 lamina-core = { workspace = true }
 lamina-render = { workspace = true }
 image = { workspace = true }
@@ -24,9 +29,7 @@ pdf-writer = { workspace = true }
 tiff = { workspace = true }
 
 [dev-dependencies]
-blake3 = { workspace = true }
 dhat = { workspace = true }
-serde_json = { workspace = true }
 lopdf = { workspace = true }
 
 [lints]

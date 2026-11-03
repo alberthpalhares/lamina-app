@@ -20,6 +20,9 @@ pub const CODE: &[&str] = &[
     "deny.toml",
     ".gitignore",
     ".gitattributes",
+    "LICENSE",
+    "NOTICE",
+    "TERMOS.md",
 ];
 
 /// O selo "Made with Slint" na página de onde se baixa o Lamina: é a atribuição que a licença
@@ -160,7 +163,7 @@ mod tests {
     #[test]
     fn documento_que_ja_estava_no_publico_e_apontado() {
         let dir = tempfile::tempdir().unwrap();
-        for f in ["Cargo.toml", "README.md", "LICENSE"] {
+        for f in ["Cargo.toml", "README.md", "LICENSE", "NOTICE", "TERMOS.md"] {
             fs::write(dir.path().join(f), "x").unwrap();
         }
         fs::create_dir_all(dir.path().join("crates")).unwrap();
@@ -205,6 +208,9 @@ mod tests {
         for f in [
             "crates/x/src/lib.rs",
             "Cargo.toml",
+            "LICENSE",
+            "NOTICE",
+            "TERMOS.md",
             "specs/s.md",
             "docs/estudo/e.md",
             "STATUS.md",
@@ -216,6 +222,7 @@ mod tests {
         fs::create_dir_all(b.path().join("crates/velho")).unwrap();
         fs::write(b.path().join("crates/velho/a.rs"), "x").unwrap();
         fs::write(b.path().join("LICENSE"), "apache").unwrap();
+        fs::write(b.path().join("README.md"), "x").unwrap();
         copy_code(a.path(), b.path()).unwrap();
         assert!(b.path().join("crates/x/src/lib.rs").exists());
         assert!(!b.path().join("specs").exists() && !b.path().join("docs").exists());
@@ -224,9 +231,13 @@ mod tests {
             !b.path().join("crates/velho/a.rs").exists(),
             "apagado no privado"
         );
+        // A licença e os termos são código: vão para o público (copiados de `a`, não a "apache" antiga).
+        assert_eq!(fs::read_to_string(b.path().join("LICENSE")).unwrap(), "x");
         assert!(
-            b.path().join("LICENSE").exists(),
-            "fora do código não é tocado"
+            b.path().join("NOTICE").exists() && b.path().join("TERMOS.md").exists(),
+            "NOTICE e TERMOS vão para o público"
         );
+        // O README é extra do público: não é tocado pela cópia.
+        assert_eq!(fs::read_to_string(b.path().join("README.md")).unwrap(), "x");
     }
 }

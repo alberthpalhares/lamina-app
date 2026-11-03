@@ -6,6 +6,7 @@ import { LineEdit } from "std-widgets.slint";
 import { Theme, Fixed, Space, Radius, Type } from "theme.slint";
 import { Icons } from "icons.slint";
 import { BarButton, FilterTab, IconButton, IconTextButton, Panel, Card, Toast, EmptyState, ProgressRow, SectionTitle, ValueRow, CheckRow, NeutralSlider } from "widgets.slint";
+import { UpdateBar } from "update_bar.slint";
 
 component Swatch inherits VerticalLayout {
     in property <color> color;
@@ -94,6 +95,11 @@ export component Gallery inherits Rectangle {
                     Text { text: "6 lâminas · 12 páginas · 16 de 16 fotos usadas"; color: Theme.text; font-size: Type.title; }
                     Text { text: "Arraste uma foto para um quadro · ← → trocam o layout"; color: Theme.text-2; font-size: Type.body; }
                     Text { text: "Layout 2 de 8 · 30 × 30 cm"; color: Theme.text-3; font-size: Type.small; }
+                }
+                Group {
+                    title: "BARRA DE ATUALIZAÇÃO";
+                    UpdateBar { text: "Lamina 0.2.0 encontrada. Baixando…"; }
+                    UpdateBar { text: "Lamina 0.2.0 está pronta."; ready: true; }
                 }
                 Group {
                     title: "BOTÕES";

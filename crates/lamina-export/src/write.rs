@@ -122,7 +122,7 @@ pub fn page_of(project: &Project, image: &RgbaImage, side: PageSide) -> RgbaImag
 
 /// Grava num temporário de nome único na mesma pasta, força a ida ao disco e renomeia no fim.
 /// Se algo falha, o temporário some sozinho.
-fn write_atomic(folder: &Path, path: &Path, bytes: &[u8]) -> Result<(), ExportError> {
+pub(crate) fn write_atomic(folder: &Path, path: &Path, bytes: &[u8]) -> Result<(), ExportError> {
     let fail = |reason: String| ExportError::Write {
         path: path.display().to_string(),
         reason,

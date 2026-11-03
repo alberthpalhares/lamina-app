@@ -11,6 +11,7 @@
 
 pub mod build;
 pub mod layouts;
+pub mod learned;
 pub mod plan;
 pub mod prefs;
 
@@ -19,8 +20,9 @@ pub use layouts::{
     Align, Arrangement, Breathing, DEFAULT_GAP, Family, FamilyKind, FullBleed, LayoutCandidate,
     LayoutError, LayoutLists, LayoutOptions, MAX_PER_PAGE, ModelLook, ModelSlot, ModelText,
     PageLayout, Scope, Score, SpreadModel, SupportSide, add_models, assign, layout_candidates,
-    layout_options,
+    layout_options, layout_options_learned,
 };
+pub use learned::{Learned, MAX_LEARNED_BONUS, WEIGHT_PER_USE, learned_bonus};
 pub use plan::{
     PHOTOS_PER_SPREAD, PlanError, PlanOptions, SpreadPlan, SpreadRole, plan_spreads,
     suggest_spreads, validate as validate_plan,

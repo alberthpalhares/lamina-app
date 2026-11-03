@@ -31,7 +31,9 @@ pub use roll::{
 };
 pub use roll_bar::{BarButton, RollPill, SPREAD_BAR_COMMANDS, SpreadBar, roll_shown, spread_bar};
 pub use roll_nav::{NEAR, Pill, RollMove, RollScroll, pill, roll_move};
-pub use roll_timeline::{TIMELINE, TimelineSizes, spread_badge, timeline_run, timeline_scroll};
+pub use roll_timeline::{
+    TIMELINE, TimelineSizes, spread_badge, timeline_run, timeline_scroll, timeline_step,
+};
 pub use roll_view::{
     EDGE_PX, EDGE_SPEED, NARROW, ROLL_GAP, Roll, RollHit, RollWidth, edge_speed, roll_gap,
     roll_hit, roll_width, textured, visible_range,

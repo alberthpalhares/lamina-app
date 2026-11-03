@@ -2,7 +2,9 @@
 //! regras 1 a 5). Funções puras sobre o projeto: o [`crate::Editor`] guarda o cache e chama.
 
 use lamina_core::{ActivePages, CoreError, Frame, FrameContent, Mm, PhotoId, Project, RelRect};
-use lamina_layout::{LayoutCandidate, LayoutError, LayoutLists, LayoutOptions, layout_options};
+use lamina_layout::{
+    LayoutCandidate, LayoutError, LayoutLists, LayoutOptions, Learned, layout_options_learned,
+};
 
 pub use crate::applying::{apply, keep_center};
 
@@ -148,12 +150,21 @@ pub fn selection(project: &Project, index: usize, part: Part) -> Result<Selectio
 /// As duas listas do motor para a seleção, com o espaço entre fotos da lâmina (regra 1; spec
 /// AP, regra 1).
 pub fn lists(project: &Project, sel: &Selection) -> Result<LayoutLists, LayoutError> {
+    lists_learned(project, sel, &Learned::default())
+}
+
+/// As mesmas listas, com o aprendizado do fotógrafo na ordem: as que a janela mostra (spec AL).
+pub(crate) fn lists_learned(
+    project: &Project,
+    sel: &Selection,
+    learned: &Learned,
+) -> Result<LayoutLists, LayoutError> {
     let options = LayoutOptions {
         gap: sel.gap,
         mounting: project.mounting,
         ..LayoutOptions::default()
     };
-    layout_options(&project.spec, sel.active, &sel.aspects, &options)
+    layout_options_learned(&project.spec, sel.active, &sel.aspects, &options, learned)
 }
 
 /// O candidato descreve exatamente os quadros atuais das fotos da seleção? (regra 2)

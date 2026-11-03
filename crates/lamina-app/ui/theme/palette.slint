@@ -13,6 +13,7 @@ export struct Colors {
     line: color, line-strong: color,
     text: color, text-2: color, text-3: color, text-strong: color, text-disabled: color,
     accent: color, accent-hover: color, accent-soft: color, on-accent: color, focus: color, link: color,
+    accent-fill: color, accent-fill-hover: color,
     warning: color, warning-soft: color, error: color, error-soft: color, success: color,
     hover: color, press: color, overlay: color, overlay-strong: color,
     shadow: color, shadow-strong: color, veil: color, dim: color,
@@ -27,6 +28,7 @@ export global Palettes {
         line: #3a3a3a, line-strong: #858585,
         text: #e6e6e6, text-2: #a6a6a6, text-3: #858585, text-strong: #f5f5f5, text-disabled: #6b6b6b,
         accent: #19acc9, accent-hover: #3dbbd4, accent-soft: #19acc933, on-accent: #111111, focus: #19acc9, link: #2ebcd8,
+        accent-fill: #19acc9, accent-fill-hover: #3dbbd4,
         warning: #e3b341, warning-soft: #e3b34126, error: #ef7d75, error-soft: #ef7d7526, success: #5cc283,
         hover: #ffffff14, press: #ffffff26, overlay: #ffffff40, overlay-strong: #ffffffb0,
         shadow: #00000080, shadow-strong: #000000a0, veil: #000000a0, dim: #00000066,
@@ -38,7 +40,9 @@ export global Palettes {
         stage: #dcdcdc, strip: #e8e8e8, panel: #f4f4f4, bar: #e2e2e2, raised: #ffffff, field: #ffffff,
         line: #c8c8c8, line-strong: #7a7a7a,
         text: #1c1c1c, text-2: #555555, text-3: #707070, text-strong: #000000, text-disabled: #9a9a9a,
-        accent: #0095b6, accent-hover: #12a8c9, accent-soft: #0095b62e, on-accent: #111111, focus: #007a96, link: #006377,
+        accent: #0095b6, accent-hover: #12a8c9, accent-soft: #0095b62e, on-accent: #ffffff, focus: #007a96, link: #006377,
+        // Letra branca nos botões do tema claro: sobre o ciano da marca, ela dá só 3,5:1 (spec AJ, regra 35).
+        accent-fill: #007a96, accent-fill-hover: #00647c,
         warning: #8a5d00, warning-soft: #e3b34133, error: #b3261e, error-soft: #b3261e1f, success: #1e7a3c,
         hover: #00000010, press: #0000001f, overlay: #00000033, overlay-strong: #000000a0,
         shadow: #00000033, shadow-strong: #00000055, veil: #00000066, dim: #00000033,
@@ -61,6 +65,14 @@ export global Fixed {
     out property <color> margin: #80808099;
     // O contorno do quadro em recorte, sobre a foto.
     out property <color> crop: #e3b341;
+    // A barra de atualização (spec AV, regra 7): a única exceção ao estilo sóbrio, e só ela usa estes
+    // quatro. Amarelo com letras pretas, nos dois temas.
+    out property <color> attention: #ffd400;
+    out property <color> on-attention: #000000;
+    // "Agora não" sob o mouse (fundo, com a letra preta).
+    out property <color> attention-hover: #e6bf00;
+    // "Reiniciar e atualizar" sob o mouse (fundo, com a letra amarela).
+    out property <color> on-attention-hover: #333333;
     // Controles de temperatura e matiz (spec TM): azul a âmbar, verde a magenta.
     out property <color> cold: #4a90e2;
     out property <color> warm: #f5c542;

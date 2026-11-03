@@ -7,7 +7,7 @@ fn good() -> Palette {
     let text = "    out property <Colors> dark: {\n\
         stage: #1c1c1c, strip: #262626, panel: #303030, bar: #222222, raised: #383838, field: #1e1e1e,\n\
         line-strong: #858585, text: #e6e6e6, text-2: #a6a6a6, text-3: #858585,\n\
-        accent: #19acc9, accent-hover: #3dbbd4, on-accent: #111111, focus: #19acc9, link: #2ebcd8,\n\
+        accent: #19acc9, accent-hover: #3dbbd4, accent-fill: #19acc9, accent-fill-hover: #3dbbd4, on-accent: #111111, focus: #19acc9, link: #2ebcd8,\n\
         warning: #e3b341, error: #ef7d75, success: #5cc283,\n\
         tag-new-bg: #6b6b6b, tag-bg: #4a4a4a, tag-text: #ffffff,\n\
     };\n";
@@ -40,6 +40,24 @@ fn df_b3_contraste_do_texto_nos_dois_temas() {
 }
 
 #[test]
+fn aj_b40_letra_branca_so_no_tema_claro() {
+    let file = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../crates/lamina-app/ui/theme/palette.slint"
+    );
+    let text = std::fs::read_to_string(file).unwrap();
+    let all = palettes(&text);
+    assert_eq!(all["light"]["on-accent"], [0xff, 0xff, 0xff]);
+    assert_eq!(all["dark"]["on-accent"], [0x11, 0x11, 0x11]);
+    // O ciano da marca continua sendo o destaque; só o fundo sob a letra branca escurece.
+    assert_eq!(all["light"]["accent"], [0x00, 0x95, 0xb6]);
+    assert_eq!(all["dark"]["accent-fill"], all["dark"]["accent"]);
+    assert!(ratio(all["light"]["on-accent"], all["light"]["accent"]) < 4.5);
+    assert!(ratio(all["light"]["on-accent"], all["light"]["accent-fill"]) >= 4.5);
+    assert!(ratio(all["light"]["on-accent"], all["light"]["accent-fill-hover"]) >= 4.5);
+}
+
+#[test]
 fn df_b4_icones_fios_foco_e_texto_no_destaque() {
     let mut p = good();
     p.insert("line-strong".into(), [0x44, 0x44, 0x44]);
@@ -53,7 +71,7 @@ fn df_b4_icones_fios_foco_e_texto_no_destaque() {
     assert!(
         found
             .iter()
-            .any(|f| f.starts_with("dark: on-accent sobre accent"))
+            .any(|f| f.starts_with("dark: on-accent sobre accent-fill"))
     );
 }
 
@@ -99,13 +117,13 @@ fn df_b8_superficies_distinguiveis() {
 fn df_b4_link_e_botao_principal_sob_o_mouse_tambem_contam() {
     let mut p = good();
     p.insert("link".into(), [0x19, 0x6a, 0x7a]);
-    p.insert("accent-hover".into(), [0x00, 0x60, 0x70]);
+    p.insert("accent-fill-hover".into(), [0x00, 0x60, 0x70]);
     let found = problems("dark", &p, CYAN_DARK);
     assert!(found.iter().any(|f| f.starts_with("dark: link sobre")));
     assert!(
         found
             .iter()
-            .any(|f| f.starts_with("dark: on-accent sobre accent-hover"))
+            .any(|f| f.starts_with("dark: on-accent sobre accent-fill-hover"))
     );
 }
 
@@ -116,6 +134,87 @@ fn df_b8_superficies_valem_nos_dois_temas() {
     assert_eq!(
         surface_problems("light", &p),
         ["light: stage e strip não se distinguem (mínimo 1,1:1)"]
+    );
+}
+
+/// As cores da barra de atualização (spec AV).
+fn attention_colors() -> Palette {
+    attention::fixed(
+        "export global Fixed {\n\
+         out property <color> attention: #ffd400;\n\
+         out property <color> on-attention: #000000;\n\
+         out property <color> attention-hover: #e6bf00;\n\
+         out property <color> on-attention-hover: #333333;\n\
+         }\n",
+    )
+}
+
+fn file(name: &str, text: &str) -> (String, String) {
+    (name.to_owned(), text.to_owned())
+}
+
+#[test]
+fn av_b9_a_barra_e_amarela_com_letras_pretas_e_passa_no_contraste() {
+    let good = attention_colors();
+    assert_eq!(good["attention"], [0xff, 0xd4, 0x00]);
+    assert_eq!(attention::color_problems(&good), Vec::<String>::new());
+    let with = |token: &str, color: [u8; 3]| {
+        let mut p = good.clone();
+        p.insert(token.into(), color);
+        attention::color_problems(&p)
+    };
+    let found = with("attention", CYAN_DARK);
+    assert!(
+        found.iter().any(|f| f.contains("não é amarelo")),
+        "{found:?}"
+    );
+    let found = with("on-attention", [0x22, 0x22, 0x22]);
+    assert!(found.iter().any(|f| f.contains("não é preto")), "{found:?}");
+    let found = with("attention-hover", [0x40, 0x40, 0x40]);
+    assert!(
+        found
+            .iter()
+            .any(|f| f.starts_with("on-attention sobre attention-hover")),
+        "{found:?}"
+    );
+    let found = with("on-attention-hover", [0xc0, 0xa0, 0x00]);
+    assert!(
+        found
+            .iter()
+            .any(|f| f.starts_with("attention sobre on-attention-hover")),
+        "{found:?}"
+    );
+    assert!(
+        !attention::color_problems(&Palette::new()).is_empty(),
+        "token faltando reprova"
+    );
+}
+
+#[test]
+fn av_b9_a_barra_nao_usa_o_tema_e_o_token_fica_so_nela() {
+    let bar = "// Sobre o Theme, em comentário.\nbackground: Fixed.attention;\n";
+    let palette = "out property <color> attention: #ffd400;\n";
+    let gallery = "UpdateBar { }\nFixed.attention\n";
+    let good = [
+        file("update_bar.slint", bar),
+        file("palette.slint", palette),
+        file("gallery.slint", gallery),
+        file("app.slint", "UpdateBar { }\n"),
+    ];
+    assert_eq!(attention::use_problems(&good), Vec::<String>::new());
+    let themed = [file("update_bar.slint", "background: Theme.bar;\n")];
+    let found = attention::use_problems(&themed);
+    assert!(found.iter().any(|f| f.contains("usa Theme")), "{found:?}");
+    let plain = [file("update_bar.slint", "background: Fixed.paper;\n")];
+    let found = attention::use_problems(&plain);
+    assert!(found.iter().any(|f| f.contains("não usa")), "{found:?}");
+    let elsewhere = [
+        file("update_bar.slint", bar),
+        file("stage.slint", "color: Fixed.on-attention;\n"),
+    ];
+    assert_eq!(
+        attention::use_problems(&elsewhere),
+        ["attention fora da barra de atualização: stage.slint"]
     );
 }
 
@@ -150,4 +249,12 @@ fn pv_b15_as_etiquetas_passam_no_contraste_nos_dois_temas() {
         alpha_problems(translucent),
         ["dark: tag-new-bg tem alfa: o fundo da etiqueta precisa ser opaco"]
     );
+}
+
+#[test]
+fn av_b10_a_barra_nao_fica_escondida_atras_da_pagina_de_novidades() {
+    let app = include_str!("../../../crates/lamina-app/ui/app.slint");
+    assert!(app.contains("update-bar-shown: root.update-bar != \"\" && !NewsUi.show"));
+    assert!(app.contains("if root.update-bar-shown: UpdateBar"));
+    assert!(app.contains("(root.update-bar-shown ? 32px : 0px)"));
 }

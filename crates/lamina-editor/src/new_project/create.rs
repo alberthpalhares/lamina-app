@@ -11,6 +11,32 @@ use crate::NewAlbum;
 /// Mensagens da seção 6.
 pub const NO_PHOTOS_HERE: &str = "Não achei fotos nessa pasta.";
 pub const CANNOT_WRITE: &str = "Não dá para salvar nessa pasta. Escolha outra.";
+pub const PICK_PHOTOS: &str = "Escolha a pasta das fotos ou comece sem fotos.";
+
+/// O que a etapa 3 diz embaixo dos campos (spec DD, regra 16): a falta da pasta é só o próximo passo,
+/// em cor neutra; erro é o que está errado de verdade. Com qualquer um dos dois, Criar fica apagado.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct StepThreeState {
+    pub hint: String,
+    pub error: String,
+}
+
+impl StepThreeState {
+    pub fn new(problem: Option<String>, missing_photos: bool) -> Self {
+        Self {
+            hint: if missing_photos {
+                PICK_PHOTOS.to_owned()
+            } else {
+                String::new()
+            },
+            error: problem.unwrap_or_default(),
+        }
+    }
+
+    pub fn can_create(&self) -> bool {
+        self.hint.is_empty() && self.error.is_empty()
+    }
+}
 
 /// A pasta Documentos do fotógrafo (a pasta pessoal, se não houver).
 pub fn documents_dir() -> PathBuf {

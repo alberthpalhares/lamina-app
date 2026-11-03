@@ -49,6 +49,7 @@ pub enum Command {
     Mirror,
     Favorite,
     Reject,
+    DeleteLearned,
     ToggleReordered,
     ClearFrame,
     RemoveFromAlbum,
@@ -98,8 +99,10 @@ pub enum Command {
     ClearRecents,
     /// A etapa 2 do Novo projeto para o álbum aberto (spec NP, regra 11).
     MountAlbum,
-    /// Movimento sem animação (spec MV, regra 14).
+    /// Movimento sem animação (spec MV, regra 14; spec AJ, regra 7).
     ToggleReduceMotion,
+    /// A tela de Preferências (spec AJ, regra 1).
+    Preferences,
     /// A sombra da dobra na lâmina grande (spec DJ, regra 2).
     ToggleGutterShadow,
     /// Fotos a qualquer momento (spec IM): arquivos ou uma pasta.

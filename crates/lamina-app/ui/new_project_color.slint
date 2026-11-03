@@ -1,0 +1,59 @@
+// A cor compacta da etapa 2 do Novo álbum (spec DD, regra 15): a amostra, as cores prontas numa
+// linha e "Outra cor…", que abre o quadro de cores e o código. Só desenho: a conta é do editor.
+
+import { LineEdit } from "std-widgets.slint";
+import { Theme, Radius, Line, Space } from "theme.slint";
+import { BarButton, ColorArea, FocusStop } from "widgets.slint";
+import { NewProjectUi } from "new_project_ui.slint";
+
+// Uma cor pronta.
+export component ColorSwatch inherits Rectangle {
+    in property <color> shade;
+    in property <string> hex;
+    in property <bool> current;
+    callback picked();
+    accessible-role: button;
+    accessible-label: "Cor " + root.hex;
+    accessible-checked: root.current;
+    accessible-action-default => { root.picked(); }
+    width: 22px;
+    height: 22px;
+    border-radius: Radius.small;
+    background: root.shade;
+    border-width: root.current ? Line.focus : Line.thin;
+    border-color: root.current ? Theme.text-strong : Theme.press;
+    TouchArea { clicked => { root.picked(); } }
+    FocusStop { activated => { root.picked(); } }
+}
+
+// "Outra cor…": o código e o quadro de cores do painel (spec DG, regra 9), num balão por cima do diálogo.
+export component OtherColor inherits BarButton {
+    in property <int> which;
+    in-out property <string> hex;
+    text: "Outra cor…";
+    outlined: true;
+    pad: Space.s2;
+    clicked => { balloon.show(); }
+    balloon := PopupWindow {
+        y: root.height + Space.s1;
+        width: 200px;
+        height: 134px;
+        close-policy: close-on-click-outside;
+        Rectangle {
+            background: Theme.raised;
+            border-radius: Radius.medium;
+            border-width: Line.thin;
+            border-color: Theme.line;
+            VerticalLayout {
+                padding: Space.s3;
+                spacing: Space.s2;
+                LineEdit {
+                    accessible-label: "Código da cor";
+                    text <=> root.hex;
+                    edited => { NewProjectUi.mount-changed(); }
+                }
+                ColorArea { picked(x, y) => { NewProjectUi.color-at(root.which, x, y); } }
+            }
+        }
+    }
+}

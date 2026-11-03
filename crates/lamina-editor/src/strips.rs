@@ -9,6 +9,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::Session;
 use crate::photos::used_photos;
+use crate::window_look::{
+    BackdropChoice, MotionChoice, TEXT_SIZE_DEFAULT, ThemeChoice, tolerant, tolerant_motion,
+    tolerant_size,
+};
 
 /// Arquivo do estado da janela, ao lado das preferências de layout.
 pub const STRIPS_FILE: &str = "janela.json";
@@ -79,10 +83,25 @@ pub struct Strips {
     /// (spec ET, regra 1). Sem o campo, o primeiro tamanho do formato.
     #[serde(rename = "ultimo_tamanho", skip_serializing_if = "Option::is_none")]
     pub last_size: Option<(String, Option<String>)>,
-    /// "Reduzir movimento" (spec MV, regra 14): também é estado da janela. Arquivo antigo sem o
-    /// campo vale desligado.
+    /// "Sem movimento", para quem volta a um Lamina anterior (spec AJ, regra 22). Quem manda é
+    /// `motion`; arquivo antigo sem aquele campo decide por este (regra 21).
     #[serde(rename = "reduzir_movimento")]
     pub reduce_motion: bool,
+    /// O tema, o fundo em volta da lâmina e o tamanho do texto (spec AJ, regra 20). Valor estranho
+    /// vale o padrão só naquele campo (regra 23).
+    #[serde(rename = "tema", deserialize_with = "tolerant")]
+    pub theme: ThemeChoice,
+    #[serde(rename = "fundo_lamina", deserialize_with = "tolerant")]
+    pub backdrop: BackdropChoice,
+    #[serde(rename = "tamanho_texto", deserialize_with = "tolerant_size")]
+    pub text_size: u32,
+    /// O movimento (spec AJ, regra 18). `None` só antes de ler um arquivo: use `motion_choice`.
+    #[serde(
+        rename = "movimento",
+        deserialize_with = "tolerant_motion",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub motion: Option<MotionChoice>,
     /// O zoom das miniaturas do painel de fotos, de 64 a 240 px (spec PF, regra 4). Sem o campo,
     /// 96; fora da faixa, preso a ela ao ler.
     #[serde(rename = "fotos_zoom")]
@@ -116,6 +135,10 @@ impl Default for Strips {
             format: crate::new_project::Format::Square,
             last_size: None,
             reduce_motion: false,
+            theme: ThemeChoice::default(),
+            backdrop: BackdropChoice::default(),
+            text_size: TEXT_SIZE_DEFAULT,
+            motion: None,
             photos_zoom: crate::photo_grid::ZOOM_DEFAULT,
             photos_height: None,
             remembered: None,
@@ -160,7 +183,24 @@ impl Strips {
             self.spreads = true;
             self.version = STRIPS_VERSION;
         }
+        self.motion = Some(self.motion_choice());
         self.one_tab()
+    }
+
+    /// A escolha do movimento (spec AJ, regra 21): sem o campo novo, `reduzir_movimento` ligado
+    /// continua "sem", e desligado passa a seguir o sistema.
+    pub fn motion_choice(&self) -> MotionChoice {
+        self.motion.unwrap_or(if self.reduce_motion {
+            MotionChoice::Off
+        } else {
+            MotionChoice::System
+        })
+    }
+
+    /// Muda o movimento nos dois campos (spec AJ, regra 22).
+    pub fn set_motion(&mut self, choice: MotionChoice) {
+        self.motion = Some(choice);
+        self.reduce_motion = choice == MotionChoice::Off;
     }
 
     pub fn is_open(&self, strip: Strip) -> bool {
@@ -268,8 +308,9 @@ impl StripsStore {
         let Some(path) = &self.path else {
             return Ok(());
         };
-        write(path, &self.strips, &self.calibrations)
-            .map_err(|reason| format!("Não foi possível guardar o estado dos painéis: {reason}."))
+        write(path, &self.strips, &self.calibrations).map_err(|reason| {
+            format!("Não foi possível guardar as preferências da janela: {reason}.")
+        })
     }
 }
 

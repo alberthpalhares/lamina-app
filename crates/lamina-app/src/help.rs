@@ -23,8 +23,7 @@ pub fn error_log() -> ErrorLog {
 /// A linha "início" de cada abertura, com a versão e o canal já lidos (regra 5).
 pub fn start(app: &App) {
     if let Some(log) = app.editor.log() {
-        let version = app.updates.current().to_string();
-        log.start(&version, &system_name(), channel(app));
+        app.updates.log_start(log, &system_name());
     }
 }
 

@@ -20,6 +20,12 @@ impl Command {
                 Some(Shortcut::ctrl('/')),
             ),
             C::ShowNews => ("ajuda.novidades", "O que há de novo…", Menu::Help, None),
+            C::Preferences => (
+                "editar.preferencias",
+                "Preferências…",
+                Menu::Edit,
+                Some(Shortcut::ctrl(',')),
+            ),
             C::Loupe => ("organizar.lupa", "Lupa", Menu::View, k('z')),
             // 1 e 0 sem Ctrl, só no modo organizar (spec ZR, escolha 17).
             C::ActualSize => (

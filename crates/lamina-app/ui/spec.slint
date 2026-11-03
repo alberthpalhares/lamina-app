@@ -1,11 +1,10 @@
-// Presets e especificação do álbum (spec PR): o formulário da especificação (usado pelo "Novo
-// álbum" e pela "Especificação do álbum"), o nome de um preset novo e a lista dos presets do
-// fotógrafo. O estado mora no global `PresetUi`, que o Rust lê e escreve.
+// Presets (spec PR): o nome de um preset novo e a lista dos presets do fotógrafo. O estado mora no
+// global `PresetUi`, que o Rust lê e escreve; a especificação do álbum é a etapa 1 do Novo álbum.
 
-import { LineEdit, ComboBox, ListView } from "std-widgets.slint";
-import { NumberField } from "number_field.slint";
-import { Theme, Type, Radius } from "theme.slint";
-import { Shade, Panel, Field, DialogButton, CheckRow } from "widgets.slint";
+import { LineEdit } from "std-widgets.slint";
+import { Theme, Type, Space } from "theme.slint";
+import { Icons } from "icons.slint";
+import { Dialog, DialogSize, DialogFooter, DialogButton, FirstLineEdit, PickList, EmptyState } from "widgets.slint";
 
 export global PresetUi {
     // Os nomes: os do Lamina, os do fotógrafo e, por último, "Personalizado".
@@ -53,182 +52,52 @@ export global PresetUi {
     callback closed();
 }
 
-// Os campos da especificação, com o preset e a faixa de páginas.
-export component SpecForm inherits VerticalLayout {
-    in property <[string]> presets;
-    in-out property <int> preset;
-    in-out property <string> width-cm;
-    in-out property <string> height-cm;
-    in-out property <string> dpi;
-    in-out property <string> bleed-mm;
-    in-out property <string> safe-mm;
-    in-out property <string> spine-mm;
-    in-out property <bool> starts-single;
-    in-out property <bool> ends-single;
-    in-out property <string> min-pages;
-    in-out property <string> max-pages;
-    callback changed();
-    callback picked(int);
-    callback save-preset();
-    spacing: 10px;
-
-    Field {
-        label: "Preset";
-        ComboBox {
-            model: root.presets;
-            current-index <=> root.preset;
-            selected => { root.picked(self.current-index); }
-        }
-        DialogButton { text: "Salvar como preset…"; clicked => { root.save-preset(); } }
-    }
-    Field {
-        label: "Página (largura × altura, cm)";
-        NumberField { text <=> root.width-cm; minimum: 0; input-type: decimal; edited => { root.changed(); } }
-        NumberField { text <=> root.height-cm; minimum: 0; input-type: decimal; edited => { root.changed(); } }
-    }
-    Field {
-        label: "DPI";
-        NumberField { text <=> root.dpi; minimum: 1; input-type: number; edited => { root.changed(); } }
-    }
-    Field {
-        label: "Sangria e zona segura (mm)";
-        NumberField { text <=> root.bleed-mm; minimum: 0; input-type: decimal; edited => { root.changed(); } }
-        NumberField { text <=> root.safe-mm; minimum: 0; input-type: decimal; edited => { root.changed(); } }
-    }
-    Field {
-        label: "Zona segura na lombada (mm)";
-        NumberField {
-            minimum: 0;
-            text <=> root.spine-mm;
-            placeholder-text: "igual à zona segura";
-            input-type: decimal;
-            edited => { root.changed(); }
-        }
-    }
-    HorizontalLayout {
-        spacing: 16px;
-        CheckRow { text: "Começa com página simples"; checked <=> root.starts-single; toggled => { root.changed(); } }
-        CheckRow { text: "Termina com página simples"; checked <=> root.ends-single; toggled => { root.changed(); } }
-    }
-    Field {
-        label: "Páginas (mínimo e máximo)";
-        NumberField { step: 2; minimum: 0; text <=> root.min-pages; placeholder-text: "sem mínimo"; input-type: number; edited => { root.changed(); } }
-        NumberField { step: 2; minimum: 0; text <=> root.max-pages; placeholder-text: "sem máximo"; input-type: number; edited => { root.changed(); } }
-    }
-}
-
-// Arquivo → Especificação do álbum…
-export component SpecDialog inherits Shade {
-    Panel {
-        width: 600px;
-        height: 520px;
-        VerticalLayout {
-            padding: 24px;
-            spacing: 10px;
-            Text { text: "Especificação do álbum"; font-size: Type.heading; font-weight: Type.semibold; color: Theme.text; }
-            SpecForm {
-                presets: PresetUi.presets;
-                preset <=> PresetUi.spec-preset;
-                width-cm <=> PresetUi.spec-width;
-                height-cm <=> PresetUi.spec-height;
-                dpi <=> PresetUi.spec-dpi;
-                bleed-mm <=> PresetUi.spec-bleed;
-                safe-mm <=> PresetUi.spec-safe;
-                spine-mm <=> PresetUi.spec-spine;
-                starts-single <=> PresetUi.spec-starts;
-                ends-single <=> PresetUi.spec-ends;
-                min-pages <=> PresetUi.spec-min;
-                max-pages <=> PresetUi.spec-max;
-                changed => { PresetUi.spec-changed(); }
-                picked(i) => { PresetUi.picked(1, i); }
-                save-preset => { PresetUi.save-as(1); }
-            }
-            Text {
-                text: "As lâminas são refeitas com o mesmo desenho no tamanho novo. Ctrl+Z desfaz.";
-                color: Theme.text-2;
-                wrap: word-wrap;
-            }
-            Text { text: PresetUi.spec-error; color: Theme.warning; wrap: word-wrap; vertical-stretch: 1; }
-            HorizontalLayout {
-                alignment: end;
-                spacing: 8px;
-                DialogButton { text: "Cancelar"; clicked => { PresetUi.show-spec = false; PresetUi.closed(); } }
-                DialogButton {
-                    text: "Aplicar";
-                    primary: true;
-                    enabled: PresetUi.spec-error == "";
-                    clicked => { PresetUi.spec-apply(); }
-                }
-            }
-        }
-    }
-}
-
 // O nome de um preset novo.
-export component PresetNameDialog inherits Shade {
-    Panel {
-        width: 440px;
-        height: 220px;
-        VerticalLayout {
-            padding: 24px;
-            spacing: 12px;
-            Text { text: "Salvar como preset"; font-size: Type.title; font-weight: Type.semibold; color: Theme.text; }
-            LineEdit { text <=> PresetUi.name; placeholder-text: "ex.: Flat 30 × 30"; }
-            LineEdit { text <=> PresetUi.lab; placeholder-text: "Encadernadora (opcional)"; }
-            if PresetUi.labs-text != "": Text { text: "Já usados: " + PresetUi.labs-text; color: Theme.text-2; font-size: Type.small; wrap: word-wrap; }
-            Text { text: PresetUi.name-message; color: Theme.warning; wrap: word-wrap; vertical-stretch: 1; }
-            HorizontalLayout {
-                alignment: end;
-                spacing: 8px;
-                DialogButton { text: "Cancelar"; clicked => { PresetUi.show-name = false; } }
-                DialogButton { text: "Salvar"; primary: true; clicked => { PresetUi.name-save(); } }
-            }
-        }
+export component PresetNameDialog inherits Dialog {
+    title: "Salvar como preset";
+    child-focus: true;
+    dismissed => { PresetUi.show-name = false; }
+    FirstLineEdit { text <=> PresetUi.name; placeholder-text: "ex.: Flat 30 × 30"; accepted => { PresetUi.name-save(); } }
+    LineEdit { text <=> PresetUi.lab; placeholder-text: "Encadernadora (opcional)"; accepted => { PresetUi.name-save(); } }
+    if PresetUi.labs-text != "": Text { text: "Já usados: " + PresetUi.labs-text; color: Theme.text-2; font-size: Type.small; wrap: word-wrap; }
+    if PresetUi.name-message != "": Text { text: PresetUi.name-message; color: Theme.warning; wrap: word-wrap; }
+    DialogFooter {
+        DialogButton { text: "Cancelar"; clicked => { PresetUi.show-name = false; } }
+        DialogButton { text: "Salvar"; primary: true; clicked => { PresetUi.name-save(); } }
     }
 }
 
-// Arquivo → Presets…: os presets do fotógrafo.
-export component PresetsDialog inherits Shade {
-    Panel {
-        width: 480px;
-        height: 420px;
-        VerticalLayout {
-            padding: 24px;
-            spacing: 10px;
-            Text { text: "Meus presets"; font-size: Type.title; font-weight: Type.semibold; color: Theme.text; }
-            Text {
-                text: PresetUi.user-presets.length == 0
-                    ? "Nenhum preset salvo. Use \"Salvar como preset…\" no novo álbum ou na especificação."
-                    : "Os presets do Lamina não aparecem aqui: não dá para mudá-los.";
-                color: Theme.text-2;
-                wrap: word-wrap;
-            }
-            ListView {
-                vertical-stretch: 1;
-                for item[i] in PresetUi.user-presets: Rectangle {
-                    height: 28px;
-                    border-radius: Radius.small;
-                    background: i == PresetUi.list-selected ? Theme.press : touch.has-hover ? Theme.hover : transparent;
-                    Text { x: 8px; text: item; color: Theme.text; vertical-alignment: center; }
-                    touch := TouchArea {
-                        clicked => {
-                            PresetUi.list-selected = i;
-                            PresetUi.list-name = item;
-                        }
-                    }
-                }
-            }
-            HorizontalLayout {
-                spacing: 8px;
-                LineEdit { text <=> PresetUi.list-name; enabled: PresetUi.list-selected >= 0; }
-                DialogButton { text: "Renomear"; enabled: PresetUi.list-selected >= 0; clicked => { PresetUi.list-rename(); } }
-                DialogButton { text: "Apagar"; enabled: PresetUi.list-selected >= 0; clicked => { PresetUi.list-delete(); } }
-            }
-            Text { text: PresetUi.list-message; color: Theme.warning; wrap: word-wrap; }
-            HorizontalLayout {
-                alignment: end;
-                DialogButton { text: "Fechar"; primary: true; clicked => { PresetUi.show-list = false; PresetUi.closed(); } }
-            }
-        }
+// Arquivo → Presets…: os presets do fotógrafo. Sem nada salvo, diz o que fazer; a linha de renomear
+// só aparece com um preset escolhido (spec DD, regra 24).
+export component PresetsDialog inherits Dialog {
+    title: "Meus presets";
+    size: DialogSize.form;
+    child-focus: true;
+    dismissed => { PresetUi.show-list = false; PresetUi.closed(); }
+    if PresetUi.user-presets.length == 0: EmptyState {
+        icon: Icons.layouts;
+        text: "Nenhum preset salvo.\nUse \"Salvar como preset…\" no Novo álbum, em Personalizado.";
+    }
+    if PresetUi.user-presets.length > 0: Text {
+        text: "Os presets do Lamina não aparecem aqui: não dá para mudá-los.";
+        color: Theme.text-2;
+        wrap: word-wrap;
+    }
+    if PresetUi.user-presets.length > 0: PickList {
+        label: "Meus presets";
+        items: PresetUi.user-presets;
+        selected <=> PresetUi.list-selected;
+        picked(name) => { PresetUi.list-name = name; }
+    }
+    if PresetUi.list-selected >= 0: HorizontalLayout {
+        spacing: Space.s2;
+        vertical-stretch: 0;
+        LineEdit { text <=> PresetUi.list-name; accepted => { PresetUi.list-rename(); } }
+        DialogButton { text: "Renomear"; clicked => { PresetUi.list-rename(); } }
+        DialogButton { text: "Apagar"; danger: true; clicked => { PresetUi.list-delete(); } }
+    }
+    if PresetUi.list-message != "": Text { text: PresetUi.list-message; color: Theme.warning; wrap: word-wrap; }
+    DialogFooter {
+        DialogButton { text: "Fechar"; primary: true; takes-focus: true; clicked => { PresetUi.show-list = false; PresetUi.closed(); } }
     }
 }

@@ -129,7 +129,9 @@ pub fn connect(window: &AppWindow, app: &Shared) {
     let pending: Rc<RefCell<Vec<PathBuf>>> = Rc::default();
     let a = app.clone();
     let weak = window.as_weak();
+    let look = app.clone();
     window.window().on_winit_window_event(move |window, event| {
+        crate::window_look::on_event(&look, event);
         if crate::monitor::may_change(event)
             && let Ok(mut app) = a.try_borrow_mut()
             && crate::monitor::read(&mut app, window)

@@ -2,13 +2,17 @@
 //! trabalhos numa linha separada, a barra e os itens do menu Ajuda. As decisões são do
 //! `lamina_editor::updates`; aqui só a tradução.
 
+use std::cell::RefCell;
 use std::ffi::OsString;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use lamina_editor::updates::{
     Channel, Job, Outcome, Step, UpdateError, Updater, Version, restart_args, run,
 };
 use lamina_editor::{HumanMessage, UPDATES_FILE, Updates, UpdatesStore, config_dir, guarded};
+use slint::Timer;
 use velopack::sources::{GithubSource, NoneSource};
 use velopack::{UpdateCheck, UpdateInfo, UpdateManager, UpdateOptions};
 
@@ -18,7 +22,11 @@ use crate::state::{App, Msg};
 const REPO: &str = "https://github.com/alberthpalhares/lamina-app";
 
 /// Espera depois de a janela aparecer, para a checagem não disputar com a abertura (regra 2).
-pub const CHECK_DELAY: std::time::Duration = std::time::Duration::from_secs(4);
+pub const CHECK_DELAY: Duration = Duration::from_secs(4);
+
+/// `LAMINA_ATUALIZACAO=<versão>`: simula a barra no Lamina compilado (spec AV, seção 3).
+const SIMULATE: &str = "LAMINA_ATUALIZACAO";
+const SIMULATED_DOWNLOAD: Duration = Duration::from_secs(5);
 
 /// O canal do Velopack: um por sistema, porque a mesma release do GitHub leva os três.
 fn channel_name(channel: Channel) -> String {
@@ -143,21 +151,24 @@ fn spawn(app: &App, job: Job) {
     let (updater, tx) = (app.updater.clone(), app.tx.clone());
     let current = app.updates.current().clone();
     std::thread::spawn(move || {
-        let Ok(mut updater) = updater.lock() else {
-            return;
+        // Toda resposta volta, mesmo de uma falha inesperada: sem ela, a barra ficaria presa em
+        // "Baixando…" (spec AV, regra 4). A janela pode ter fechado no meio: aí não há quem receba.
+        let outcome = match updater.lock() {
+            Ok(mut updater) => guarded(|| run(&mut *updater, &job, &current))
+                .unwrap_or_else(|problem| job.failed(&problem.details)),
+            Err(_) => job.failed("instalador ocupado"),
         };
-        // Uma falha inesperada fica só no registro: a atualização nunca interrompe (spec DS).
-        if let Ok(outcome) = guarded(|| run(&mut *updater, &job, &current)) {
-            // A janela pode ter fechado no meio: aí não há quem receba.
-            let _ = tx.send(Msg::Update(outcome));
-        }
+        let _ = tx.send(Msg::Update(outcome));
     });
 }
 
-/// Aplica um passo do editor: o aviso na barra de avisos e o próximo trabalho.
+/// Aplica um passo do editor: o aviso na barra de avisos, a falha no registro e o próximo trabalho.
 pub fn apply(app: &mut App, step: Step) {
     if let Some(notice) = step.notice {
         app.notice = notice;
+    }
+    if let (Some(line), Some(log)) = (step.log, app.editor.log()) {
+        log.note(&line);
     }
     if let Some(job) = step.job {
         spawn(app, job);
@@ -169,6 +180,7 @@ pub fn apply(app: &mut App, step: Step) {
 pub fn show(app: &App) {
     if let Some(w) = app.window.upgrade() {
         w.set_update_bar(app.updates.bar().unwrap_or_default().into());
+        w.set_update_ready(app.updates.bar_ready());
         w.set_auto_updates(app.updates.store.prefs.automatic);
         w.set_beta_updates(app.updates.store.prefs.beta);
         w.set_notice(app.notice.clone().into());
@@ -208,6 +220,23 @@ pub fn toggle_beta(app: &mut App) {
     show(app);
 }
 
+/// `LAMINA_ATUALIZACAO=<versão>` (spec AV, seção 3): a barra de "baixando" e, um tempo depois, a de
+/// "pronta", sem rede, para conferir no Lamina compilado.
+pub fn simulate(shared: &Rc<RefCell<App>>) {
+    let Ok(wanted) = std::env::var(SIMULATE) else {
+        return;
+    };
+    let mut app = shared.borrow_mut();
+    let Some(version) = app.updates.simulate_update(&wanted) else {
+        return;
+    };
+    show(&app);
+    let shared = shared.clone();
+    Timer::single_shot(SIMULATED_DOWNLOAD, move || {
+        message(&mut shared.borrow_mut(), Outcome::Downloaded(version));
+    });
+}
+
 /// "Agora não" (regra 4).
 pub fn dismiss(app: &mut App) {
     app.updates.dismiss();
@@ -221,12 +250,12 @@ pub fn restart(app: &mut App) {
         Ok(mut updater) => updater.apply_and_restart(&args),
         Err(_) => Err(UpdateError::Failed("instalador ocupado".into())),
     };
-    if result.is_err() {
+    if let Err(error) = result {
         app.updates.cancel_restart();
         let message = HumanMessage::new(
             "Não foi possível atualizar agora.",
             "A versão nova entra quando o Lamina for fechado.",
-            "",
+            error.detail(),
         );
         crate::files::show_error(app, &message);
     }

@@ -12,6 +12,8 @@ pub enum Msg {
     Step(Step),
     Album(Result<(Project, usize), HumanMessage>),
     ImagesReady,
+    /// O que o sistema diz do movimento (spec AJ, regra 18); `None` = sem resposta.
+    SystemMotion(Option<bool>),
     /// Uma foto de tela lida pelo trabalhador (spec MV, regra 1); `None` sem imagem de tela.
     Screen {
         epoch: u64,
@@ -23,6 +25,9 @@ pub enum Msg {
     /// Andamento e fim da exportação (spec EI): o resumo ou o erro, e a pasta.
     Exporting(usize, usize),
     Exported(Result<String, HumanMessage>, PathBuf),
+    /// Andamento e fim da aprovação do cliente (spec AC): o resumo ou o erro, e a pasta.
+    Approving(usize, usize),
+    Approved(Result<String, HumanMessage>, PathBuf),
     /// Andamento e resultado da procura de fotos ausentes (spec EI). `file` é o projeto em que a
     /// procura começou; `folder`, a pasta escolhida (nenhuma = a procura ao abrir).
     Searching(usize, usize),

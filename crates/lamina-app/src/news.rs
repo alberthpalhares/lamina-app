@@ -7,6 +7,8 @@ mod rows;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
+mod tests_focus;
+#[cfg(test)]
 mod tests_layout;
 
 use std::cell::RefCell;

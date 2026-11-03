@@ -6,7 +6,7 @@ use slint::ComponentHandle;
 
 use crate::{AppWindow, Motion};
 
-/// As durações e o interruptor do movimento, e a marca do menu.
+/// As durações e o interruptor do movimento.
 pub fn refresh(w: &AppWindow, durations: Durations, reduce: bool) {
     let ms = |v: u32| i32::try_from(v).unwrap_or(0);
     let m = w.global::<Motion>();
@@ -19,5 +19,4 @@ pub fn refresh(w: &AppWindow, durations: Durations, reduce: bool) {
     m.set_sharp_ms(ms(durations.sharp));
     m.set_reorder_ms(ms(durations.reorder));
     m.set_band_ms(ms(durations.band));
-    w.set_reduce_motion(reduce);
 }

@@ -69,11 +69,13 @@ pub fn message(app: &mut App, msg: Msg) {
             }
         }
         Msg::ImagesReady => app.images_ready(),
+        Msg::SystemMotion(reduces) => crate::window_look::motion_read(app, reduces),
         Msg::Screen { epoch, id, pixels } => app.images.screen_arrived(epoch, id, pixels),
         Msg::Thumb { epoch, id, pixels } => app.images.thumb_arrived(epoch, id, pixels),
         Msg::SpreadImage(painted) => crate::roll::arrived(app, *painted),
         Msg::Original(id, pixels) => crate::crop::original_ready(app, id, pixels),
         Msg::Exporting(..) | Msg::Exported(..) => crate::export::message(app, msg),
+        Msg::Approving(..) | Msg::Approved(..) => crate::approval::message(app, msg),
         Msg::Searching(..) | Msg::Relinked { .. } => crate::relink::message(app, msg),
         Msg::Rechecked { file, still } => crate::relink_dialog::rechecked(app, file, &still),
         Msg::Located { file, result } => crate::relink_dialog::located(app, file, result),

@@ -10,8 +10,9 @@ use rayon::prelude::*;
 use thiserror::Error;
 
 use crate::layouts::{
-    Family, LayoutCandidate, LayoutError, LayoutOptions, add_models, layout_options,
+    Family, LayoutCandidate, LayoutError, LayoutOptions, add_models, layout_options_learned,
 };
+use crate::learned::Learned;
 use crate::plan::{PlanError, PlanOptions, SpreadPlan, SpreadRole, plan_spreads};
 use crate::prefs::{Preferences, design_key};
 use window::{WINDOW, Window, window};
@@ -36,6 +37,8 @@ pub struct BuildOptions {
     pub preferences: Preferences,
     /// Modelos do fotógrafo que entram na disputa de cada lâmina (spec MD, regra 9).
     pub models: Vec<crate::layouts::SpreadModel>,
+    /// O que o fotógrafo mais escolhe (spec AL, regra 5). Vazio = escolha de sempre.
+    pub learned: Learned,
 }
 
 /// Uma linha do relatório: o que foi escolhido para a lâmina e por quê.
@@ -98,8 +101,8 @@ pub fn auto_build(
     out.spreads.clear();
     let mut chosen: Vec<Family> = Vec::with_capacity(plan.len());
     let mut report = Vec::with_capacity(plan.len());
-    for (spread, Window { list, favorite }) in plan.iter().zip(&suggestions) {
-        let pick = choose::pick(list, favorite, spread, &chosen, options.reuse);
+    for (spread, Window { list, boost }) in plan.iter().zip(&suggestions) {
+        let pick = choose::pick(list, boost, spread, &chosen, options.reuse);
         // A variedade nunca devolve lista vazia (seria `GapTooLarge`); conferido mesmo assim.
         let candidate = list.get(pick.index).ok_or(LayoutError::GapTooLarge)?;
         place(&mut out, &spread.photos, candidate)?;
@@ -156,10 +159,11 @@ fn suggestions(
                 .map(|id| Ok(project.photo(*id)?.aspect_ratio()))
                 .collect::<Result<Vec<f64>, CoreError>>()?;
             let active = edges.active_pages(i, plan.len());
-            let mut lists = layout_options(&project.spec, active, &aspects, &options)?;
+            let mut lists =
+                layout_options_learned(&project.spec, active, &aspects, &options, &build.learned)?;
             let at = (active, project.gap);
             add_models(&mut lists, &project.spec, at, &aspects, &build.models)?;
-            Ok(window(lists.in_order, &aspects, prefs))
+            Ok(window(lists.in_order, &aspects, prefs, &build.learned))
         })
         .collect();
     // Em paralelo, mas o erro devolvido é o da primeira lâmina com problema (determinismo).
@@ -211,6 +215,10 @@ fn dress(
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+#[path = "tests/al.rs"]
+mod tests_al;
+
 #[cfg(test)]
 #[path = "tests/more.rs"]
 mod tests_more;

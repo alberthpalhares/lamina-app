@@ -3,7 +3,7 @@
 // pronta, feita fora da linha da janela e entregue em colunas (uma coluna sobe por quadro). As
 // contas e as decisões vêm do Rust (lamina-editor, motion/roll*.rs); aqui só se desenha.
 
-import { Theme, Fixed, Type, Radius } from "theme.slint";
+import { Theme, Fixed, Type, Radius, Backdrop } from "theme.slint";
 import { Icons } from "icons.slint";
 import { Motion } from "motion.slint";
 import { DragUi } from "drag.slint";
@@ -48,6 +48,13 @@ export struct RollHitData {
     h: length,
 }
 
+// A foto marcada na linha do tempo: a posição na lista inteira, onde fica na linha e a lâmina dela.
+export struct TimelineStep {
+    row: int,
+    x: length,
+    spread: int,
+}
+
 export global RollUi {
     // O rolo está à vista: há lâminas e não está no modo organizar nem no
     // recorte (regra 24).
@@ -72,6 +79,9 @@ export global RollUi {
     // na tela só os itens perto dele.
     in property <length> line-w;
     callback line-window(length, length);
+    // A próxima foto da linha, pelo teclado (spec DD, regra 28): a partir de `row`, `delta` fotos,
+    // pulando os cortes; com `row` −1, a primeira foto da lâmina atual.
+    callback line-step(int, int) -> TimelineStep;
     // A miniatura da faixa de lâminas sob um quadro arrastado e o ponto nela, em frações da
     // largura dela (spec ML, regra 11); -1 fora das miniaturas.
     in-out property <int> strip-spread: -1;
@@ -408,18 +418,18 @@ export component SpreadRoll inherits Rectangle {
         height: root.cell-h;
         border-radius: Radius.medium;
         border-width: 2px;
-        border-color: root.hit.kind == 4 ? Theme.text-strong : Theme.press;
+        border-color: root.hit.kind == 4 ? Backdrop.strong : Backdrop.line;
         background: root.hit.kind == 4 ? Theme.hover : transparent;
         VerticalLayout {
             alignment: center;
             spacing: 4px;
             HorizontalLayout {
                 alignment: center;
-                Image { accessible-role: AccessibleRole.none; source: Icons.plus; colorize: Theme.text-2; width: 16px; height: 16px; }
+                Image { accessible-role: AccessibleRole.none; source: Icons.plus; colorize: Backdrop.text-2; width: 16px; height: 16px; }
             }
             Text {
                 text: "Lâmina nova\nsolte fotos aqui";
-                color: Theme.text-2;
+                color: Backdrop.text-2;
                 font-size: Type.title;
                 horizontal-alignment: center;
                 vertical-alignment: center;
@@ -434,7 +444,7 @@ export component SpreadRoll inherits Rectangle {
         width: RollUi.width + 4px;
         height: root.live-h + 4px;
         border-width: 2px;
-        border-color: Theme.text-strong;
+        border-color: Backdrop.strong;
         border-radius: Radius.hair;
     }
 
@@ -445,7 +455,7 @@ export component SpreadRoll inherits Rectangle {
         width: 4px;
         height: root.cell-h;
         border-radius: Radius.hair;
-        background: Theme.text-strong;
+        background: Backdrop.strong;
     }
 
     // A barra da lâmina sob o mouse, 24 px acima dela.

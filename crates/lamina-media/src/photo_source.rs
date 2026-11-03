@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, PoisonError};
 
 use image::RgbaImage;
 use lamina_core::{Photo, PhotoId};
@@ -45,22 +45,77 @@ pub fn cached_source(
     thumbs: HashMap<PhotoId, PathBuf>,
     screens: HashMap<PhotoId, PathBuf>,
 ) -> impl Fn(&Photo, (u32, u32)) -> Loaded + Sync {
-    move |photo: &Photo, needed: (u32, u32)| {
-        let side = needed.0.max(needed.1);
-        let copy = if side <= THUMB_SIZE {
-            thumbs.get(&photo.id)
-        } else if side <= SCREEN_SIZE {
-            screens.get(&photo.id)
-        } else {
-            None
-        };
-        if let Some(Ok(image)) = copy.map(image::open) {
-            return Ok(Arc::new(to_rgba(image)));
-        }
-        load_oriented(&photo.path)
-            .map(Arc::new)
-            .map_err(|e| e.to_string())
+    move |photo: &Photo, needed: (u32, u32)| match read_copy(
+        &thumbs,
+        &screens,
+        photo,
+        needed,
+        SCREEN_SIZE,
+    ) {
+        Some(copy) => Ok(copy),
+        None => read_original(photo),
     }
+}
+
+/// Até quantos pixels a aprovação do cliente aceita a cópia de tela: 1,5 vez o tamanho dela. Acima
+/// disso a foto sairia mole demais (spec AC, regra 17).
+const APPROVAL_SCREEN_LIMIT: u32 = 2400;
+
+/// A fonte da aprovação do cliente (spec AC, regras 17 e 18): a miniatura e a cópia de tela sempre
+/// que bastam, e os originais um de cada vez, porque a prévia lê todos os quadros juntos.
+pub fn approval_source(
+    thumbs: HashMap<PhotoId, PathBuf>,
+    screens: HashMap<PhotoId, PathBuf>,
+) -> impl Fn(&Photo, (u32, u32)) -> Loaded + Sync {
+    let originals = one_at_a_time(|photo: &Photo, _: (u32, u32)| read_original(photo));
+    move |photo: &Photo, needed: (u32, u32)| match read_copy(
+        &thumbs,
+        &screens,
+        photo,
+        needed,
+        APPROVAL_SCREEN_LIMIT,
+    ) {
+        Some(copy) => Ok(copy),
+        None => originals(photo, needed),
+    }
+}
+
+/// A mesma fonte, atendendo um pedido de cada vez (spec AC, regra 18).
+pub fn one_at_a_time<F>(source: F) -> impl Fn(&Photo, (u32, u32)) -> Loaded + Sync
+where
+    F: Fn(&Photo, (u32, u32)) -> Loaded + Sync,
+{
+    let turn = Mutex::new(());
+    move |photo: &Photo, needed: (u32, u32)| {
+        let _turn = turn.lock().unwrap_or_else(PoisonError::into_inner);
+        source(photo, needed)
+    }
+}
+
+/// A miniatura ou a cópia de tela, se ela basta e pode ser lida.
+fn read_copy(
+    thumbs: &HashMap<PhotoId, PathBuf>,
+    screens: &HashMap<PhotoId, PathBuf>,
+    photo: &Photo,
+    needed: (u32, u32),
+    screen_limit: u32,
+) -> Option<Arc<RgbaImage>> {
+    let side = needed.0.max(needed.1);
+    let copy = if side <= THUMB_SIZE {
+        thumbs.get(&photo.id)
+    } else if side <= screen_limit {
+        screens.get(&photo.id)
+    } else {
+        None
+    };
+    let image = image::open(copy?).ok()?;
+    Some(Arc::new(to_rgba(image)))
+}
+
+fn read_original(photo: &Photo) -> Loaded {
+    load_oriented(&photo.path)
+        .map(Arc::new)
+        .map_err(|e| e.to_string())
 }
 
 #[cfg(test)]
@@ -106,6 +161,47 @@ mod tests {
         let (project, _) = setup(dir.path());
         let image = original_source()(&project.photos[0], (1, 1)).unwrap();
         assert_eq!(image.dimensions(), (60, 40));
+    }
+
+    #[test]
+    fn ac_b23_de_onde_vem_a_foto() {
+        let dir = tempfile::tempdir().unwrap();
+        let (project, thumbs) = setup(dir.path());
+        let screen = dir.path().join("tela.png");
+        RgbImage::from_pixel(45, 30, Rgb([0, 200, 0]))
+            .save(&screen)
+            .unwrap();
+        let photo = &project.photos[0];
+        let screens = HashMap::from([(photo.id, screen)]);
+        let source = approval_source(thumbs, screens);
+        let size = |side: u32| source(photo, (side, side / 2)).unwrap().dimensions();
+        assert_eq!(size(320), (30, 20), "miniatura");
+        assert_eq!(size(321), (45, 30), "cópia");
+        assert_eq!(size(2400), (45, 30), "cópia");
+        assert_eq!(size(2401), (60, 40), "original");
+    }
+
+    #[test]
+    fn ac_b24_um_original_de_cada_vez() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let (now, most) = (AtomicUsize::new(0), AtomicUsize::new(0));
+        let reader = |_: &Photo, _: (u32, u32)| {
+            most.fetch_max(now.fetch_add(1, Ordering::SeqCst) + 1, Ordering::SeqCst);
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            now.fetch_sub(1, Ordering::SeqCst);
+            Ok(Arc::new(RgbaImage::new(1, 1)))
+        };
+        let source = one_at_a_time(reader);
+        let spec = AlbumSpec::new(Mm(300.0), Mm(300.0), Dpi::new(300).unwrap()).unwrap();
+        let mut project = Project::new("teste", spec);
+        project.add_photo("a.jpg", 60, 40);
+        let photo = &project.photos[0];
+        std::thread::scope(|scope| {
+            for _ in 0..6 {
+                scope.spawn(|| source(photo, (1, 1)).unwrap());
+            }
+        });
+        assert_eq!(most.load(Ordering::SeqCst), 1);
     }
 
     #[test]

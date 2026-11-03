@@ -5,7 +5,7 @@
 import { LineEdit, ScrollView } from "std-widgets.slint";
 import { Theme, Fixed, Type, Space } from "theme.slint";
 import { Icons } from "icons.slint";
-import { DialogButton, EmptyState, FocusRing, Panel, SectionTitle, Shade } from "widgets.slint";
+import { Dialog, DialogFooter, DialogButton, EmptyState, FocusRing, SectionTitle } from "widgets.slint";
 import { BlankAlbum, CardGrid, PinButton, RecentsUi, RecentCard, RecentItem } from "welcome_cards.slint";
 
 export { RecentsUi, RecentCard, RecentItem } from "welcome_cards.slint";
@@ -59,7 +59,8 @@ component FirstUse inherits VerticalLayout {
     alignment: center;
     padding: Space.s5;
     spacing: Space.s5;
-    property <length> image-width: min(min(root.width * 0.52, (root.height - 140px) * 1.4), 960px);
+    // A coluna do texto guarda 340 px, que crescem com o texto (spec AJ, regra 31).
+    property <length> image-width: min(min(min(root.width * 0.52, (root.height - 140px) * 1.4), 960px), root.width - 2 * Space.s5 - Space.s6 - 340px * Type.k);
     property <image> picture: @image-url("../icons/exemplo-primeira-lamina.jpg");
     HorizontalLayout {
         alignment: center;
@@ -97,7 +98,7 @@ component FirstUse inherits VerticalLayout {
             { title: "O Lamina monta as lâminas", detail: "Ele agrupa por momento e diagrama." },
             { title: "Ajuste e exporte", detail: "Mexa no que quiser e mande para a gráfica." },
         ]: VerticalLayout {
-            width: (root.image-width + 400px + Space.s6 - 2 * Space.s4) / 3;
+            width: min(root.image-width + 400px + Space.s6, root.width - 2 * Space.s5) / 3 - Space.s4 * 2 / 3;
             spacing: 2px;
             Text { text: i + 1; color: Theme.text-3; font-size: Type.caption; font-weight: Type.semibold; }
             Text { text: step.title; color: Theme.text; font-size: Type.body; font-weight: Type.semibold; wrap: word-wrap; }
@@ -205,22 +206,14 @@ export component WelcomeScreen inherits Rectangle {
 }
 
 // "Limpar recentes não fixados…" pede confirmação (regra 7).
-export component ClearRecentsDialog inherits Shade {
+export component ClearRecentsDialog inherits Dialog {
     callback closed();
-    Panel {
-        width: 440px;
-        height: 170px;
-        VerticalLayout {
-            padding: Space.s5;
-            spacing: Space.s3;
-            Text { text: "Limpar os álbuns recentes?"; font-size: Type.heading; font-weight: Type.semibold; color: Theme.text; }
-            Text { text: "Os fixados ficam na lista. Os arquivos dos álbuns não são apagados."; color: Theme.text-2; wrap: word-wrap; }
-            HorizontalLayout {
-                alignment: end;
-                spacing: Space.s2;
-                DialogButton { text: "Cancelar"; clicked => { RecentsUi.show-clear = false; root.closed(); } }
-                DialogButton { text: "Limpar"; primary: true; clicked => { RecentsUi.show-clear = false; RecentsUi.clear-confirmed(); root.closed(); } }
-            }
-        }
+    title: "Limpar os álbuns recentes?";
+    child-focus: true;
+    dismissed => { RecentsUi.show-clear = false; root.closed(); }
+    Text { text: "Os fixados ficam na lista. Os arquivos dos álbuns não são apagados."; color: Theme.text-2; wrap: word-wrap; }
+    DialogFooter {
+        DialogButton { text: "Cancelar"; takes-focus: true; clicked => { RecentsUi.show-clear = false; root.closed(); } }
+        DialogButton { text: "Limpar"; danger: true; clicked => { RecentsUi.show-clear = false; RecentsUi.clear-confirmed(); root.closed(); } }
     }
 }

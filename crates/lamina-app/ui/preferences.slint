@@ -1,0 +1,307 @@
+// A tela de Preferências (spec AJ): tema, fundo em volta da lâmina, tamanho do texto e movimento.
+// Cada clique vale na hora e grava na hora (regra 2). No meio da janela, com o véu escuro de sempre
+// (regra 3), e o movimento se demonstra na própria opção (regra 33).
+
+import { Theme, Fixed, Type, Space, Radius, Line } from "theme.slint";
+import { Backdrops } from "theme/backdrop.slint";
+import { Dialog, DialogBody, DialogSize, DialogFooter, DialogGap, DialogButton, FocusRing } from "widgets.slint";
+
+export global PrefsUi {
+    in-out property <bool> show;
+    // A escolha atual de cada grupo, na ordem em que aparece na tela.
+    in property <int> theme;
+    in property <int> backdrop;
+    in property <int> size;
+    in property <int> motion;
+    // O que vale agora em "Seguir o sistema" (regra 4); vazio nas outras escolhas.
+    in property <string> theme-note;
+    in property <string> motion-note;
+    // A demonstração: quanto dura a troca de lâmina, e se o movimento vale agora (regra 33).
+    in property <int> demo-ms;
+    in property <bool> reduced;
+    callback theme-picked(int);
+    callback backdrop-picked(int);
+    callback size-picked(int);
+    callback motion-picked(int);
+    callback reset();
+}
+
+export struct ChoiceData {
+    label: string,
+    has-chip: bool,
+    chip: color,
+}
+
+// Um botão do grupo, com a escolha marcada. `ask` muda quando o grupo pede o foco para `aimed`.
+component ChoiceButton inherits Rectangle {
+    in property <ChoiceData> data;
+    in property <bool> selected;
+    in property <bool> aimed;
+    in property <int> ask;
+    out property <bool> pointed: touch.has-hover;
+    out property <bool> focused: focus.has-focus;
+    callback clicked();
+    callback gained();
+    forward-focus: focus;
+    accessible-role: button;
+    accessible-label: root.data.label;
+    accessible-checked: root.selected;
+    accessible-action-default => { root.clicked(); }
+    min-height: 30px * Type.k;
+    border-radius: Radius.small;
+    border-width: Line.thin;
+    border-color: root.selected ? Theme.accent : Theme.line-strong;
+    background: root.selected ? Theme.accent-soft : touch.has-hover ? Theme.hover : Theme.raised;
+    HorizontalLayout {
+        padding-left: Space.s3;
+        padding-right: Space.s3;
+        spacing: Space.s2;
+        if root.data.has-chip: VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 12px;
+                height: 12px;
+                border-radius: Radius.hair;
+                border-width: Line.thin;
+                border-color: Theme.line-strong;
+                background: root.data.chip;
+            }
+        }
+        Text {
+            text: root.data.label;
+            color: Theme.text;
+            font-weight: root.selected ? Type.medium : Type.regular;
+            vertical-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+    focus := FocusScope {
+        x: 0;
+        width: 0;
+        key-pressed(e) => {
+            if (e.text == Key.Space || e.text == Key.Return) {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+        changed has-focus => {
+            if (self.has-focus) {
+                root.gained();
+            }
+        }
+    }
+    FocusRing { shown: focus.has-focus; x: -3px; y: -3px; width: parent.width + 6px; height: parent.height + 6px; }
+    changed ask => {
+        if (root.aimed) {
+            focus.focus();
+        }
+    }
+}
+
+// Um grupo: o nome, os botões lado a lado e a linha pequena (regra 4). Tab passa de botão em botão, e
+// as setas andam dentro do grupo.
+component ChoiceGroup inherits VerticalLayout {
+    in property <string> title;
+    in property <string> note;
+    in property <[ChoiceData]> choices;
+    in property <int> current;
+    in property <bool> takes-focus;
+    // A opção sob o mouse ou o foco; -1 = nenhuma (regra 33).
+    out property <int> showing: root.over >= 0 ? root.over : root.focus-at;
+    callback picked(int);
+    property <int> over: -1;
+    // O botão que perde o foco avisa depois do que ganha: só apaga se ainda for o dele.
+    property <int> focus-at: -1;
+    property <int> at;
+    property <int> target;
+    property <int> asked;
+    function go(step: int) {
+        root.target = mod(root.at + step + root.choices.length, root.choices.length);
+        root.asked += 1;
+    }
+    spacing: Space.s1;
+    Text { text: root.title; color: Theme.text; font-weight: Type.medium; }
+    FocusScope {
+        focus-on-tab-navigation: false;
+        key-pressed(e) => {
+            if (e.text == Key.LeftArrow) {
+                root.go(-1);
+                return accept;
+            }
+            if (e.text == Key.RightArrow) {
+                root.go(1);
+                return accept;
+            }
+            return reject;
+        }
+        // Os botões nascem com a lista, depois do `init` do grupo: o foco entra na volta seguinte.
+        Timer {
+            interval: 1ms;
+            running: root.takes-focus;
+            triggered => {
+                self.running = false;
+                root.target = root.current;
+                root.asked += 1;
+            }
+        }
+        HorizontalLayout {
+            alignment: start;
+            spacing: Space.s1;
+            for choice[i] in root.choices: ChoiceButton {
+                data: choice;
+                selected: i == root.current;
+                aimed: i == root.target;
+                ask: root.asked;
+                clicked => { root.picked(i); }
+                gained => { root.at = i; }
+                changed pointed => {
+                    if (self.pointed) {
+                        root.over = i;
+                    } else if (root.over == i) {
+                        root.over = -1;
+                    }
+                }
+                changed focused => {
+                    if (self.focused) {
+                        root.focus-at = i;
+                    } else if (root.focus-at == i) {
+                        root.focus-at = -1;
+                    }
+                }
+            }
+        }
+    }
+    if root.note != "": Text { text: root.note; color: Theme.text-2; font-size: Type.small; wrap: word-wrap; }
+}
+
+// Uma lâmina em miniatura, com as fotos em cinza.
+component MiniSpread inherits Rectangle {
+    in property <bool> two-photos;
+    y: 4px;
+    width: 72px;
+    height: 36px;
+    background: Fixed.paper;
+    Rectangle { x: 4px; y: 4px; width: root.two-photos ? 30px : 64px; height: 28px; background: Fixed.placeholder; }
+    if root.two-photos: Rectangle { x: 38px; y: 4px; width: 30px; height: 28px; background: Fixed.placeholder; }
+}
+
+// Mostra o que o movimento é (regra 33): enquanto `playing`, uma lâmina dá lugar à outra, deslizando ou de
+// uma vez. Toca só a pedido, com o mouse ou o foco na opção, e não acompanha `Motion`: a demonstração é
+// justamente a diferença entre as duas.
+component MotionDemo inherits Rectangle {
+    in property <bool> playing;
+    in property <bool> slides;
+    property <bool> second;
+    property <length> middle: (root.width - 72px) / 2;
+    property <length> step: root.width;
+    height: 44px;
+    clip: true;
+    border-radius: Radius.small;
+    // O fundo do tema: a lâmina em miniatura é papel, e some sobre um campo branco.
+    background: Theme.stage;
+    changed playing => {
+        if (root.playing) {
+            root.second = !root.second;
+        }
+    }
+    Timer {
+        interval: 1200ms;
+        running: root.playing;
+        triggered => { root.second = !root.second; }
+    }
+    MiniSpread {
+        two-photos: true;
+        x: root.second ? root.middle - root.step : root.middle;
+        animate x { duration: root.slides ? PrefsUi.demo-ms * 1ms : 0ms; easing: ease-out; }
+    }
+    MiniSpread {
+        x: root.second ? root.middle : root.middle + root.step;
+        animate x { duration: root.slides ? PrefsUi.demo-ms * 1ms : 0ms; easing: ease-out; }
+    }
+}
+
+export component PreferencesDialog inherits Dialog {
+    callback closed();
+    title: "Preferências";
+    size: DialogSize.form;
+    child-focus: true;
+    dismissed => { PrefsUi.show = false; root.closed(); }
+    confirmed => { PrefsUi.show = false; root.closed(); }
+    // Numa janela pequena, só os grupos rolam, e o rodapé fica à vista (regra 17).
+    DialogBody {
+        gap: Space.s3;
+        ChoiceGroup {
+            title: "Tema";
+            note: PrefsUi.theme-note;
+            takes-focus: true;
+            current: PrefsUi.theme;
+            choices: [
+                { label: "Escuro" },
+                { label: "Claro" },
+                { label: "Seguir o sistema" },
+            ];
+            picked(i) => { PrefsUi.theme-picked(i); }
+        }
+        ChoiceGroup {
+            title: "Fundo da lâmina";
+            note: "Só em volta da lâmina. A lâmina não muda.";
+            current: PrefsUi.backdrop;
+            choices: [
+                { label: "Como o tema" },
+                { label: "Escuro", has-chip: true, chip: Backdrops.dark.color },
+                { label: "Cinza 18%", has-chip: true, chip: Backdrops.gray.color },
+                { label: "Claro", has-chip: true, chip: Backdrops.light.color },
+            ];
+            picked(i) => { PrefsUi.backdrop-picked(i); }
+        }
+        ChoiceGroup {
+            title: "Tamanho do texto";
+            current: PrefsUi.size;
+            choices: [
+                { label: "90%" },
+                { label: "100%" },
+                { label: "110%" },
+                { label: "120%" },
+                { label: "130%" },
+            ];
+            picked(i) => { PrefsUi.size-picked(i); }
+        }
+        motion := ChoiceGroup {
+            title: "Movimento";
+            note: PrefsUi.motion-note;
+            current: PrefsUi.motion;
+            choices: [
+                { label: "Seguir o sistema" },
+                { label: "Com movimento" },
+                { label: "Sem movimento" },
+            ];
+            picked(i) => { PrefsUi.motion-picked(i); }
+        }
+        // A demonstração da opção sob o mouse ou o foco (regra 33).
+        VerticalLayout {
+            spacing: Space.s1;
+            MotionDemo {
+                playing: motion.showing >= 0;
+                slides: motion.showing == 1 || (motion.showing == 0 && !PrefsUi.reduced);
+            }
+            Text {
+                text: motion.showing == 0 ? "Seguir o sistema: como estiver configurado no computador."
+                    : motion.showing == 1 ? "Com movimento: a lâmina desliza ao trocar, e as fotos acompanham."
+                    : motion.showing == 2 ? "Sem movimento: a lâmina troca de uma vez."
+                    : "Passe o mouse em uma opção para ver como as lâminas trocam.";
+                color: Theme.text-2;
+                font-size: Type.small;
+                wrap: word-wrap;
+            }
+        }
+    }
+    DialogFooter {
+        DialogButton { text: "Voltar ao padrão"; clicked => { PrefsUi.reset(); } }
+        DialogGap { }
+        DialogButton { text: "Fechar"; clicked => { PrefsUi.show = false; root.closed(); } }
+    }
+}

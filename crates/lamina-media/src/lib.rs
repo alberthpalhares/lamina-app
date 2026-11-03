@@ -51,7 +51,8 @@ pub use import::{
 };
 pub use metadata::{PhotoMetadata, read_metadata};
 pub use photo_source::{
-    Loaded, cached_source, original_source, original_source_in, thumbnail_source,
+    Loaded, approval_source, cached_source, one_at_a_time, original_source, original_source_in,
+    thumbnail_source,
 };
 pub use pool::{PHOTOS_AT_ONCE, map_photos, photos_at_once};
 pub use thumbnail::{

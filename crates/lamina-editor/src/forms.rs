@@ -8,8 +8,11 @@ use crate::Editor;
 use crate::album::SpecFields;
 use crate::photos::PhotoInfo;
 
-pub use crate::export_form::{ExportForm, format_index, replace_question};
+pub use crate::export_form::{
+    ExportForm, format_index, quality_applies, replace_question, replace_title,
+};
 pub use crate::look_form::{BORDER_FIRST, LookField};
+pub use crate::short_path::short_path;
 
 /// Número com no máximo uma casa e vírgula: 30 → "30", 2,5 → "2,5".
 pub fn decimal(v: f64) -> String {

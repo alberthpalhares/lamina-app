@@ -36,6 +36,7 @@ mod group_gesture;
 mod hand;
 mod hand_frames;
 mod layouts;
+mod learning;
 mod leave_album;
 mod models;
 mod mounting;
@@ -56,6 +57,7 @@ mod report;
 mod sequence_move;
 mod style;
 mod text_edit;
+mod window_look;
 
 pub use adjust::{AdjustChange, BAD_ANGLE, BAD_SCALE, CropGrid, parse_angle};
 pub use arrange_cmd::NEED_THREE;
@@ -66,6 +68,7 @@ pub use details::{Details, album_rows, album_sections};
 pub use dropping::DropPlace;
 pub use group_fields::{Field, GROUP_NOT_A_NUMBER};
 pub use layouts::Panel;
+pub use learning::{LEARNED_QUESTION, LEARNED_QUESTION_DETAIL, NOTHING_LEARNED};
 pub use moving::CrossTarget;
 pub use neutral::AdjustControl;
 pub use organize::{DoubleClick, PaletteTool, SidePanel};
@@ -97,6 +100,8 @@ pub struct Editor {
     guide_hidden: bool,
     reordered: bool,
     prefs: PrefsStore,
+    /// O que o fotógrafo mais escolhe (spec AL); só a janela preenche.
+    learning: learning::Learning,
     lists: RefCell<HashMap<ListsKey, LayoutLists>>,
     notice: Option<String>,
     /// A página do último clique direito no fundo da lâmina (spec PB).
@@ -124,6 +129,8 @@ pub struct Editor {
     busy: bool,
     /// As faixas de baixo e o arquivo delas (spec PN).
     strips: StripsStore,
+    /// A resposta do sistema sobre o movimento (spec AJ, regra 18); `None` = sem resposta.
+    system_motion: Option<bool>,
     /// Quadro sendo movido ou redimensionado (spec TX).
     gesture: Option<hand::Gesture>,
     /// Modelos do fotógrafo (spec MD).
@@ -179,6 +186,7 @@ impl Editor {
             guide_hidden: false,
             reordered: false,
             prefs,
+            learning: learning::Learning::default(),
             lists: RefCell::new(HashMap::new()),
             notice,
             context_side: None,
@@ -195,6 +203,7 @@ impl Editor {
             camera: std::cell::RefCell::new(None),
             busy: false,
             strips: StripsStore::default(),
+            system_motion: None,
             gesture: None,
             models: crate::models::ModelsStore::default(),
             log: None,
@@ -277,6 +286,7 @@ impl Editor {
         self.clipboard = None;
         // A faixa mostrava as opções de uma lâmina do álbum anterior (spec FL).
         self.band = band::BandState::default();
+        self.forget_visits();
     }
 
     /// Passa a usar o estado das faixas de `store` (lido de `janela.json`). O aviso de leitura,
@@ -291,26 +301,6 @@ impl Editor {
     /// Quais faixas estão abertas.
     pub fn strips(&self) -> Strips {
         self.strips.strips.clone()
-    }
-
-    /// "Reduzir movimento" ligado (spec MV, regra 14).
-    pub fn reduce_motion(&self) -> bool {
-        self.strips.strips.reduce_motion
-    }
-
-    /// As durações dos movimentos agora (zero com "Reduzir movimento").
-    pub fn durations(&self) -> crate::motion::Durations {
-        crate::motion::Durations::new(self.reduce_motion())
-    }
-
-    /// Liga ou desliga "Reduzir movimento" e grava em `janela.json`; se não gravar, vale nesta
-    /// sessão, com aviso.
-    fn toggle_reduce_motion(&mut self) -> bool {
-        self.strips.strips.reduce_motion = !self.strips.strips.reduce_motion;
-        if let Err(message) = self.strips.save() {
-            self.notice = Some(message);
-        }
-        true
     }
 
     /// A sombra da dobra aparece na lâmina grande agora (spec DJ, regra 2): com a preferência
@@ -375,7 +365,9 @@ impl Editor {
         self.exit_crop();
         self.gesture = None;
         self.selected_frame = None;
-        self.session.as_mut().is_some_and(|s| s.go_to(index))
+        let done = self.session.as_mut().is_some_and(|s| s.go_to(index));
+        self.settle_visit();
+        done
     }
 
     /// Fechar, abrir outro ou criar outro precisa perguntar antes?
@@ -392,7 +384,10 @@ impl Editor {
                 self.received = None;
                 Ok(false)
             }
-            Leave::DontSave => Ok(true),
+            Leave::DontSave => {
+                self.discard_visit();
+                Ok(true)
+            }
             Leave::Save => {
                 let session = self.session.as_ref().ok_or(EditorError::NoProject)?;
                 if session.file().is_none() && save_to.is_none() {

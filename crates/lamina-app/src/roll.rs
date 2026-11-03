@@ -29,7 +29,7 @@ pub const QUIET: Duration = Duration::from_millis(300);
 pub struct RollState {
     revisions: Revisions,
     plan: RollPlan,
-    worker: RollWorker,
+    pub(crate) worker: RollWorker,
     pub scroll: RollScroll,
     store: BTreeMap<SpreadId, Stored>,
     held: BTreeMap<SpreadId, Stored>,

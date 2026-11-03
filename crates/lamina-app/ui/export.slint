@@ -1,12 +1,36 @@
-// Janela Exportar (spec EI): as opções, a pré-impressão com "Ir para a lâmina" e "Ignorar", e
-// a pergunta antes de substituir arquivos.
+// Janela Exportar (specs EI e AC): duas abas, para impressão e para aprovação do cliente. Na de
+// impressão, as opções, a pré-impressão com "Ir para a lâmina" e "Ignorar", e a pergunta antes de
+// substituir arquivos. A de aprovação mora em `approval.slint`.
 
-import { LineEdit, SpinBox, ListView, ComboBox } from "std-widgets.slint";
-import { Theme, Type } from "theme.slint";
-import { Shade, Panel, Field, DialogButton, CheckRow } from "widgets.slint";
+import { LineEdit, SpinBox, ComboBox } from "std-widgets.slint";
+import { Theme, Type, Space } from "theme.slint";
+import { Dialog, DialogSize, DialogBody, DialogFooter, DialogButton, CheckRow, Field, FilterTab, PathLabel } from "widgets.slint";
+import { Mark } from "marks.slint";
+import { ApprovalBody, ApprovalUi } from "approval.slint";
 
-export component ExportDialog inherits Shade {
+// A aba pega o foco quando nasce e ao voltar de uma etapa: com ela, Esc e Tab respondem logo ao abrir.
+// Um instante depois, porque, num `if` que abre junto com o popup, o foco pedido no `init` se perde.
+component ExportTab inherits FilterTab {
+    property <bool> focus-pending: root.active;
+    height: 32px;
+    Timer {
+        interval: 1ms;
+        running: root.focus-pending;
+        triggered => {
+            root.focus-pending = false;
+            root.focus();
+        }
+    }
+}
+
+export component ExportDialog inherits Dialog {
+    // 0 = para impressão, 1 = para aprovação do cliente.
+    in-out property <int> tab;
+    // O que aparece: 0 a 2 são as etapas da impressão, e 3 a 5, as da aprovação.
+    property <int> page: root.tab == 0 ? root.step : 3 + ApprovalUi.step;
     in property <string> folder;
+    // O caminho com o meio cortado (spec DD, regra 17); o inteiro fica na dica.
+    in property <string> folder-short;
     in-out property <bool> all-spreads: true;
     in-out property <string> range;
     in-out property <bool> pages;
@@ -14,6 +38,8 @@ export component ExportDialog inherits Shade {
     in-out property <int> cover;
     in property <bool> has-cover;
     in-out property <int> quality: 95;
+    // Só em JPEG e PDF; o TIFF não tem perda (spec DD, regra 21). A decisão é do editor.
+    in property <bool> quality-shown: true;
     // Formato (spec PD e CT): 0 = JPEG, 1 = PDF, 2 = TIFF; marcas de corte só no PDF.
     in-out property <int> format;
     in-out property <bool> marks;
@@ -25,6 +51,7 @@ export component ExportDialog inherits Shade {
     in property <[string]> warnings;
     // Aviso do álbum inteiro (faixa de páginas do laboratório; spec PR).
     in property <string> album-warning;
+    in property <string> replace-title;
     in property <string> replace-text;
     callback pick-folder();
     callback changed();
@@ -36,167 +63,196 @@ export component ExportDialog inherits Shade {
     callback back();
     callback cancel();
 
-    if root.step == 0: Panel {
-        width: 560px;
-        height: 500px;
-        VerticalLayout {
-            padding: 24px;
-            spacing: 12px;
-            Text { text: "Exportar"; font-size: Type.heading; font-weight: Type.semibold; color: Theme.text; }
-            Field {
-                label: "Pasta";
-                Text {
-                    text: root.folder;
-                    color: Theme.text;
-                    overflow: elide;
-                    vertical-alignment: center;
-                    horizontal-stretch: 1;
-                }
-                DialogButton { text: "Escolher…"; clicked => { root.pick-folder(); } }
-            }
-            Field {
-                label: "Lâminas";
-                CheckRow {
-                    text: "Todas";
-                    checked <=> root.all-spreads;
-                    toggled => { root.changed(); }
-                }
-                LineEdit {
-                    text <=> root.range;
-                    enabled: !root.all-spreads;
-                    placeholder-text: "ex.: 1, 2, 5-7";
-                    edited => { root.changed(); }
-                }
-            }
-            Field {
-                label: "Formato";
-                ComboBox {
-                    model: ["JPEG (um arquivo por lâmina)", "PDF de impressão (PDF/X-4)", "TIFF (um arquivo por lâmina, sem perda)"];
-                    current-index <=> root.format;
-                    selected => { root.changed(); }
-                }
-            }
-            Field {
-                label: "Cor";
-                ComboBox {
-                    model: ["sRGB (padrão)", "Adobe RGB (1998)"];
-                    current-index: root.adobe ? 1 : 0;
-                    selected => {
-                        root.adobe = self.current-index == 1;
-                        root.changed();
-                    }
-                }
-            }
-            if root.format == 1: Field {
-                label: "Marcas de corte";
-                CheckRow {
-                    text: "Nos quatro cantos";
-                    checked <=> root.marks;
-                    toggled => { root.changed(); }
-                }
-            }
-            if root.has-cover: Field {
-                label: "Capa";
-                ComboBox {
-                    model: ["Junto com as lâminas", "Só a capa", "Sem a capa"];
-                    current-index <=> root.cover;
-                    selected => { root.changed(); }
-                }
-            }
-            Field {
-                label: "Páginas soltas";
-                CheckRow {
-                    text: "Um arquivo por página";
-                    checked <=> root.pages;
-                    toggled => { root.changed(); }
-                }
-            }
-            Field {
-                label: "Qualidade do JPEG";
-                SpinBox {
-                    value <=> root.quality;
-                    minimum: 1;
-                    maximum: 100;
-                    edited => { root.changed(); }
-                }
-            }
-            Text { text: root.error; color: Theme.warning; wrap: word-wrap; vertical-stretch: 1; }
-            HorizontalLayout {
-                alignment: end;
-                spacing: 8px;
-                DialogButton { text: "Cancelar"; clicked => { root.cancel(); } }
-                DialogButton {
-                    text: "Exportar";
-                    primary: true;
-                    enabled: root.error == "";
-                    clicked => { root.export(); }
-                }
-            }
+    title: root.page == 0 || root.page == 3 ? "Exportar"
+        : root.page == 1 ? "Pré-impressão"
+        : root.page == 4 ? "Gerar mesmo assim?"
+        : root.page == 2 ? root.replace-title : ApprovalUi.replace-title;
+    size: root.page == 2 || root.page == 5 ? DialogSize.question : DialogSize.form;
+    // A mesma altura nas duas abas, para elas e os botões não mudarem de lugar.
+    fixed-height: root.page == 0 || root.page == 3 ? 680px : 0px;
+    child-focus: true;
+    dismissed => {
+        if (root.page == 0 || root.page == 3) {
+            root.cancel();
+        } else if (root.page < 3) {
+            root.back();
+        } else {
+            ApprovalUi.back();
+        }
+    }
+    confirmed => {
+        if (root.page == 3 && ApprovalUi.ready) {
+            ApprovalUi.generate();
         }
     }
 
-    if root.step == 1: Panel {
-        width: 640px;
-        height: 460px;
-        VerticalLayout {
-            padding: 24px;
-            spacing: 12px;
-            Text { text: "Pré-impressão"; font-size: Type.heading; font-weight: Type.semibold; color: Theme.text; }
-            if root.album-warning != "": Text { text: root.album-warning; color: Theme.warning; wrap: word-wrap; }
+    if root.page == 0 || root.page == 3: HorizontalLayout {
+        alignment: start;
+        spacing: Space.s2;
+        vertical-stretch: 0;
+        ExportTab { text: "Para impressão"; active: root.tab == 0; clicked => { root.tab = 0; } }
+        ExportTab { text: "Para aprovação do cliente"; active: root.tab == 1; clicked => { root.tab = 1; } }
+    }
+
+    if root.page == 0: DialogBody {
+        Field {
+            label: "Pasta";
+            PathLabel { short: root.folder-short; full: root.folder; }
+            DialogButton { text: "Escolher…"; clicked => { root.pick-folder(); } }
+        }
+        Field {
+            label: "Lâminas";
+            CheckRow {
+                text: "Todas";
+                checked <=> root.all-spreads;
+                toggled => { root.changed(); }
+            }
+            LineEdit {
+                text <=> root.range;
+                enabled: !root.all-spreads;
+                placeholder-text: "ex.: 1, 2, 5-7";
+                edited => { root.changed(); }
+            }
+        }
+        Field {
+            label: "Formato";
+            ComboBox {
+                model: ["JPEG (um arquivo por lâmina)", "PDF de impressão (PDF/X-4)", "TIFF (um arquivo por lâmina, sem perda)"];
+                current-index <=> root.format;
+                selected => { root.changed(); }
+            }
+        }
+        Field {
+            label: "Cor";
+            ComboBox {
+                model: ["sRGB (padrão)", "Adobe RGB (1998)"];
+                current-index: root.adobe ? 1 : 0;
+                selected => {
+                    root.adobe = self.current-index == 1;
+                    root.changed();
+                }
+            }
+        }
+        if root.format == 1: Field {
+            label: "Marcas de corte";
+            CheckRow {
+                text: "Nos quatro cantos";
+                checked <=> root.marks;
+                toggled => { root.changed(); }
+            }
+        }
+        if root.has-cover: Field {
+            label: "Capa";
+            ComboBox {
+                model: ["Junto com as lâminas", "Só a capa", "Sem a capa"];
+                current-index <=> root.cover;
+                selected => { root.changed(); }
+            }
+        }
+        Field {
+            label: "Páginas soltas";
+            CheckRow {
+                text: "Um arquivo por página";
+                checked <=> root.pages;
+                toggled => { root.changed(); }
+            }
+        }
+        if root.quality-shown: Field {
+            label: "Qualidade";
+            SpinBox {
+                width: 110px;
+                value <=> root.quality;
+                minimum: 1;
+                maximum: 100;
+                edited => { root.changed(); }
+            }
+            Text { text: "95 é a de impressão"; color: Theme.text-2; font-size: Type.small; vertical-alignment: center; }
+        }
+        if root.error != "": Text { text: root.error; color: Theme.warning; wrap: word-wrap; }
+    }
+    if root.page == 0: DialogFooter {
+        DialogButton { text: "Cancelar"; clicked => { root.cancel(); } Mark { name: "exportar-cancelar"; } }
+        DialogButton {
+            text: "Exportar";
+            primary: true;
+            enabled: root.error == "";
+            clicked => { root.export(); }
+            Mark { name: "exportar-confirmar"; }
+        }
+    }
+
+    if root.page == 1: DialogBody {
+        if root.album-warning != "": Text { text: root.album-warning; color: Theme.warning; wrap: word-wrap; }
+        Text {
+            text: root.warnings.length == 0
+                ? "Todos os avisos foram ignorados."
+                : "Confira antes de exportar. Os avisos não impedem a exportação.";
+            color: Theme.text-2;
+            wrap: word-wrap;
+        }
+        for warning[i] in root.warnings: HorizontalLayout {
+            spacing: Space.s2;
             Text {
-                text: root.warnings.length == 0
-                    ? "Todos os avisos foram ignorados."
-                    : "Confira antes de exportar. Os avisos não impedem a exportação.";
-                color: Theme.text-2;
+                text: warning;
+                color: Theme.text;
+                font-size: Type.small;
+                vertical-alignment: center;
                 wrap: word-wrap;
+                horizontal-stretch: 1;
             }
-            ListView {
-                vertical-stretch: 1;
-                for warning[i] in root.warnings: Rectangle {
-                    height: 52px;
-                    HorizontalLayout {
-                        spacing: 8px;
-                        padding-right: 8px;
-                        Text {
-                            text: warning;
-                            color: Theme.text;
-                            font-size: Type.small;
-                            vertical-alignment: center;
-                            wrap: word-wrap;
-                            horizontal-stretch: 1;
-                        }
-                        DialogButton { text: "Ir para a lâmina"; clicked => { root.go-to(i); } }
-                        DialogButton { text: "Ignorar"; clicked => { root.ignore(i); } }
-                    }
-                }
-            }
-            HorizontalLayout {
-                alignment: end;
-                spacing: 8px;
-                DialogButton { text: "Voltar"; clicked => { root.back(); } }
-                DialogButton {
-                    text: root.warnings.length == 0 ? "Exportar" : "Exportar mesmo assim";
-                    primary: true;
-                    clicked => { root.proceed(); }
-                }
-            }
+            DialogButton { text: "Ir para a lâmina"; clicked => { root.go-to(i); } }
+            DialogButton { text: "Ignorar"; clicked => { root.ignore(i); } }
+        }
+    }
+    if root.page == 1: DialogFooter {
+        DialogButton { text: "Voltar"; clicked => { root.back(); } }
+        DialogButton {
+            text: root.warnings.length == 0 ? "Exportar" : "Exportar mesmo assim";
+            primary: true;
+            takes-focus: true;
+            clicked => { root.proceed(); }
         }
     }
 
-    if root.step == 2: Panel {
-        width: 480px;
-        height: 220px;
-        VerticalLayout {
-            padding: 24px;
-            spacing: 12px;
-            Text { text: "Substituir os arquivos?"; font-size: Type.title; font-weight: Type.semibold; color: Theme.text; }
-            Text { text: root.replace-text; color: Theme.text; wrap: word-wrap; vertical-stretch: 1; }
-            HorizontalLayout {
-                alignment: end;
-                spacing: 8px;
-                DialogButton { text: "Cancelar"; clicked => { root.back(); } }
-                DialogButton { text: "Substituir"; primary: true; clicked => { root.replace(); } }
-            }
+    if root.page == 2: Text { text: root.replace-text; color: Theme.text-2; wrap: word-wrap; }
+    if root.page == 2: DialogFooter {
+        DialogButton { text: "Cancelar"; takes-focus: true; clicked => { root.back(); } }
+        DialogButton { text: "Substituir"; danger: true; clicked => { root.replace(); } }
+    }
+
+    if root.page == 3: ApprovalBody { }
+    if root.page == 3: DialogFooter {
+        DialogButton { text: "Cancelar"; clicked => { root.cancel(); } }
+        DialogButton {
+            text: "Gerar arquivos";
+            primary: true;
+            enabled: ApprovalUi.ready;
+            clicked => { ApprovalUi.generate(); }
         }
+    }
+
+    if root.page == 4: DialogBody {
+        if ApprovalUi.cover-notice != "": Text { text: ApprovalUi.cover-notice; color: Theme.warning; wrap: word-wrap; }
+        for warning in ApprovalUi.warnings: Text {
+            text: warning;
+            color: Theme.text;
+            font-size: Type.small;
+            wrap: word-wrap;
+        }
+    }
+    if root.page == 4: DialogFooter {
+        DialogButton { text: "Voltar"; clicked => { ApprovalUi.back(); } }
+        DialogButton {
+            text: "Gerar";
+            primary: true;
+            takes-focus: true;
+            clicked => { ApprovalUi.proceed(); }
+        }
+    }
+
+    if root.page == 5: Text { text: ApprovalUi.replace-text; color: Theme.text-2; wrap: word-wrap; }
+    if root.page == 5: DialogFooter {
+        DialogButton { text: "Cancelar"; takes-focus: true; clicked => { ApprovalUi.back(); } }
+        DialogButton { text: "Substituir"; danger: true; clicked => { ApprovalUi.replace(); } }
     }
 }

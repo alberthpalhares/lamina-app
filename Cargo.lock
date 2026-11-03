@@ -2862,7 +2862,7 @@ dependencies = [
 
 [[package]]
 name = "lamina-app"
-version = "0.1.0-beta.8.1"
+version = "0.1.0-beta.9"
 dependencies = [
  "anyhow",
  "fmv-macos-events",
@@ -2880,7 +2880,7 @@ dependencies = [
 
 [[package]]
 name = "lamina-cli"
-version = "0.1.0-beta.8.1"
+version = "0.1.0-beta.9"
 dependencies = [
  "anyhow",
  "clap",
@@ -2900,7 +2900,7 @@ dependencies = [
 
 [[package]]
 name = "lamina-core"
-version = "0.1.0-beta.8.1"
+version = "0.1.0-beta.9"
 dependencies = [
  "schemars",
  "serde",
@@ -2910,7 +2910,7 @@ dependencies = [
 
 [[package]]
 name = "lamina-editor"
-version = "0.1.0-beta.8.1"
+version = "0.1.0-beta.9"
 dependencies = [
  "chrono",
  "image",
@@ -2925,12 +2925,14 @@ dependencies = [
  "serde_json",
  "tempfile",
  "thiserror 2.0.21",
+ "windows",
 ]
 
 [[package]]
 name = "lamina-export"
-version = "0.1.0-beta.8.1"
+version = "0.1.0-beta.9"
 dependencies = [
+ "base64",
  "blake3",
  "dhat",
  "image",
@@ -2948,7 +2950,7 @@ dependencies = [
 
 [[package]]
 name = "lamina-layout"
-version = "0.1.0-beta.8.1"
+version = "0.1.0-beta.9"
 dependencies = [
  "lamina-core",
  "rayon",
@@ -2958,7 +2960,7 @@ dependencies = [
 
 [[package]]
 name = "lamina-mcp"
-version = "0.1.0-beta.8.1"
+version = "0.1.0-beta.9"
 dependencies = [
  "base64",
  "image",
@@ -2973,7 +2975,7 @@ dependencies = [
 
 [[package]]
 name = "lamina-media"
-version = "0.1.0-beta.8.1"
+version = "0.1.0-beta.9"
 dependencies = [
  "blake3",
  "dhat",
@@ -2991,7 +2993,7 @@ dependencies = [
 
 [[package]]
 name = "lamina-render"
-version = "0.1.0-beta.8.1"
+version = "0.1.0-beta.9"
 dependencies = [
  "fast_image_resize",
  "image",
@@ -6772,7 +6774,7 @@ checksum = "ec7a2a501ed189703dba8b08142f057e887dfc4b2cc4db2d343ac6376ba3e0b9"
 
 [[package]]
 name = "xtask"
-version = "0.1.0-beta.8.1"
+version = "0.1.0-beta.9"
 dependencies = [
  "image",
  "lamina-core",

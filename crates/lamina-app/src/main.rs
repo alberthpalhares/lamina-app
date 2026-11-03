@@ -7,6 +7,7 @@
 #![windows_subsystem = "windows"]
 
 mod adjusted;
+mod approval;
 mod backup;
 mod band;
 mod browser;
@@ -23,6 +24,9 @@ mod drag_motion;
 mod drops;
 mod export;
 mod files;
+#[cfg(any(test, feature = "filmagem"))]
+#[cfg_attr(not(feature = "filmagem"), allow(dead_code))]
+mod filming;
 mod font_list;
 mod frame_panel;
 mod ghost;
@@ -83,19 +87,23 @@ mod updates;
 mod verify;
 mod waits;
 mod welcome;
+mod window_look;
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::mpsc::Receiver;
 use std::time::Duration;
 
 use lamina_editor::backup::{BACKUP_FOLDER, Backups};
+use lamina_editor::filming::{Mode, Startup};
 use lamina_editor::{
-    Cache, Editor, Install, MODELS_FILE, ModelsStore, PREFS_FILE, PRESETS_FILE, PrefsStore,
-    PresetsStore, RECENTS_FILE, RecentsStore, STRIPS_FILE, StripsStore, config_dir,
+    Cache, Editor, Install, LEARNED_FILE, LearnedStore, MODELS_FILE, ModelsStore, PREFS_FILE,
+    PRESETS_FILE, PrefsStore, PresetsStore, RECENTS_FILE, RecentsStore, STRIPS_FILE, StripsStore,
+    config_dir,
 };
 use slint::{CloseRequestResponse, ComponentHandle, Timer};
 
-use crate::state::{App, Pending};
+use crate::state::{App, Msg, Pending};
 
 /// As telas compiladas pelo Slint. É código gerado: só aqui o `unsafe` é liberado.
 #[allow(
@@ -156,11 +164,13 @@ fn connect(window: &AppWindow, app: &Shared) {
     history::connect(window, app);
     recents::connect(window, app);
     clear_all::connect(window, app);
+    approval::connect(window, app);
     relink_dialog::connect(window, app);
     photo_menu::connect(window, app);
     number_field::connect(window);
     importing::connect(window, app);
     calibrate::connect(window, app);
+    window_look::connect(window, app);
     roll_connect::connect(window, app);
 }
 
@@ -179,6 +189,8 @@ fn connect_dialogs(window: &AppWindow, app: &Shared) {
     });
     let a = app.clone();
     window.on_update_dismiss(move || updates::dismiss(&mut a.borrow_mut()));
+    let a = app.clone();
+    window.on_notice_dismiss(move || a.borrow_mut().dismiss_notice());
     let a = app.clone();
     window.window().on_close_requested(move || {
         let mut app = a.borrow_mut();
@@ -226,8 +238,69 @@ fn velopack_hooks() {
     app.run();
 }
 
+/// O editor com o que o fotógrafo guardou, as janelas ligadas e o que a abertura `startup` pede.
+fn open_app(
+    window: &AppWindow,
+    cache: Cache,
+    startup: Startup,
+) -> (Shared, Receiver<Msg>, Option<Timer>) {
+    let (tx, rx) = mailbox::Mailbox::new();
+    let prefs = PrefsStore::load(&config_dir().join(PREFS_FILE));
+    let mut editor = Editor::with_prefs(prefs);
+    // `atualizacoes.json` antes de `janela.json`: sem ele, é uma instalação nova e o painel da
+    // direita começa escondido (spec JE, regras 2 e 3).
+    let opened = updates::state();
+    let install = Install::from_last_version(opened.store.prefs.last_version.as_deref());
+    editor.set_strips(StripsStore::load_for(
+        &config_dir().join(STRIPS_FILE),
+        install,
+    ));
+    editor.set_recents(RecentsStore::load(&config_dir().join(RECENTS_FILE)));
+    editor.set_log(help::error_log());
+    // Só a janela aprende: a IA e a linha de comando não leem este arquivo (spec AL, regra 17).
+    editor.set_learned_store(LearnedStore::load(&config_dir().join(LEARNED_FILE)));
+    editor.start_learned_worker();
+    editor.set_backups(Backups::new(config_dir().join(BACKUP_FOLDER)));
+    let app: Shared = Rc::new(RefCell::new(App::new(window, cache, editor, tx)));
+    // Ligada por `LAMINA_TEMPOS=1`; o temporizador precisa viver até a janela fechar.
+    let (clock, tick) = timings::Clock::install(window.window());
+    {
+        let mut a = app.borrow_mut();
+        a.clock = clock;
+        a.presets = PresetsStore::load(&config_dir().join(PRESETS_FILE));
+        let models = ModelsStore::load(&config_dir().join(MODELS_FILE));
+        a.editor.set_models(models);
+        if let Some(warning) = a.presets.warning.take() {
+            a.notice = warning;
+        }
+        a.updates = opened;
+        help::start(&a);
+        // As novidades da versão nova, uma vez, antes de a janela aparecer (spec NV, regra 3); o
+        // teste de fumaça não é interrompido.
+        if startup.news {
+            news::on_start(&mut a);
+        }
+        updates::show(&a);
+    }
+    connect(window, &app);
+    app.borrow_mut().refresh_all();
+    recents::refresh(&app.borrow());
+    if startup.recents_check {
+        recents::check(&app.borrow());
+    }
+    (app, rx, tick)
+}
+
 fn main() -> anyhow::Result<()> {
     velopack_hooks();
+    #[cfg(feature = "filmagem")]
+    if let Some(request) = filming::requested() {
+        if let Err(reason) = filming::run(&request) {
+            eprintln!("--filmar: {reason}");
+            std::process::exit(1);
+        }
+        return Ok(());
+    }
     let verifying = verify::requested();
     if let Some(album) = &verifying
         && let Err(reason) = verify::check(album)
@@ -244,6 +317,16 @@ fn main() -> anyhow::Result<()> {
     }
     // A verificação da abertura (spec MA): sem o relatório, sai com 1 antes da janela.
     let opening = opened::requested();
+    let mode = if verifying.is_some() {
+        Mode::Verify
+    } else if importing.is_some() {
+        Mode::Import
+    } else if opening.is_some() {
+        Mode::OpenFile
+    } else {
+        Mode::Normal
+    };
+    let startup = Startup::for_mode(mode);
     #[cfg(target_os = "linux")]
     if verifying.is_none() {
         install::linux_desktop();
@@ -255,51 +338,23 @@ fn main() -> anyhow::Result<()> {
     // deixava o Windows sem o tamanho de "restaurar" e o primeiro maximizar falhava (spec FB,
     // regra 5).
     let unfocused = std::env::var("LAMINA_SEM_FOCO").is_ok_and(|v| v == "1");
+    // O tema vai junto ao criar a janela: é a única hora em que a barra de menus do Windows o aceita
+    // (spec AJ, regra 34).
+    let chosen_theme = StripsStore::load(&config_dir().join(STRIPS_FILE))
+        .strips
+        .theme;
+    let opening_theme = window_look::opening_theme(chosen_theme);
     slint::BackendSelector::new()
-        .with_winit_window_attributes_hook(move |a| a.with_maximized(true).with_active(!unfocused))
+        .with_winit_window_attributes_hook(move |a| {
+            a.with_maximized(true)
+                .with_active(!unfocused)
+                .with_theme(opening_theme)
+        })
         .select()?;
     let window = AppWindow::new()?;
     // `LAMINA_GALERIA=1`: abre a galeria de componentes por cima da janela (spec DF, saída 6).
     window.set_gallery(std::env::var("LAMINA_GALERIA").is_ok_and(|v| v == "1"));
-    let (tx, rx) = mailbox::Mailbox::new();
-    let prefs = PrefsStore::load(&config_dir().join(PREFS_FILE));
-    let mut editor = Editor::with_prefs(prefs);
-    // `atualizacoes.json` antes de `janela.json`: sem ele, é uma instalação nova e o painel da
-    // direita começa escondido (spec JE, regras 2 e 3).
-    let opened = updates::state();
-    let install = Install::from_last_version(opened.store.prefs.last_version.as_deref());
-    editor.set_strips(StripsStore::load_for(
-        &config_dir().join(STRIPS_FILE),
-        install,
-    ));
-    editor.set_recents(RecentsStore::load(&config_dir().join(RECENTS_FILE)));
-    editor.set_log(help::error_log());
-    editor.set_backups(Backups::new(config_dir().join(BACKUP_FOLDER)));
-    let app: Shared = Rc::new(RefCell::new(App::new(&window, Cache::system(), editor, tx)));
-    // Ligada por `LAMINA_TEMPOS=1`; o temporizador precisa viver até a janela fechar.
-    let (clock, _tick) = timings::Clock::install(window.window());
-    {
-        let mut a = app.borrow_mut();
-        a.clock = clock;
-        a.presets = PresetsStore::load(&config_dir().join(PRESETS_FILE));
-        let models = ModelsStore::load(&config_dir().join(MODELS_FILE));
-        a.editor.set_models(models);
-        if let Some(warning) = a.presets.warning.take() {
-            a.notice = warning;
-        }
-        a.updates = opened;
-        help::start(&a);
-        // As novidades da versão nova, uma vez, antes de a janela aparecer (spec NV, regra 3); o
-        // teste de fumaça não é interrompido.
-        if verifying.is_none() && importing.is_none() {
-            news::on_start(&mut a);
-        }
-        updates::show(&a);
-    }
-    connect(&window, &app);
-    app.borrow_mut().refresh_all();
-    recents::refresh(&app.borrow());
-    recents::check(&app.borrow());
+    let (app, rx, _tick) = open_app(&window, Cache::system(), startup);
     // `lamina-app projeto.lamina` abre o projeto direto: o duplo clique no Windows e no Linux e a
     // volta depois de atualizar (spec DS, regra 5; spec MA, regra 9). No Mac, chega por evento.
     if let Some(album) = &verifying {
@@ -308,10 +363,12 @@ fn main() -> anyhow::Result<()> {
         opened::from_args(&mut app.borrow_mut());
     }
     // O trabalho que ficou sem salvar numa queda (spec CS, regra 4); os testes de fumaça seguem.
-    if verifying.is_none() && importing.is_none() {
+    if startup.backup_ask {
         backup::ask(&mut app.borrow_mut());
     }
-    let _backups = backup::start(&app);
+    let _backups = startup.backup_timer.then(|| backup::start(&app));
+    app.borrow_mut().opened_dark = window_look::opened_dark(chosen_theme);
+    window_look::read_motion(&app.borrow());
     // O teste de fumaça da importação (spec TR): fecha sozinho quando as fotos entram.
     if let Some(folder) = importing.clone()
         && let Err(reason) = verify::start_import(&mut app.borrow_mut(), folder)
@@ -325,11 +382,12 @@ fn main() -> anyhow::Result<()> {
             // Fechando: um erro aqui só deixa a janela aberta até o tempo limite do CI.
             let _ = slint::quit_event_loop();
         });
-    } else if importing.is_none() && opening.is_none() {
+    } else if startup.update_check {
         // Os testes de fumaça não procuram atualização: não dependem da rede.
         Timer::single_shot(updates::CHECK_DELAY, move || {
             updates::on_open(&mut a.borrow_mut());
         });
+        updates::simulate(&app);
     }
 
     // As mensagens acordam a janela na hora, sem conferência repetida (spec LV, regra 7). Esta
@@ -343,6 +401,7 @@ fn main() -> anyhow::Result<()> {
     // Sair do Lamina guarda a lâmina em que o fotógrafo parou (spec TI, regra 3) e não deixa
     // cópia de segurança: a pergunta de salvar já foi respondida (spec CS, regra 3).
     app.borrow_mut().editor.remember_current();
+    app.borrow_mut().editor.flush_learned();
     app.borrow_mut().editor.finish_backups();
     updates::on_exit(&app.borrow());
     Ok(())

@@ -13,21 +13,15 @@ fn ui(file: &str) -> String {
 #[test]
 fn tf_b10_botao_direito_na_grade_abre_o_menu() {
     let strip = ui("photo_strip.slint");
-    // O TouchArea da miniatura pega o clique direito antes do ContextMenuArea, então é ele que
-    // abre o menu, com nome para ser chamado.
-    assert!(strip.contains("menu := ContextMenuArea {"));
-    let right = strip
+    // O menu é o mesmo da lâmina (spec DC, regra 1): a peça pede ao soltar o botão, também numa
+    // foto já selecionada. Ao apertar, uma foto fora da seleção passa a ser a única.
+    let down = strip
         .find("e.button == PointerEventButton.right && e.kind == PointerEventKind.down")
         .unwrap();
-    let branch = &strip[right..];
-    let show = branch
-        .find("menu.show({x: self.mouse-x, y: self.mouse-y});")
+    let up = strip
+        .find("e.button == PointerEventButton.right && e.kind == PointerEventKind.up")
         .unwrap();
-    let lit = branch.find("if (!root.lit) {").unwrap();
-    let lit_end = lit + branch[lit..].find('}').unwrap();
-    // O menu abre também numa foto já selecionada: a chamada fica fora do `if (!root.lit)`.
-    assert!(
-        show > lit_end,
-        "menu.show precisa ficar fora do if (!root.lit)"
-    );
+    assert!(strip[down..up].contains("if (!root.lit) {"));
+    assert!(!strip[down..up].contains("menu-at"));
+    assert!(strip[up..].contains("PhotoMenuUi.menu-at("));
 }

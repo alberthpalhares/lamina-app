@@ -223,8 +223,10 @@ impl Editor {
     pub fn move_spread_to_gap(&mut self, from: usize, gap: usize) -> bool {
         let count = self.album_end();
         let to = reorder(from, gap, count).to;
-        self.session.as_mut().is_some_and(|s| s.go_to(from))
-            && (from == to || self.move_current_to(to))
+        let moved = self.session.as_mut().is_some_and(|s| s.go_to(from))
+            && (from == to || self.move_current_to(to));
+        self.settle_visit();
+        moved
     }
 
     pub(super) fn move_by(&mut self, delta: isize) -> bool {
@@ -272,5 +274,6 @@ impl Editor {
         if let Some(s) = self.session.as_mut() {
             s.go_to(index);
         }
+        self.settle_visit();
     }
 }

@@ -1,0 +1,398 @@
+<!doctype html>
+<!-- Este é o seu álbum. Se você está vendo este texto, baixe o arquivo e abra no navegador. -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>__TITULO__</title>
+<script>document.documentElement.className = 'js';</script>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;background:#2b2b2b;color:#ececec;font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+a{color:inherit}
+button,.botao{font:inherit;color:#fff;background:#454545;border:0;border-radius:6px;min-height:40px;padding:8px 14px;margin:3px;text-decoration:none;display:inline-block;text-align:center}
+.principal{background:#1f7a4d}
+
+/* Sem script: a lista. */
+#lista{max-width:900px;margin:0 auto;padding:16px}
+#lista h1{font-size:20px;margin:0 0 4px}
+#lista figure{margin:0 0 18px}
+#lista img{display:block;width:100%;height:auto;background:#3a3a3a}
+#lista figcaption{padding:6px 0;font-weight:600}
+.respostas{position:sticky;bottom:0;background:#2b2b2b;padding:8px 0;text-align:center}
+html.js #lista{display:none}
+
+/* Com script: o livro. */
+#app{display:none}
+html.js,html.js body{height:100%;overflow:hidden}
+html.js #app{display:block;position:fixed;inset:0}
+#palco{position:absolute;left:0;right:0;top:0;bottom:104px;display:flex;align-items:center;justify-content:center;touch-action:pan-y}
+#livro{position:relative;transition:transform .7s cubic-bezier(.4,.1,.2,1)}
+.folha{position:absolute;top:0;left:50%;width:50%;height:100%;transform-origin:left center;transform-style:preserve-3d;-webkit-transform-style:preserve-3d;transition:transform .8s cubic-bezier(.4,.1,.2,1)}
+.lado{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:#eeeae2}
+.verso{transform:rotateY(180deg)}
+.lado img{position:absolute;top:0;height:100%}
+.capa img{left:0;width:100%}
+.colada{position:absolute;overflow:hidden}
+.metade img{width:200%}
+.metade.esquerda img{left:0}
+.metade.direita img{left:-100%}
+.metade.inteira img{left:0;width:100%}
+.lisa{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:8%;text-align:center;color:#555}
+.sombra{position:absolute;top:0;bottom:0;width:7%;pointer-events:none}
+.frente .sombra{left:0;background:linear-gradient(to right,rgba(0,0,0,.28),rgba(0,0,0,0))}
+.verso .sombra{right:0;background:linear-gradient(to left,rgba(0,0,0,.28),rgba(0,0,0,0))}
+#barra{position:absolute;left:0;right:0;bottom:0;height:104px;padding:4px 8px calc(4px + env(safe-area-inset-bottom));text-align:center}
+#linha{display:flex;align-items:center;justify-content:center;gap:6px}
+#onde{min-width:128px;font-weight:600}
+#dica{position:absolute;left:0;right:0;top:8px;text-align:center;font-size:13px;color:#cfcfcf;pointer-events:none}
+#painel{display:none;position:absolute;inset:0;background:#2b2b2b;padding:14px;overflow:auto;z-index:50}
+#painel.aberto{display:block}
+#painel h2{font-size:18px;margin:0 0 8px}
+textarea{width:100%;font:inherit;color:#111;background:#f4f4f4;border:0;border-radius:6px;padding:8px;min-height:110px}
+/* Deitado, com pouca altura: o livro fica com a tela toda, e a barra aparece por cima, ao tocar no meio. */
+#chip,#cheia{display:none}
+html.deitado #palco{bottom:0}
+html.deitado #dica{display:none}
+html.deitado #chip{display:block;position:absolute;top:calc(6px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));padding:2px 8px;border-radius:6px;background:rgba(20,20,20,.72);font-size:12px;pointer-events:none;z-index:20}
+html.deitado #barra{height:auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;background:rgba(30,30,30,.92);z-index:30;transition:transform .2s}
+html.deitado #barra.escondida{transform:translateY(100%);pointer-events:none}
+html.deitado.pode-cheia #cheia{display:inline-block}
+@media (prefers-reduced-motion:reduce){#livro,.folha,html.deitado #barra{transition:none}}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="palco"><div id="livro"></div><div id="dica" hidden>Deite o celular para ver maior</div></div>
+  <div id="chip"></div>
+  <div id="barra">
+    <div id="linha">
+      <button id="ant" aria-label="Voltar">‹</button>
+      <span id="onde"></span>
+      <button id="prox" aria-label="Avançar">›</button>
+    </div>
+    <button id="marcar">Pedir alteração</button>
+    <button id="auto">Folhear</button>
+    <button id="concluir" class="principal">Concluir</button>
+    <button id="cheia">Tela cheia</button>
+  </div>
+  <div id="painel"></div>
+</div>
+
+<main id="lista">
+  <h1>__NOME__</h1>
+  <p>Prova __CODIGO__</p>
+__FIGURAS__
+  <div class="respostas">
+    <a class="botao principal" href="__WA_APROVAR__">Aprovar pelo WhatsApp</a>
+    <a class="botao" href="__WA_PEDIR__">Pedir alterações pelo WhatsApp</a>
+    <a class="botao" href="__MAIL_PEDIR__">Responder por e-mail</a>
+  </div>
+</main>
+
+<script type="application/json" id="dados">__DADOS__</script>
+<script>
+(function () {
+  var D = JSON.parse(document.getElementById('dados').textContent);
+  var palco = document.getElementById('palco'), livro = document.getElementById('livro');
+  var onde = document.getElementById('onde'), dica = document.getElementById('dica');
+  var painel = document.getElementById('painel');
+  var barra = document.getElementById('barra'), chip = document.getElementById('chip');
+  var raiz = document.documentElement, deitado = false, esconder = null;
+  var ALTURA_BARRA = 104;
+  var n = D.laminas;
+
+  // A capa e a contracapa viram junto com a guarda de cada uma; entre elas, as folhas do Livro.
+  var folhas = [{ frente: { capa: 'frente' }, verso: D.guardas.inicio, deCapa: true }]
+    .concat(D.folhas)
+    .concat([{ frente: D.guardas.fim, verso: { capa: 'verso' }, deCapa: true }]);
+  var N = folhas.length, pos = 0, ocupado = false, timer = null, montadas = {};
+
+  // Capa e página mantêm as proporções próprias: uma face maior que a página aparece maior.
+  var rw = D.medidas.face[0] / D.medidas.pagina[0], rh = D.medidas.face[1] / D.medidas.pagina[1];
+  var proporcao = D.medidas.pagina[0] / D.medidas.pagina[1];
+
+  // A lâmina de ponta com página simples tem só a metade que existe.
+  function soMetade(l) {
+    return (l === 1 && D.guardas.inicio === 'neutra') || (l === n && D.guardas.fim === 'neutra');
+  }
+  // O álbum aberto na posição p mostra as duas metades da lâmina p.
+  function lugar() { return pos === 0 ? 'capa' : pos === N ? 'contracapa' : pos; }
+  function nomeDe(l) { return l === 'capa' ? 'Capa' : l === 'contracapa' ? 'Contracapa' : 'Lâmina ' + l; }
+
+  var chave = 'lamina-aprovacao-' + D.codigo, marcas = {};
+  try { marcas = JSON.parse(localStorage.getItem(chave) || '{}'); } catch (e) { marcas = {}; }
+  function guarda() { try { localStorage.setItem(chave, JSON.stringify(marcas)); } catch (e) {} }
+
+  function imagem(id) {
+    var img = document.createElement('img');
+    img.alt = '';
+    img.decoding = 'async';
+    img.src = document.getElementById(id).getAttribute('src');
+    return img;
+  }
+  function metade(l) {
+    var e = document.createElement('div');
+    e.className = 'metade ' + (soMetade(l.lamina) ? 'inteira' : l.lado);
+    e.style.position = 'absolute';
+    e.style.inset = '0';
+    e.appendChild(imagem('lamina-' + l.lamina));
+    var s = document.createElement('div');
+    s.className = 'sombra';
+    e.appendChild(s);
+    return e;
+  }
+  // A página colada no verso da capa, encostada na lombada, no tamanho dela.
+  function colada(conteudo, classe) {
+    var e = document.createElement('div');
+    e.className = 'colada';
+    e.style.width = 100 / rw + '%';
+    e.style.height = 100 / rh + '%';
+    e.style.top = (100 - 100 / rh) / 2 + '%';
+    e.style[classe === 'verso' ? 'right' : 'left'] = '0';
+    e.appendChild(conteudo);
+    return e;
+  }
+  function ladoEl(l, classe, deCapa) {
+    var e = document.createElement('div');
+    e.className = 'lado ' + classe;
+    if (l === 'neutra') return e;
+    if (l.capa) {
+      e.classList.add('capa');
+      if (!D.capa_lisa) e.appendChild(imagem('capa-' + l.capa));
+      else if (l.capa === 'frente') {
+        var lisa = document.createElement('div');
+        lisa.className = 'lisa';
+        lisa.textContent = 'Capa ainda não criada';
+        e.appendChild(lisa);
+      }
+      return e;
+    }
+    e.appendChild(deCapa ? colada(metade(l), classe) : metade(l));
+    return e;
+  }
+  function gira(graus) { return 'perspective(1800px) rotateY(' + graus + 'deg)'; }
+  function assenta(e, i) {
+    e.style.transition = 'none';
+    e.style.transform = gira(i < pos ? -180 : 0);
+    e.style.zIndex = i < pos ? i : N - i;
+  }
+  function monta(i) {
+    var e = document.createElement('div'), f = folhas[i];
+    e.className = 'folha';
+    if (f.deCapa) {
+      e.style.width = 50 * rw + '%';
+      e.style.height = 100 * rh + '%';
+      e.style.top = (100 - 100 * rh) / 2 + '%';
+    }
+    e.appendChild(ladoEl(f.frente, 'frente', f.deCapa));
+    e.appendChild(ladoEl(f.verso, 'verso', f.deCapa));
+    livro.appendChild(e);
+    return e;
+  }
+  // Fechado, o livro fica centrado pela capa.
+  function deslocamento(p) {
+    return p === 0 ? 'translateX(' + (-25 * rw) + '%)' : p === N ? 'translateX(' + (25 * rw) + '%)' : 'none';
+  }
+  // Só as folhas vizinhas têm imagens na página; a lista escondida não é carregada.
+  function janela() {
+    var quer = {}, i;
+    for (i = Math.max(0, pos - 3); i <= Math.min(N - 1, pos + 2); i++) quer[i] = 1;
+    for (i in montadas) if (!quer[i]) { livro.removeChild(montadas[i]); delete montadas[i]; }
+    for (i in quer) if (!montadas[i]) montadas[i] = monta(+i);
+    for (i in montadas) assenta(montadas[i], +i);
+    livro.style.transform = deslocamento(pos);
+    mostra();
+  }
+  function vira(delta) {
+    var novo = pos + delta;
+    if (ocupado || novo < 0 || novo > N) return false;
+    ocupado = true;
+    var e = montadas[delta > 0 ? pos : novo];
+    e.style.transition = '';
+    e.style.zIndex = N + 5;
+    void e.offsetWidth;
+    e.style.transform = gira(delta > 0 ? -180 : 0);
+    livro.style.transform = deslocamento(novo);
+    var fim = false;
+    function pronto() {
+      if (fim) return;
+      fim = true;
+      pos = novo; ocupado = false; janela();
+    }
+    e.addEventListener('transitionend', pronto, { once: true });
+    setTimeout(pronto, matchMedia('(prefers-reduced-motion:reduce)').matches ? 30 : 900);
+    return true;
+  }
+  function para() { clearInterval(timer); timer = null; document.getElementById('auto').textContent = 'Folhear'; }
+  function mostra() {
+    var l = lugar();
+    onde.textContent = typeof l === 'number' ? 'Lâmina ' + l + ' de ' + n : nomeDe(l);
+    chip.textContent = onde.textContent;
+    document.getElementById('marcar').textContent = marcas[l] !== undefined ? 'Alteração marcada ✓' : 'Pedir alteração';
+    dica.hidden = !(innerHeight > innerWidth);
+  }
+  // A largura do livro numa área de `alto` pixels de altura, com a folga dada.
+  function cabe(alto, folga) {
+    return Math.min(innerWidth * folga / Math.max(1, rw), alto * folga * 2 * proporcao / Math.max(1, rh));
+  }
+  // Deitado, sem esconder nada: a barra aparece e some sozinha depois de um tempo.
+  function mostraBarra() {
+    clearTimeout(esconder);
+    barra.classList.remove('escondida');
+    if (deitado) esconder = setTimeout(function () { barra.classList.add('escondida'); }, 4000);
+  }
+  function mede() {
+    var comBarra = cabe(innerHeight - ALTURA_BARRA, 0.96);
+    // A barra só sai da frente quando é a altura que está limitando o livro.
+    var agora = innerWidth > innerHeight && comBarra < innerWidth * 0.96 / Math.max(1, rw) - 1;
+    if (agora !== deitado) {
+      deitado = agora;
+      raiz.classList.toggle('deitado', deitado);
+      mostraBarra();
+    }
+    var largura = deitado ? cabe(innerHeight, 0.99) : comBarra;
+    livro.style.width = largura + 'px';
+    livro.style.height = largura / 2 / proporcao + 'px';
+    mostra();
+  }
+
+  // A capa primeiro, a contracapa por último, e as lâminas na ordem do álbum.
+  function pedidos() {
+    return Object.keys(marcas).sort(function (a, b) {
+      var x = isNaN(a) ? (a === 'capa' ? -1 : 1e9) : +a, y = isNaN(b) ? (b === 'capa' ? -1 : 1e9) : +b;
+      return x - y;
+    });
+  }
+  function mensagem() {
+    var ks = pedidos(), cab = 'o álbum "' + D.nome + '" (prova ' + D.codigo + ')';
+    if (!ks.length) return 'Aprovo ' + cab + ', sem alterações.';
+    var texto = 'Revisei ' + cab + '. Peço alteração em:\n';
+    ks.forEach(function (k) {
+      texto += nomeDe(isNaN(k) ? k : +k) + (marcas[k] ? ': ' + marcas[k] : '') + '\n';
+    });
+    return texto + 'O resto está aprovado.';
+  }
+  function fecha() { painel.className = ''; painel.textContent = ''; mostra(); mostraBarra(); }
+  function botao(texto, classe, acao) {
+    var b = document.createElement('button');
+    b.textContent = texto;
+    if (classe) b.className = classe;
+    b.addEventListener('click', acao);
+    return b;
+  }
+  function abreMarca() {
+    var l = lugar();
+    painel.textContent = '';
+    var h = document.createElement('h2');
+    h.textContent = nomeDe(l) + ': o que mudar?';
+    var t = document.createElement('textarea');
+    t.value = marcas[l] || '';
+    t.placeholder = 'Ex.: trocar a foto da direita';
+    painel.appendChild(h);
+    painel.appendChild(t);
+    painel.appendChild(botao('Guardar', 'principal', function () {
+      marcas[l] = t.value.trim();
+      guarda();
+      fecha();
+    }));
+    if (marcas[l] !== undefined) {
+      painel.appendChild(botao('Tirar a marca', '', function () {
+        delete marcas[l];
+        guarda();
+        fecha();
+      }));
+    }
+    painel.appendChild(botao('Voltar', '', fecha));
+    painel.className = 'aberto';
+  }
+  function abreConclusao() {
+    var texto = mensagem(), ks = pedidos();
+    painel.textContent = '';
+    var h = document.createElement('h2');
+    h.textContent = ks.length ? 'Enviar pedido' : 'Aprovar o álbum';
+    var t = document.createElement('textarea');
+    t.value = texto;
+    t.readOnly = true;
+    var wa = document.createElement('a');
+    wa.className = 'botao principal';
+    wa.textContent = 'Mandar pelo WhatsApp';
+    wa.href = 'https://wa.me/' + (D.whatsapp || '') + '?text=' + encodeURIComponent(texto);
+    var mail = document.createElement('a');
+    mail.className = 'botao';
+    mail.textContent = 'Mandar por e-mail';
+    mail.href = 'mailto:' + (D.email || '') + '?subject=' + encodeURIComponent('Álbum ' + D.nome + ', prova ' + D.codigo) + '&body=' + encodeURIComponent(texto);
+    var resultado = document.createElement('p');
+    painel.appendChild(h);
+    painel.appendChild(t);
+    painel.appendChild(wa);
+    painel.appendChild(mail);
+    painel.appendChild(botao('Copiar mensagem', '', function () {
+      function feito(ok) { resultado.textContent = ok ? 'Copiada.' : 'Não deu para copiar: toque e segure no texto acima.'; }
+      function antigo() {
+        t.focus();
+        t.select();
+        try { feito(document.execCommand('copy')); } catch (e) { feito(false); }
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(texto).then(function () { feito(true); }, antigo);
+      else antigo();
+    }));
+    painel.appendChild(botao('Voltar', '', fecha));
+    painel.appendChild(resultado);
+    painel.className = 'aberto';
+  }
+
+  document.getElementById('prox').onclick = function () { para(); vira(1); };
+  document.getElementById('ant').onclick = function () { para(); vira(-1); };
+  document.getElementById('marcar').onclick = function () { para(); abreMarca(); };
+  document.getElementById('concluir').onclick = function () { para(); abreConclusao(); };
+  document.getElementById('auto').onclick = function () {
+    if (timer) return para();
+    if (pos >= N) { pos = 0; janela(); }
+    this.textContent = 'Pausar';
+    timer = setInterval(function () { if (!vira(1) && !ocupado) para(); }, 1500);
+    vira(1);
+  };
+  var x0 = null;
+  palco.addEventListener('pointerdown', function (e) { x0 = e.clientX; });
+  palco.addEventListener('pointerup', function (e) {
+    if (x0 === null) return;
+    var dx = e.clientX - x0; x0 = null; para();
+    if (Math.abs(dx) > 30) return vira(dx < 0 ? 1 : -1);
+    // Deitado, tocar no meio mostra ou esconde a barra; nos lados, vira a folha.
+    if (deitado && e.clientX > innerWidth / 3 && e.clientX < innerWidth * 2 / 3) {
+      if (barra.classList.contains('escondida')) mostraBarra();
+      else { clearTimeout(esconder); barra.classList.add('escondida'); }
+      return;
+    }
+    vira(e.clientX > innerWidth / 2 ? 1 : -1);
+  });
+  barra.addEventListener('pointerdown', mostraBarra);
+  // Tela cheia ganha também a altura da barra do navegador, onde o aparelho permite.
+  var cheia = document.getElementById('cheia');
+  if (raiz.requestFullscreen) raiz.classList.add('pode-cheia');
+  cheia.onclick = function () {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else raiz.requestFullscreen().catch(function () {});
+  };
+  document.addEventListener('fullscreenchange', function () {
+    cheia.textContent = document.fullscreenElement ? 'Sair da tela cheia' : 'Tela cheia';
+  });
+  addEventListener('keydown', function (e) {
+    if (painel.className) return;
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); para(); vira(1); }
+    if (e.key === 'ArrowLeft') { para(); vira(-1); }
+  });
+  addEventListener('resize', mede);
+  mede();
+  // A primeira posição não anima: o livro já abre centrado.
+  livro.style.transition = 'none';
+  janela();
+  void livro.offsetWidth;
+  livro.style.transition = '';
+})();
+</script>
+</body>
+</html>

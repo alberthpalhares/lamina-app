@@ -67,6 +67,12 @@ impl Command {
                 Menu::Layout,
                 k(Key::Char('x')),
             ),
+            C::DeleteLearned => (
+                "layout.apagar-aprendizado",
+                "Apagar o aprendizado de layouts…",
+                Menu::Layout,
+                None,
+            ),
             C::ToggleReordered => (
                 "layout.reordenadas",
                 "Mostrar reordenadas",

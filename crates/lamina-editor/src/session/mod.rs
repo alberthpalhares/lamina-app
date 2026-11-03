@@ -10,6 +10,7 @@ use lamina_export::{Warning, preflight, read_project, save_project};
 use crate::EditorError;
 use crate::photos::used_photos;
 
+mod approval;
 mod edit;
 mod export;
 mod history;
@@ -39,6 +40,8 @@ pub struct Session {
     opened: bool,
     /// Última pasta de exportação usada nesta sessão (spec EI, seção 3).
     export_folder: Option<PathBuf>,
+    /// Última pasta da aprovação do cliente nesta sessão (spec AC, seção 3).
+    approval_folder: Option<PathBuf>,
     /// Preferências de exportação do projeto: mudam sem entrar no histórico e vão para o arquivo
     /// ao salvar (spec PR, regra 5).
     export: ExportPrefs,
@@ -77,6 +80,7 @@ impl Session {
             warnings,
             opened: saved,
             export_folder: None,
+            approval_folder: None,
             export,
             merge: None,
             label_prefix: "",

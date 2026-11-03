@@ -26,6 +26,9 @@ ignore = [
 ]
 
 [licenses]
+# O código do próprio Lamina usa a PolyForm Strict (LICENSE), que não é permissiva: ignora as
+# crates privadas (não publicadas) e continua exigindo permissivas só nas dependências.
+private = { ignore = true }
 # Permissivas apenas. GPL/LGPL ficam de fora porque o Rust liga estaticamente.
 allow = [
     "MIT",

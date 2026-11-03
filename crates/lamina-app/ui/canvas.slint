@@ -79,6 +79,7 @@ import { Handles } from "handles.slint";
 import { Motion } from "motion.slint";
 import { CoverLook } from "cover_look.slint";
 import { Theme, Fixed, Type, Radius } from "theme.slint";
+import { Mark } from "marks.slint";
 
 // A foto da vaga (spec MV, regra 2): a imagem só troca quando a foto muda (`photo`), não a cada
 // mudança de posição; senão a tela sobe a textura de novo e o primeiro quadro atrasa.
@@ -310,6 +311,7 @@ export component SpreadCanvas inherits Rectangle {    in property <SpreadData> d
         width: f.w * root.width;
         height: f.h * root.width;
         z: f.z;
+        Mark { name: "quadro-" + (f.index + 1); on: root.interactive && f.index >= 0; }
         enabled: root.interactive && f.live;
         visible: root.interactive && f.live;
         mouse-cursor: f.kind == 2 || f.has-img ? move : default;

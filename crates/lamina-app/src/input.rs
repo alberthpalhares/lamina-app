@@ -13,6 +13,10 @@ type Shared = Rc<RefCell<App>>;
 
 /// Roda um comando do registro (menu, botões e teclado passam por aqui).
 pub fn run_command(app: &Shared, command: Command) {
+    // Um comando do menu principal muda o que vale: o menu de contexto aberto fecha (spec DC, seção 6).
+    if let Some(w) = app.borrow().window.upgrade() {
+        crate::context::close(&w);
+    }
     // As teclas de endireitar mostram a grade fina até o giro parar (spec AF, seção 4).
     if matches!(
         command,
@@ -47,6 +51,7 @@ pub fn run_command(app: &Shared, command: Command) {
         Command::Quit => files::request(&mut a, Pending::Close),
         Command::ClearRecents => crate::recents::ask_clear(&a),
         Command::ClearAllPhotos | Command::DeleteAllSpreads => crate::clear_all::ask(&a, command),
+        Command::DeleteLearned => crate::clear_all::ask_learned(&mut a),
         Command::Save => {
             files::save(&mut a, false, |_, _| {});
         }
@@ -78,6 +83,7 @@ pub fn run_command(app: &Shared, command: Command) {
         }
         // A lista de atalhos abre por cima, sem passar pelo editor (spec AT, regra 7).
         Command::ShowShortcuts => crate::shortcuts::open(&a),
+        Command::Preferences => crate::window_look::open(&a),
         // As novidades abrem por cima, sem passar pelo editor (spec NV, regra 5).
         Command::ShowNews => crate::news::open_help(&a),
         // Renomear abre o campo no nome do álbum, no topo (spec NA).

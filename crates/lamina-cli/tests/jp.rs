@@ -31,6 +31,7 @@ fn jp_b4_novo_album_e_o_mesmo_do_lamina_build() {
         spreads: None,
         reuse: Reuse::Medium,
         preferences: lamina_layout::Preferences::default(),
+        learned: lamina_layout::Learned::default(),
         models: Vec::new(),
         limits: lamina_core::PageLimits::default(),
         export: lamina_core::ExportPrefs::default(),

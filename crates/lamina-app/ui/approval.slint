@@ -1,0 +1,182 @@
+// A aba "Para aprovação do cliente" de Exportar (specs AC e AH): as saídas leves. O que cada campo
+// reclama e os textos vêm do Rust; a decisão é do editor. A moldura e as abas ficam em `export.slint`.
+
+import { LineEdit } from "std-widgets.slint";
+import { Theme, Type, Space } from "theme.slint";
+import { DialogBody, DialogButton, CheckRow, Field, PathLabel } from "widgets.slint";
+
+export global ApprovalUi {
+    in property <string> folder;
+    // O caminho com o meio cortado (spec DD, regra 17); o inteiro fica na dica.
+    in property <string> folder-short;
+    in-out property <bool> html;
+    in-out property <bool> jpg;
+    in-out property <string> client-name;
+    in-out property <bool> all-spreads;
+    in-out property <string> range;
+    in-out property <bool> number;
+    in-out property <bool> mark-on;
+    in-out property <string> mark-text;
+    in-out property <string> whatsapp;
+    in-out property <string> email;
+    // Como o número ficou, para o fotógrafo conferir (spec AH, regra 12).
+    in property <string> whatsapp-shown;
+    // O que cada campo reclama; vazio = nada.
+    in property <string> outputs-error;
+    in property <string> name-error;
+    in property <string> range-error;
+    in property <string> mark-error;
+    in property <string> whatsapp-error;
+    in property <string> email-error;
+    // O que não é de um campo: a foto não encontrada e o arquivo de dados ilegível.
+    in property <string> error;
+    in property <string> data-warning;
+    // Sem nada a reclamar: "Gerar arquivos" fica disponível.
+    in property <bool> ready;
+    // 0 = opções, 1 = avisos, 2 = substituir arquivos.
+    in property <int> step;
+    in property <[string]> warnings;
+    in property <string> cover-notice;
+    in property <string> replace-title;
+    in property <string> replace-text;
+    callback pick-folder();
+    callback changed();
+    callback generate();
+    callback proceed();
+    callback replace();
+    callback back();
+}
+
+// O rótulo mais comprido, "Nome que o cliente vê", define a coluna.
+global ApprovalColumn {
+    out property <length> label: 160px;
+}
+
+// A linha embaixo de um campo, alinhada com ele.
+component FieldNote inherits HorizontalLayout {
+    in property <string> text;
+    in property <bool> warning;
+    spacing: Space.s2;
+    Rectangle { width: ApprovalColumn.label; }
+    Text {
+        text: root.text;
+        color: root.warning ? Theme.warning : Theme.text-2;
+        font-size: Type.small;
+        wrap: word-wrap;
+        horizontal-stretch: 1;
+    }
+}
+
+export component ApprovalBody inherits DialogBody {
+    function go() {
+        if (ApprovalUi.ready) {
+            ApprovalUi.generate();
+        }
+    }
+    Text { text: "Arquivos leves para o cliente ver. Não servem para imprimir."; color: Theme.text-2; wrap: word-wrap; }
+    if ApprovalUi.data-warning != "": Text { text: ApprovalUi.data-warning; color: Theme.warning; font-size: Type.small; wrap: word-wrap; }
+    Field {
+        label: "O que gerar";
+        label-width: ApprovalColumn.label;
+        VerticalLayout {
+            spacing: Space.s1;
+            CheckRow {
+                text: "Álbum animado em HTML";
+                checked <=> ApprovalUi.html;
+                toggled => { ApprovalUi.changed(); }
+            }
+            CheckRow {
+                text: "Imagens JPG para web";
+                checked <=> ApprovalUi.jpg;
+                toggled => { ApprovalUi.changed(); }
+            }
+        }
+    }
+    if ApprovalUi.outputs-error != "": FieldNote { text: ApprovalUi.outputs-error; warning: true; }
+    Field {
+        label: "Pasta";
+        label-width: ApprovalColumn.label;
+        PathLabel { short: ApprovalUi.folder-short; full: ApprovalUi.folder; }
+        DialogButton { text: "Escolher…"; clicked => { ApprovalUi.pick-folder(); } }
+    }
+    if ApprovalUi.html: Field {
+        label: "Nome que o cliente vê";
+        label-width: ApprovalColumn.label;
+        LineEdit {
+            text <=> ApprovalUi.client-name;
+            edited => { ApprovalUi.changed(); }
+            accepted => { root.go(); }
+        }
+    }
+    if ApprovalUi.name-error != "": FieldNote { text: ApprovalUi.name-error; warning: true; }
+    if ApprovalUi.jpg: Field {
+        label: "Lâminas";
+        label-width: ApprovalColumn.label;
+        CheckRow {
+            text: "Todas";
+            checked <=> ApprovalUi.all-spreads;
+            toggled => { ApprovalUi.changed(); }
+        }
+        LineEdit {
+            text <=> ApprovalUi.range;
+            enabled: !ApprovalUi.all-spreads;
+            placeholder-text: "ex.: 5, 12";
+            edited => { ApprovalUi.changed(); }
+            accepted => { root.go(); }
+        }
+    }
+    if ApprovalUi.range-error != "": FieldNote { text: ApprovalUi.range-error; warning: true; }
+    if ApprovalUi.jpg: Field {
+        label: "Número da lâmina";
+        label-width: ApprovalColumn.label;
+        CheckRow {
+            text: "Numa faixa embaixo da imagem";
+            checked <=> ApprovalUi.number;
+            toggled => { ApprovalUi.changed(); }
+        }
+    }
+    Field {
+        label: "Marca-d'água";
+        label-width: ApprovalColumn.label;
+        CheckRow {
+            text: "Ligada";
+            checked <=> ApprovalUi.mark-on;
+            toggled => { ApprovalUi.changed(); }
+        }
+        LineEdit {
+            text <=> ApprovalUi.mark-text;
+            enabled: ApprovalUi.mark-on;
+            placeholder-text: "O nome do estúdio";
+            edited => { ApprovalUi.changed(); }
+            accepted => { root.go(); }
+        }
+    }
+    if ApprovalUi.mark-error != "": FieldNote { text: ApprovalUi.mark-error; warning: true; }
+    if ApprovalUi.html: Field {
+        label: "Seu WhatsApp";
+        label-width: ApprovalColumn.label;
+        LineEdit {
+            text <=> ApprovalUi.whatsapp;
+            placeholder-text: "+55 11 99999-9999";
+            edited => { ApprovalUi.changed(); }
+            accepted => { root.go(); }
+        }
+    }
+    if ApprovalUi.whatsapp-error != "": FieldNote { text: ApprovalUi.whatsapp-error; warning: true; }
+    if ApprovalUi.html: FieldNote { text: "Com o código do país, que no Brasil é 55. Sem ele, o WhatsApp não abre a conversa."; }
+    if ApprovalUi.whatsapp-shown != "": FieldNote { text: "Fica assim: " + ApprovalUi.whatsapp-shown; }
+    if ApprovalUi.html: Field {
+        label: "Seu e-mail";
+        label-width: ApprovalColumn.label;
+        LineEdit {
+            text <=> ApprovalUi.email;
+            placeholder-text: "Opcional";
+            edited => { ApprovalUi.changed(); }
+            accepted => { root.go(); }
+        }
+    }
+    if ApprovalUi.email-error != "": FieldNote { text: ApprovalUi.email-error; warning: true; }
+    if ApprovalUi.html: FieldNote { text: "O WhatsApp e o e-mail ficam escritos dentro do HTML."; }
+    Text { text: "Quem tiver os arquivos vê as fotos. Arquivo enviado pode ser encaminhado."; color: Theme.text-2; font-size: Type.small; wrap: word-wrap; }
+    if ApprovalUi.error != "": Text { text: ApprovalUi.error; color: Theme.warning; wrap: word-wrap; }
+}

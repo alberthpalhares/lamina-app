@@ -65,17 +65,37 @@ impl ExportForm {
     }
 }
 
-/// A pergunta antes de substituir arquivos que já existem (spec EI, regra 4).
-pub fn replace_question(existing: usize, folder: &Path) -> String {
-    let files = if existing == 1 {
-        "1 arquivo desta exportação".to_owned()
+/// O campo "Qualidade" só aparece onde vale: o JPEG e o PDF gravam as lâminas com ela; o TIFF não
+/// tem perda (spec DD, regra 21).
+pub fn quality_applies(format: ExportFormat) -> bool {
+    !matches!(format, ExportFormat::Tiff)
+}
+
+/// O título da pergunta antes de substituir (spec DD, regra 19).
+pub fn replace_title(existing: usize) -> String {
+    if existing == 1 {
+        "Substituir o arquivo?".to_owned()
     } else {
-        format!("{existing} arquivos desta exportação")
-    };
-    format!(
-        "Já existem {files} em {}. Substituindo, os arquivos lamina-NN, pagina-NN e da capa do \
-         mesmo formato que não fizerem parte desta exportação também saem da pasta; os outros \
-         arquivos ficam.",
-        folder.display()
-    )
+        format!("Substituir os {existing} arquivos?")
+    }
+}
+
+/// A pergunta antes de substituir arquivos que já existem (spec EI, regra 4; DD, regra 19). A
+/// limpeza continua a mesma; a pasta aparece só pelo nome.
+pub fn replace_question(existing: usize, folder: &Path) -> String {
+    let name = folder
+        .file_name()
+        .map_or_else(|| folder.display().to_string(), |n| n.display().to_string());
+    if existing == 1 {
+        format!(
+            "A pasta {name} já tem 1 arquivo deste álbum. O novo entra no lugar dele, e os que \
+             sobrarem de uma exportação maior também saem. Seus outros arquivos continuam lá."
+        )
+    } else {
+        format!(
+            "A pasta {name} já tem {existing} arquivos deste álbum. Os novos entram no lugar \
+             deles, e os que sobrarem de uma exportação maior também saem. Seus outros arquivos \
+             continuam lá."
+        )
+    }
 }

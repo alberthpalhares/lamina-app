@@ -290,11 +290,16 @@ fn names_of(project: &Project, options: &ExportOptions, jobs: &[SpreadJob]) -> V
 /// Nada é gravado se algum arquivo de saída já existe (regra 5).
 fn refuse_existing(names: &[String], folder: &Path) -> Result<(), ExportError> {
     match names.iter().find(|name| folder.join(name).exists()) {
-        Some(name) => Err(ExportError::Exists {
-            name: name.clone(),
-            folder: folder.display().to_string(),
-        }),
+        Some(name) => Err(refuse_name(name.clone(), folder)),
         None => Ok(()),
+    }
+}
+
+/// O erro de um arquivo de saída que já existe.
+pub(crate) fn refuse_name(name: String, folder: &Path) -> ExportError {
+    ExportError::Exists {
+        name,
+        folder: folder.display().to_string(),
     }
 }
 

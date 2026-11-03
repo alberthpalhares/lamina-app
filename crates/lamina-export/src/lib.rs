@@ -4,6 +4,7 @@
 //! perfil de cor e DPI, nomes ordenáveis e pré-impressão; PDF/X-4 do álbum inteiro (spec PD);
 //! TIFF sem perda e saída em sRGB ou Adobe RGB (spec CT).
 
+mod approval;
 mod clean;
 mod cover;
 mod export;
@@ -20,6 +21,12 @@ mod range;
 mod tiff_out;
 mod write;
 
+pub use approval::{
+    ApprovalHtml, ApprovalOptions, ApprovalReport, WHATSAPP_START, approval_existing,
+    approval_names, approval_photos_found, approval_question, approval_summary, approval_warnings,
+    clean_whatsapp, client_name_problem, email_problem, export_approval, html_cover_notice,
+    html_file_name, outputs_problem, proof_code, watermark_problem, whatsapp_display,
+};
 pub use clean::{is_export_name, leftovers};
 pub use cover::{CoverExport, cover_preflight};
 pub use export::{DEFAULT_QUALITY, ExportOptions, ExportReport, export, output_names};
@@ -105,7 +112,7 @@ pub fn page_file_name(index: usize, total: usize, format: ExportFormat) -> Strin
     numbered("pagina", index, total, format)
 }
 
-fn numbered(prefix: &str, index: usize, total: usize, format: ExportFormat) -> String {
+pub(crate) fn numbered(prefix: &str, index: usize, total: usize, format: ExportFormat) -> String {
     let digits = total.max(1).to_string().len().max(2);
     format!("{prefix}-{index:0digits$}.{}", format.extension())
 }
@@ -127,8 +134,23 @@ mod tests {
 }
 
 #[cfg(test)]
+#[path = "tests/ac.rs"]
+mod ac;
+#[cfg(test)]
+#[path = "tests/ac_code.rs"]
+mod ac_code;
+#[cfg(test)]
+#[path = "tests/ac_files.rs"]
+mod ac_files;
+#[cfg(test)]
 #[path = "tests/af.rs"]
 mod af;
+#[cfg(test)]
+#[path = "tests/ah.rs"]
+mod ah;
+#[cfg(test)]
+#[path = "tests/ah_more.rs"]
+mod ah_more;
 
 #[cfg(test)]
 #[path = "tests/ap.rs"]

@@ -55,6 +55,33 @@ fn o_botao_fechar_aparece_inteiro_em_qualquer_tamanho() {
     }
 }
 
+/// A página de novidades em tema claro e em 130% (spec AJ, AJ-B29): as combinações que o teste de cima
+/// não tem. As imagens saem em `capturas_para_conferir`.
+#[test]
+fn aj_b29_a_pagina_de_novidades_nos_novos_modos() {
+    for size in [WIDE, (800, 600)] {
+        let screen = open_window(size);
+        let theme = screen.app.global::<Theme>();
+        theme.set_text_scale(1.3);
+        theme.set_dark(false);
+        let image = animations()[0];
+        let notes = format!(
+            "## [0.1.0-beta.9] - 2026-11-12
+
+- **Com botão.** Um. Experimente: abra.
+  <!-- imagem: {image}; comando: ajuda.atalhos -->
+"
+        );
+        open_notes(&screen, &notes, false);
+        settle(&screen);
+        let rows = close_outline_rows(&screen, &screen.draw());
+        let (first, last) = (rows.first().copied(), rows.last().copied());
+        assert!(rows.len() >= 2, "{size:?}: {rows:?}");
+        let tall = last.unwrap() - first.unwrap();
+        assert!((24..=44).contains(&tall), "{size:?}: {rows:?}");
+    }
+}
+
 fn press(screen: &Screen, key: slint::platform::Key) {
     let text = slint::SharedString::from(key);
     screen
@@ -136,6 +163,8 @@ fn capturas_para_conferir() {
         ("1366-130", WIDE, 1.3, true),
         ("1920-escuro", (1920, 980), 1.0, true),
         ("800-130", (800, 600), 1.3, true),
+        ("1366-claro-130", WIDE, 1.3, false),
+        ("800-claro-130", (800, 600), 1.3, false),
     ];
     for (name, size, scale, dark) in shots {
         let screen = open_window(size);

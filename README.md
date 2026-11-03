@@ -5,21 +5,21 @@
   <img src="site/midia/logo-claro.svg" alt="Lamina" width="360">
 </picture>
 
-### Diagramador de álbuns de fotografia — grátis, de código aberto, para Windows, Mac e Linux
+### Diagramador de álbuns de fotografia — grátis, para Windows, Mac e Linux
 
 Escolha a pasta das fotos e o Lamina monta o álbum, lâmina por lâmina. Depois é trocar layouts,
 ajustar as fotos e mandar para a gráfica.
 
 [![Versão](https://img.shields.io/github/v/release/alberthpalhares/lamina-app?include_prereleases&label=vers%C3%A3o&color=0095B6)](https://github.com/alberthpalhares/lamina-app/releases)
 [![Downloads](https://img.shields.io/github/downloads/alberthpalhares/lamina-app/total?label=downloads&color=2A2D31)](https://github.com/alberthpalhares/lamina-app/releases)
-[![Licença](https://img.shields.io/badge/licen%C3%A7a-Apache--2.0-2A2D31)](LICENSE)
+[![Licença](https://img.shields.io/badge/licen%C3%A7a-PolyForm_Strict-2A2D31)](LICENSE)
 [![Verificação](https://github.com/alberthpalhares/lamina-app/actions/workflows/ci.yml/badge.svg?branch=proxima)](https://github.com/alberthpalhares/lamina-app/actions/workflows/ci.yml?query=branch%3Aproxima)
 
-[![Baixar para Windows](https://img.shields.io/badge/Baixar_para-Windows_10_e_11-0095B6?style=for-the-badge)](https://github.com/alberthpalhares/lamina-app/releases/download/v0.1.0-beta.8.1/Lamina-win-beta-Setup.exe)
-[![Baixar para Mac](https://img.shields.io/badge/Baixar_para-Mac_Intel_e_Apple-0095B6?style=for-the-badge)](https://github.com/alberthpalhares/lamina-app/releases/download/v0.1.0-beta.8.1/Lamina-osx-beta-Setup.pkg)
-[![Baixar para Linux](https://img.shields.io/badge/Baixar_para-Linux-0095B6?style=for-the-badge)](https://github.com/alberthpalhares/lamina-app/releases/download/v0.1.0-beta.8.1/Lamina-linux-beta.AppImage)
+[![Baixar para Windows](https://img.shields.io/badge/Baixar_para-Windows_10_e_11-0095B6?style=for-the-badge)](https://github.com/alberthpalhares/lamina-app/releases/download/v0.1.0-beta.9/Lamina-win-beta-Setup.exe)
+[![Baixar para Mac](https://img.shields.io/badge/Baixar_para-Mac_Intel_e_Apple-0095B6?style=for-the-badge)](https://github.com/alberthpalhares/lamina-app/releases/download/v0.1.0-beta.9/Lamina-osx-beta-Setup.pkg)
+[![Baixar para Linux](https://img.shields.io/badge/Baixar_para-Linux-0095B6?style=for-the-badge)](https://github.com/alberthpalhares/lamina-app/releases/download/v0.1.0-beta.9/Lamina-linux-beta.AppImage)
 
-<sub>Versão 0.1.0-beta.8.1 · [como instalar sem susto](#instalar) · [site](https://alberthpalhares.github.io/lamina-app/) · [todas as versões](https://github.com/alberthpalhares/lamina-app/releases)</sub>
+<sub>Versão 0.1.0-beta.9 · [como instalar sem susto](#instalar) · [site](https://alberthpalhares.github.io/lamina-app/) · [todas as versões](https://github.com/alberthpalhares/lamina-app/releases)</sub>
 
 <img src="site/midia/diagramar.webp" alt="O Lamina com o álbum de exemplo: as lâminas passam e o layout de cada uma troca pelas setas" width="900">
 
@@ -90,11 +90,11 @@ ajustar as fotos e mandar para a gráfica.
 
 | | **Lamina** | **O que é comum em outros programas** |
 |---|---|---|
-| Preço | Grátis; licença de apoiador opcional, R$ 99 por versão maior | Assinatura mensal ou licença paga |
+| Preço | Grátis; licença de apoiador opcional, R$ 199 por versão maior | Assinatura mensal ou licença paga |
 | Sistemas | Windows, Mac (Intel e Apple) e **Linux** | Windows e Mac |
 | Conta e internet | Não precisa de conta; funciona sem internet | Conta e ativação pela internet |
 | Seus dados | Não envia nada sozinho, sem telemetria | Varia |
-| Código | Aberto (Apache-2.0): qualquer pessoa pode conferir | Fechado |
+| Código | Fonte disponível (PolyForm Strict 1.0.0): qualquer pessoa pode conferir | Fechado |
 | Layouts | Calculados para a proporção de cada foto | Biblioteca fixa de modelos |
 | Segurança do trabalho | Cópia automática a cada minuto e histórico completo | Varia |
 | Arquivo final | O mesmo álbum gera sempre os mesmos arquivos, byte a byte | Raramente garantido |
@@ -111,7 +111,7 @@ pontos fortes.</sub>
 um programa. O Lamina é gratuito e não paga essa assinatura, então o sistema mostra um aviso
 genérico na primeira vez. Para você confiar sem precisar acreditar na nossa palavra:
 
-- o código é aberto e cada instalador é montado pelo GitHub Actions, à vista de todos, a partir
+- o código está disponível e cada instalador é montado pelo GitHub Actions, à vista de todos, a partir
   deste código ([veja as compilações](https://github.com/alberthpalhares/lamina-app/actions/workflows/release.yml));
 - cada versão publica o arquivo `SHA256SUMS`, para você conferir que o arquivo baixado é o mesmo
   (veja [Conferir o download](#conferir-o-download));
@@ -132,7 +132,7 @@ antivírus continua examinando tudo normalmente.
 
 **Plano B — pelo navegador (com o aviso).**
 
-1. Baixe o [`Setup.exe`](https://github.com/alberthpalhares/lamina-app/releases/download/v0.1.0-beta.8.1/Lamina-win-beta-Setup.exe).
+1. Baixe o [`Setup.exe`](https://github.com/alberthpalhares/lamina-app/releases/download/v0.1.0-beta.9/Lamina-win-beta-Setup.exe).
 2. Se o navegador segurar o arquivo: no **Edge**, clique nos três pontinhos ao lado do download →
    **Manter** → **Mostrar mais** → **Manter mesmo assim**; no **Chrome**, clique em **Manter**.
 3. Abra o arquivo. Na janela azul **"O Windows protegeu o computador"**, clique em
@@ -161,7 +161,7 @@ O Lamina vai para a pasta **Aplicativos** e passa a abrir os arquivos `.lamina` 
 
 **Plano B — pelo instalador (com o aviso).**
 
-1. Baixe o [`Setup.pkg`](https://github.com/alberthpalhares/lamina-app/releases/download/v0.1.0-beta.8.1/Lamina-osx-beta-Setup.pkg) e abra.
+1. Baixe o [`Setup.pkg`](https://github.com/alberthpalhares/lamina-app/releases/download/v0.1.0-beta.9/Lamina-osx-beta-Setup.pkg) e abra.
 2. Se o Mac disser que **não pode verificar o desenvolvedor**, clique em **OK** (ou **Concluído**).
 3. Abra **Ajustes do Sistema** → **Privacidade e Segurança**, role até o fim e, ao lado da
    mensagem sobre o Lamina, clique em **Abrir mesmo assim**. Confirme com a senha do Mac.
@@ -190,7 +190,7 @@ curl -fsSL https://raw.githubusercontent.com/alberthpalhares/lamina-app/main/cra
 
 O Lamina fica em `~/.local/bin/Lamina.AppImage`; abra uma vez por ele para o atalho entrar no menu.
 
-**Plano B — pelo navegador.** Baixe o [`.AppImage`](https://github.com/alberthpalhares/lamina-app/releases/download/v0.1.0-beta.8.1/Lamina-linux-beta.AppImage), clique com o botão direito →
+**Plano B — pelo navegador.** Baixe o [`.AppImage`](https://github.com/alberthpalhares/lamina-app/releases/download/v0.1.0-beta.9/Lamina-linux-beta.AppImage), clique com o botão direito →
 Propriedades → **Permitir executar como programa** (ou `chmod +x Lamina-linux*.AppImage`) e abra.
 
 **Se nada abrir:** instale o FUSE 2 — `sudo apt install libfuse2` (no Ubuntu 24.04 ou mais novo,
@@ -273,17 +273,21 @@ livres, para você ver tudo funcionando. Depois, **Novo álbum…** monta o seu.
 
 ## Grátis e versão de apoiador
 
-O Lamina é e continua **grátis e de código aberto**. Montar o álbum, layouts, cortar, girar,
-escala, brilho, contraste, preto e branco, texto com as fontes embutidas, JPEG, TIFF e PDF/X-4 em
-sRGB com marcas de corte, cópia de segurança e atualizações são livres, sem prazo.
+O Lamina é e continua **grátis**. Montar o álbum, layouts, cortar, girar, escala, preto e branco,
+texto com as fontes embutidas, JPEG, TIFF e PDF/X-4 em sRGB com marcas de corte, cópia de segurança
+e atualizações são livres, sem prazo. A partir da 1.0.0, o grátis vale para **até 10 lâminas por
+projeto e 100 fotos**; um álbum acima disso continua abrindo, editando e exportando, só não cresce.
 
-Quem quiser apoiar o projeto pode comprar a **licença de apoiador: R$ 99 por versão maior** (a
-licença da 1 vale em toda a 1.x), sem conta e sem cadastro. Ela libera:
+Quem quiser apoiar o projeto pode comprar a **licença de apoiador: R$ 199 por versão maior** (a
+licença da 1 vale em toda a 1.x), sem conta e sem cadastro. A partir da 1.0.0, ela libera:
 
 | Recurso de apoiador | No grátis |
 |---|---|
+| Mais de 10 lâminas e 100 fotos | Até 10 lâminas e 100 fotos |
 | Editar temperatura e matiz | Zerar continua livre |
+| Brilho, contraste e endireitar | Zerar e os giros de 90° são livres |
 | Salvar tamanhos próprios e modelos de lâmina | Os 15 tamanhos prontos e o tamanho digitado à mão são livres |
+| Capa, aprovação do cliente e aprendizado de layouts | — |
 | Exportar em Adobe RGB | Exporta em sRGB |
 | O programa `lamina` no terminal | — |
 | O controle por IA (Claude Desktop) | — |
@@ -309,7 +313,7 @@ opção se o contrato pedir; a IA continua só com os dados das fotos e das lâm
 <summary><b>O aviso do Windows ou do Mac quer dizer que o Lamina tem vírus?</b></summary>
 
 Não. O aviso aparece para qualquer programa que não paga a assinatura da Microsoft ou da Apple. O
-código do Lamina é aberto, os instaladores são montados pelo GitHub Actions a partir dele, e o
+código do Lamina está disponível, os instaladores são montados pelo GitHub Actions a partir dele, e o
 `SHA256SUMS` de cada versão permite conferir o arquivo.
 </details>
 
@@ -358,11 +362,11 @@ cargo xtask verify                  # formatação, lint, testes e checagens
 ```
 
 No Linux, a janela precisa de `libfontconfig1-dev`, `libxkbcommon-dev` e `libwayland-dev`. Veja
-como contribuir em [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md).
+como enviar relatos e sugestões em [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md).
 
 ## Licença e créditos
 
-- Código: Apache-2.0 (arquivo [`LICENSE`](LICENSE)).
+- Código: PolyForm Strict 1.0.0 (arquivo [`LICENSE`](LICENSE)); o uso do programa, pelos [`TERMOS.md`](TERMOS.md).
 - Interface: [Slint](https://slint.dev), sob a licença Royalty-free 2.0.
 - Fontes em `crates/lamina-render/fonts/`: SIL OFL 1.1 (o `OFL.txt` fica na pasta de cada uma).
 - Fotos do álbum de exemplo e das telas desta página: CC0 1.0, de Syced no Wikimedia Commons

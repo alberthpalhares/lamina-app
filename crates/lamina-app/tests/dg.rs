@@ -95,7 +95,7 @@ fn dg_b8_outra_cor_no_lugar_do_codigo() {
     assert!(!look.contains("\"Usar\""));
     // O mesmo quadro de cores do Novo álbum.
     assert!(look.contains("ColorArea {"));
-    assert!(ui("new_project.slint").contains("ColorArea {"));
+    assert!(ui("new_project_color.slint").contains("ColorArea {"));
 }
 
 #[test]

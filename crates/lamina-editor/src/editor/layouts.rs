@@ -6,7 +6,8 @@ use lamina_layout::{LayoutCandidate, LayoutLists, add_models, apply_preferences,
 
 use super::Editor;
 use crate::suggestions::{
-    List, Part, Selection, Unavailable, apply, can_mirror, is_in_use, lists, mirror, selection,
+    List, Part, Selection, Unavailable, apply, can_mirror, is_in_use, lists_learned, mirror,
+    selection,
 };
 
 /// O que o painel de layouts mostra para uma parte da lâmina atual.
@@ -48,7 +49,7 @@ impl Editor {
         if let Some(found) = self.lists.borrow().get(&key) {
             return found.clone();
         }
-        let mut computed = lists(project, sel).unwrap_or_default();
+        let mut computed = lists_learned(project, sel, self.learned()).unwrap_or_default();
         // Os modelos do fotógrafo valem para a lâmina inteira (spec MD; uma página só fica sem
         // fase). Sem lista do motor (erro), não há onde pôr.
         if sel.whole && !computed.in_order.is_empty() {
@@ -156,7 +157,7 @@ impl Editor {
             (None, true) => 0,
             (None, false) => n - 1,
         };
-        self.apply_option(Part::Spread, target)
+        self.choose_option(Part::Spread, target)
     }
 
     pub(super) fn can_mirror(&self) -> bool {
@@ -205,6 +206,7 @@ impl Editor {
             self.prefs.prefs.toggle_favorite(&key);
         } else {
             self.prefs.prefs.reject(&key);
+            self.forget_learned(&key);
         }
         self.save_prefs();
         true
@@ -225,6 +227,7 @@ impl Editor {
             return false;
         };
         self.prefs.prefs.reject(&key);
+        self.forget_learned(&key);
         self.save_prefs();
         let panel = self.panel(Part::Spread);
         let n = panel.options.len();

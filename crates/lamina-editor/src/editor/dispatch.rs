@@ -37,6 +37,8 @@ impl Editor {
                     | Command::OpenLogs
                     | Command::ShowShortcuts
                     | Command::ShowNews
+                    | Command::Preferences
+                    | Command::DeleteLearned
                     | Command::Quit
             ) || (command == Command::ClearRecents && self.recents.has_unpinned());
         };
@@ -78,8 +80,11 @@ impl Editor {
             Command::SendFeedback | Command::OpenLogs => true,
             // A lista de atalhos vale em qualquer momento (spec AT, regra 7).
             Command::ShowShortcuts => true,
+            Command::Preferences => true,
             // As novidades valem em qualquer momento (spec NV, regra 5).
             Command::ShowNews => true,
+            // Sempre ativo: sem nada aprendido, a janela responde (spec AL, regra 18).
+            Command::DeleteLearned => true,
             Command::SaveModel => self.can_save_model(),
             Command::BringForward | Command::SendBackward => self.can_reorder(),
             Command::Deselect => {
@@ -166,13 +171,23 @@ impl Editor {
     /// Roda os comandos que não precisam de diálogo. `true` = algo mudou. Os de arquivo pedem um
     /// caminho à janela e chamam [`Editor::open`] e a sessão.
     pub fn run(&mut self, command: Command) -> bool {
+        let done = self.run_command(command);
+        // Navegar, desfazer e apagar podem ter saído da lâmina (spec AL, regra 10).
+        self.settle_visit();
+        done
+    }
+
+    fn run_command(&mut self, command: Command) -> bool {
         // A lista de atalhos e as novidades são abertas pela janela e não mexem em nada: nem o
         // recorte, nem o modo organizar, nem a seleção (specs AT, regra 7, e NV, regra 5).
         // Renomear abre o campo da janela, que chama `rename_album` (spec NA).
         if !self.available(command)
             || matches!(
                 command,
-                Command::ShowShortcuts | Command::ShowNews | Command::RenameAlbum
+                Command::ShowShortcuts
+                    | Command::ShowNews
+                    | Command::RenameAlbum
+                    | Command::Preferences
             )
         {
             return false;
@@ -228,6 +243,7 @@ impl Editor {
             Command::Mirror => self.mirror(),
             Command::Favorite => self.favorite(),
             Command::Reject => self.reject(),
+            Command::DeleteLearned => self.delete_learned(),
             Command::ClearFrame if self.organizing() => self.delete_group(),
             Command::ClearFrame => self.delete_selected(),
             // Pela IA e pelo atalho de comando, sem a pergunta; a janela pergunta antes (TF-B11).
@@ -281,6 +297,8 @@ impl Editor {
         self.exit_crop();
         self.gesture = None;
         self.selected_frame = None;
-        self.session.as_mut().is_some_and(|s| s.go_to_step(step))
+        let done = self.session.as_mut().is_some_and(|s| s.go_to_step(step));
+        self.settle_visit();
+        done
     }
 }

@@ -8,6 +8,9 @@
 mod adjust_tests;
 #[cfg(test)]
 mod blank_tests;
+mod book;
+#[cfg(test)]
+mod book_tests;
 mod content;
 mod cover;
 #[cfg(test)]
@@ -28,6 +31,7 @@ mod turn;
 #[cfg(test)]
 mod turn_tests;
 
+pub use book::{Book, BookCover, Face, Leaf};
 pub use content::{BlankPages, Border, Frame, FrameContent, Rgb, Spread};
 pub use cover::{
     Cover, CoverGuide, CoverMeasures, CoverOrigin, DEFAULT_COVER_SAFE, DEFAULT_SHEET, DEFAULT_WRAP,

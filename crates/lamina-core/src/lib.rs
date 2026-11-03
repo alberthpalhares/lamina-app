@@ -33,6 +33,7 @@ pub use document::{
     PixelRegion, Project, Rgb, Spread, SpreadId, TextAlign, TextBox, TextVAlign, lexical_path,
     relative_path, validate_project_name,
 };
+pub use document::{Book, BookCover, Face, Leaf};
 pub use document::{
     Cover, CoverGuide, CoverMeasures, CoverOrigin, DEFAULT_COVER_SAFE, DEFAULT_SHEET, DEFAULT_WRAP,
     Spine,

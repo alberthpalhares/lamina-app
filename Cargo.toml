@@ -4,10 +4,10 @@ members = ["crates/*", "xtask"]
 exclude = ["spikes"]
 
 [workspace.package]
-version = "0.1.0-beta.8.1"
+version = "0.1.0-beta.9"
 edition = "2024"
 rust-version = "1.99"
-license = "Apache-2.0"
+license = "LicenseRef-PolyForm-Strict-1.0.0"
 repository = "https://github.com/alberthpalhares/lamina-app"
 authors = ["Equipe Lâmina"]
 
@@ -44,6 +44,7 @@ skrifa = "0.44"
 # Perfil de cor sRGB embutido nos JPEGs de impressão (ADR 0007).
 moxcms = "0.8"
 tempfile = "3"
+windows = { version = "0.62", features = ["UI", "UI_ViewManagement"] }
 # Pico de memória nos testes da importação (spec TR, TR-B1); só como dependência de testes.
 dhat = "0.3"
 # Instalador e atualização automática (ADR 0009). Versão presa: o spike provou esta.

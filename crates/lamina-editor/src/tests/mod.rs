@@ -1,14 +1,21 @@
 //! Cenários da spec `janela-principal` (JP) que rodam sem janela. O JP-B4 (app = `lamina
 //! build`) mora nos testes do binário `lamina`, que roda os dois caminhos.
 
+mod ac;
+mod ac_form;
 mod af;
 mod af_neutro;
 mod af_painel;
+mod aj;
+mod al;
+mod al_arquivo;
+mod al_contagem;
 mod ap;
 mod at;
 mod at_busca;
 mod auditoria;
 mod auditoria_m3;
+mod av;
 mod bo;
 mod br;
 mod br_mais;
@@ -19,6 +26,8 @@ mod cd;
 mod common;
 mod cs;
 mod ct;
+mod dc;
+mod dd;
 mod dg;
 mod di;
 mod di_capa;
@@ -37,6 +46,7 @@ mod ei;
 mod et;
 mod fb;
 mod fb_tempos;
+mod fi;
 mod fl;
 mod fl_more;
 mod forms;

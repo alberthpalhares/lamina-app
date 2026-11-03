@@ -2,9 +2,8 @@
 // de banco (85,6 × 53,98 mm), o monitor da janela e o controle que aumenta ou diminui o retângulo
 // até ele ficar igual a um cartão encostado na tela. Só desenho: o Rust guarda a calibração.
 
-import { Slider } from "std-widgets.slint";
-import { Theme, Type } from "theme.slint";
-import { Shade, Panel, DialogButton } from "widgets.slint";
+import { Theme, Type, Line } from "theme.slint";
+import { Dialog, DialogSize, DialogBody, DialogFooter, DialogGap, DialogButton, NeutralSlider } from "widgets.slint";
 
 export global CalibrateUi {
     in-out property <bool> show;
@@ -19,58 +18,52 @@ export global CalibrateUi {
     callback forget();
 }
 
-export component CalibrateDialog inherits Shade {
-    Panel {
-        width: max(560px, CalibrateUi.width * 1px + 80px);
-        height: 220px + CalibrateUi.width * 1px * 53.98 / 85.6;
-        VerticalLayout {
-            padding: 24px;
-            spacing: 12px;
-            Text {
-                text: "Calibrar o tamanho real";
-                color: Theme.text;
-                font-size: Type.title;
-                font-weight: Type.semibold;
+export component CalibrateDialog inherits Dialog {
+    title: "Calibrar o tamanho real";
+    size: max(DialogSize.form, CalibrateUi.width * 1px + 80px);
+    child-focus: true;
+    dismissed => { CalibrateUi.show = false; }
+    DialogBody {
+        Text {
+            text: "Encoste um cartão de banco (ou de crédito, ou de loja) na tela e ajuste até o retângulo ficar do mesmo tamanho.";
+            color: Theme.text;
+            wrap: word-wrap;
+        }
+        Text { text: CalibrateUi.monitor; color: Theme.text-2; font-size: Type.small; }
+        HorizontalLayout {
+            alignment: center;
+            Rectangle {
+                width: CalibrateUi.width * 1px;
+                height: CalibrateUi.width * 1px * 53.98 / 85.6;
+                border-radius: CalibrateUi.width * 1px * 3.18 / 85.6;
+                border-width: Line.thin;
+                border-color: Theme.overlay-strong;
+                background: Theme.accent-soft;
             }
-            Text {
-                text: "Encoste um cartão de banco (ou de crédito, ou de loja) na tela e ajuste até o retângulo ficar do mesmo tamanho.";
-                color: Theme.text;
-                wrap: word-wrap;
-            }
-            Text { text: CalibrateUi.monitor; color: Theme.text-2; font-size: Type.small; }
-            HorizontalLayout {
-                alignment: center;
-                Rectangle {
-                    width: CalibrateUi.width * 1px;
-                    height: CalibrateUi.width * 1px * 53.98 / 85.6;
-                    border-radius: CalibrateUi.width * 1px * 3.18 / 85.6;
-                    border-width: 1px;
-                    border-color: Theme.overlay-strong;
-                    background: Theme.accent-soft;
-                }
-            }
-            Slider {
-                minimum: CalibrateUi.min-width;
-                maximum: CalibrateUi.max-width;
-                value <=> CalibrateUi.width;
-            }
-            HorizontalLayout {
-                spacing: 8px;
-                alignment: end;
-                if CalibrateUi.calibrated: DialogButton {
-                    text: "Voltar à estimativa";
-                    clicked => { CalibrateUi.forget(); }
-                }
-                DialogButton {
-                    text: "Cancelar";
-                    clicked => { CalibrateUi.show = false; }
-                }
-                DialogButton {
-                    text: "Guardar";
-                    primary: true;
-                    clicked => { CalibrateUi.save(CalibrateUi.width); }
-                }
-            }
+        }
+        NeutralSlider {
+            label: "Tamanho do retângulo";
+            minimum: CalibrateUi.min-width;
+            maximum: CalibrateUi.max-width;
+            neutral: CalibrateUi.min-width;
+            value <=> CalibrateUi.width;
+        }
+    }
+    DialogFooter {
+        if CalibrateUi.calibrated: DialogButton {
+            text: "Voltar à estimativa";
+            clicked => { CalibrateUi.forget(); }
+        }
+        DialogGap { }
+        DialogButton {
+            text: "Cancelar";
+            clicked => { CalibrateUi.show = false; }
+        }
+        DialogButton {
+            text: "Guardar";
+            primary: true;
+            takes-focus: true;
+            clicked => { CalibrateUi.save(CalibrateUi.width); }
         }
     }
 }

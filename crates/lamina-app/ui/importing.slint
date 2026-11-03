@@ -1,7 +1,7 @@
 // Fotos entrando no álbum (spec IM, parte de importar): o aviso "Solte para importar" enquanto
 // arquivos vêm de outro programa e o convite do álbum ainda sem lâminas. Só desenho.
 
-import { Theme, Fixed, Type } from "theme.slint";
+import { Theme, Fixed, Type, Radius, Backdrop } from "theme.slint";
 import { DialogButton } from "widgets.slint";
 import { DragUi } from "drag.slint";
 
@@ -66,14 +66,14 @@ export component EmptyAlbum inherits VerticalLayout {
     spacing: 12px;
     if root.photos == 0: Text {
         text: "Este álbum ainda não tem fotos";
-        color: Theme.text;
+        color: Backdrop.text;
         font-size: Type.heading;
         font-weight: Type.semibold;
         horizontal-alignment: center;
     }
     if root.photos == 0: Text {
         text: "Arraste fotos ou pastas do Explorador para esta janela, ou use o botão abaixo.";
-        color: Theme.text-2;
+        color: Backdrop.text-2;
         horizontal-alignment: center;
         wrap: word-wrap;
     }
@@ -91,17 +91,22 @@ export component EmptyAlbum inherits VerticalLayout {
     }
     if root.photos > 0: Text {
         text: "A primeira lâmina começa aqui. Selecione fotos no painel de baixo e solte nesta área (ou aperte Enter).";
-        color: Theme.text-2;
+        color: Backdrop.text-2;
         horizontal-alignment: center;
         wrap: word-wrap;
     }
     if root.photos > 0: HorizontalLayout {
         alignment: center;
-        DialogButton { text: "Montar o álbum…"; enabled: root.can-build; clicked => { root.build(); } }
+        // Com fundo próprio: o botão segue o tema, e o fundo da lâmina não (spec AJ, regra 14).
+        Rectangle {
+            background: Theme.raised;
+            border-radius: Radius.small;
+            DialogButton { text: "Montar o álbum…"; enabled: root.can-build; clicked => { root.build(); } }
+        }
     }
     if root.photos > 0: Text {
         text: "Monta as " + root.photos + " fotos de uma vez.";
-        color: Theme.text-2;
+        color: Backdrop.text-2;
         font-size: Type.small;
         horizontal-alignment: center;
     }

@@ -53,8 +53,15 @@ pub struct App {
     /// Arquivos soltos na tela inicial, que o Novo projeto importa no lugar de uma pasta.
     pub new_files: Vec<PathBuf>,
     pub notice: String,
+    /// O sistema está em escuro (spec AJ, regra 9), e quem lê isso; `None` = sem resposta.
+    pub system_dark: Option<bool>,
+    pub scheme: Option<crate::SystemScheme>,
+    /// O tema pedido ao abrir, que a barra de menus do Windows guarda (spec AJ, regra 34).
+    pub opened_dark: Option<bool>,
     /// A conferência da janela Exportar aberta (avisos que sobraram e arquivos que já existem).
     pub export_check: Option<ExportCheck>,
+    /// A conferência da caixa da aprovação aberta (spec AC, regra 15).
+    pub approval_check: Option<lamina_editor::ApprovalCheck>,
     /// A caixa da capa aberta, com as fotos que nascem nela (spec CA).
     pub cover_form: Option<(
         lamina_editor::cover_form::CoverForm,
@@ -130,7 +137,11 @@ impl App {
             new_target: None,
             new_files: Vec::new(),
             notice: String::new(),
+            system_dark: None,
+            scheme: None,
+            opened_dark: None,
             export_check: None,
+            approval_check: None,
             cover_form: None,
             cover_guide: None,
             presets: lamina_editor::PresetsStore::default(),

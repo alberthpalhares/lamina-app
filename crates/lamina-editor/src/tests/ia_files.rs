@@ -120,6 +120,7 @@ fn ia_b14_novo_album_igual_ao_da_janela() {
         spreads: Some(8),
         reuse: Reuse::Medium,
         preferences: window.preferences().clone(),
+        learned: lamina_layout::Learned::default(),
         models: window.models().to_vec(),
         limits: preset.limits,
         export: preset.export,

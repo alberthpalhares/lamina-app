@@ -84,7 +84,15 @@ export component CheckRow inherits Rectangle {
     in property <string> text;
     in property <bool> enabled: true;
     in-out property <bool> checked;
+    // Recebe o foco quando o diálogo abre (spec DD, regra 7).
+    in property <bool> takes-focus;
     callback toggled();
+    forward-focus: focus;
+    init => {
+        if (root.takes-focus) {
+            self.focus();
+        }
+    }
     accessible-role: checkbox;
     accessible-label: root.text;
     accessible-enabled: root.enabled;
@@ -106,7 +114,7 @@ export component CheckRow inherits Rectangle {
             border-radius: Radius.small;
             border-width: root.checked ? 0px : Line.thin;
             border-color: root.enabled ? Theme.line-strong : Theme.text-disabled;
-            background: root.checked ? (root.enabled ? Theme.accent : Theme.text-disabled) : Theme.field;
+            background: root.checked ? (root.enabled ? Theme.accent-fill : Theme.text-disabled) : Theme.field;
             if root.checked: Image {
                 accessible-role: none;
                 width: 12px;

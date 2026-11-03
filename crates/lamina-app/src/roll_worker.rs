@@ -67,6 +67,13 @@ impl RollWorker {
         RollWorker { queue, images }
     }
 
+    /// Nada na fila nem sendo desenhado (a filmagem espera por isto).
+    #[cfg(any(test, feature = "filmagem"))]
+    pub fn idle(&self) -> bool {
+        let queue = self.queue.0.lock().unwrap_or_else(PoisonError::into_inner);
+        queue.items.is_empty() && queue.busy.is_none()
+    }
+
     /// Outro álbum: as imagens lidas do anterior vão embora (spec LV, regra 10).
     pub fn forget_images(&self) {
         self.images.clear();

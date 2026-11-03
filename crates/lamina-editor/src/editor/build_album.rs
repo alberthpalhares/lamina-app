@@ -22,13 +22,14 @@ impl Editor {
         self.mode() == crate::commands::Mode::Normal && self.album_build().is_ok()
     }
 
-    /// As opções do Auto Build da janela: a variedade escolhida, os favoritos, os rejeitados e
-    /// os modelos do fotógrafo (regra 6).
+    /// As opções do Auto Build da janela: a variedade escolhida, os favoritos, os rejeitados, os
+    /// modelos do fotógrafo (regra 6) e o aprendizado (spec AL, regra 5).
     pub fn build_options(&self, reuse: Reuse) -> BuildOptions {
         BuildOptions {
             reuse,
             preferences: self.preferences().clone(),
             models: self.models().to_vec(),
+            learned: self.learned().clone(),
             ..BuildOptions::default()
         }
     }

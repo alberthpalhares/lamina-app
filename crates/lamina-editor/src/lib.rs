@@ -12,6 +12,7 @@
 //! - [`commands`] e [`keys`]: o registro de comandos, com nome, rótulo e atalho.
 //! - [`suggestions`]: as sugestões de layout da lâmina, trocar e espelhar (spec TL).
 //! - [`prefs_store`]: favoritos e rejeitados no arquivo de preferências do fotógrafo.
+//! - [`learned_store`]: o arquivo do aprendizado de layouts e a fila que grava (spec AL).
 //! - [`text`]: nome das famílias e nota explicada, para o painel de layouts.
 //! - [`view`]: a lâmina em pixels da tela, igual à impressão.
 //! - [`photos`]: o painel de fotos (as abas e os usos de cada foto).
@@ -37,6 +38,8 @@ pub mod agent;
 pub mod album;
 pub mod appearance;
 mod applying;
+mod approval_form;
+pub mod approval_store;
 pub mod arrange;
 pub mod backup;
 pub mod bar_tips;
@@ -45,6 +48,7 @@ pub mod building;
 pub mod cache;
 pub mod calibration;
 pub mod commands;
+pub mod context_nav;
 pub mod cover_form;
 pub mod editor;
 pub mod edits;
@@ -55,6 +59,7 @@ pub mod example;
 mod export_form;
 pub mod exporting;
 pub mod feedback;
+pub mod filming;
 pub mod font_picker;
 pub mod forms;
 pub mod frame_form;
@@ -65,6 +70,7 @@ pub mod human;
 pub mod importing;
 pub mod keys;
 pub mod lab_presets;
+pub mod learned_store;
 pub mod leaving;
 mod look_form;
 pub mod magnets;
@@ -98,6 +104,7 @@ pub mod rulers;
 pub mod screens;
 pub mod sequence;
 pub mod session;
+mod short_path;
 pub mod shortcuts;
 pub mod sliders;
 pub mod snap;
@@ -109,6 +116,7 @@ pub mod text_scale;
 pub mod thumbs;
 pub mod updates;
 pub mod view;
+pub mod window_look;
 
 mod error;
 #[cfg(test)]
@@ -118,11 +126,17 @@ pub use album::{
     Imported, NewAlbum, SpecFields, Step, check_spreads, count_photos, create_album, folder_name,
     import_project, project_from, suggestion, suggestion_for, suggestion_text, suggestion_within,
 };
+pub use approval_form::{
+    ApprovalCheck, ApprovalForm, ApprovalProblems, approval_finished, approval_progress,
+    approval_replace, generate_approval,
+};
+pub use approval_store::{APPROVAL_FILE, ApprovalStore, PhotographerData};
 pub use bar_tips::{BAR_COMMANDS, bar_tip};
 pub use cache::Cache;
 pub use commands::{Command, Menu};
 pub use editor::{
-    CrossTarget, DropPlace, Editor, Leave, MAX_ALBUM_NAME, Panel, TextChange, clean_album_name,
+    CrossTarget, DropPlace, Editor, LEARNED_QUESTION, LEARNED_QUESTION_DETAIL, Leave,
+    MAX_ALBUM_NAME, NOTHING_LEARNED, Panel, TextChange, clean_album_name,
 };
 pub use error::EditorError;
 pub use error_log::ErrorLog;
@@ -135,6 +149,7 @@ pub use feedback::{FEEDBACK_FORM, feedback_address};
 pub use human::{Human, HumanMessage, guarded};
 pub use keys::{Key, Platform, Shortcut};
 pub use lamina_render::text_image;
+pub use learned_store::{LEARNED_FILE, LearnedJob, LearnedStore};
 pub use models::{MODELS_FILE, ModelError, ModelsStore, model_from_spread};
 pub use photos::{
     Filter, PhotoInfo, PhotoItem, photo_info, photo_list, same_photo_list, used_photos,

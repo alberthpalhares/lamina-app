@@ -3,7 +3,7 @@
 // principal (app.slint); o estado do arrastar mora no global DragUi.
 
 import { CoverUi } from "cover.slint";
-import { Theme, Fixed, Type } from "theme.slint";
+import { Theme, Fixed, Type, Space, Backdrop } from "theme.slint";
 import { SpreadCanvas, SpreadData, BoxData, FrameData } from "canvas.slint";
 import { EmptyAlbum } from "importing.slint";
 import { GhostData } from "ghost.slint";
@@ -14,9 +14,12 @@ import { DragUi } from "drag.slint";
 import { PhotoGridUi } from "photo_strip.slint";
 import { SpreadRoll, RollUi } from "roll.slint";
 import { BandUi } from "band.slint";
+import { Mark } from "marks.slint";
 
 export component Stage inherits Rectangle {
     in property <bool> has-project;
+    // Em volta da lâmina; a tela inicial e as faixas seguem o tema (spec AJ, regra 14).
+    background: root.has-project ? Backdrop.color : transparent;
     in property <SpreadData> current;
     in property <bool> guides;
     in property <bool> gutter-shadow;
@@ -54,6 +57,21 @@ export component Stage inherits Rectangle {
     callback frame-selected(int);
     callback frame-clicked(int, bool, bool);
     callback context-requested(int, length, length, float);
+    // Onde o menu abre pela tecla Menu (spec DC, seção 3): ao lado do quadro; sem quadro (−1), no
+    // centro da página da esquerda, a que o menu do fundo vale nesse caso.
+    public pure function menu-x(frame: int) -> length {
+        if (frame < 0) {
+            return big.absolute-position.x + big.width / 4;
+        }
+        let f = root.current.frames[frame];
+        big.absolute-position.x + (f.x + f.w) * big.width + 4px
+    }
+    public pure function menu-y(frame: int) -> length {
+        if (frame < 0) {
+            return big.absolute-position.y + big.height / 2;
+        }
+        big.absolute-position.y + root.current.frames[frame].y * big.width
+    }
     callback drop-frame(int, float, float);
     // O quadro onde a soltura cairia, em frações da largura da lâmina (spec MV, regra 12).
     pure callback drop-at(float, float) -> BoxData;
@@ -249,11 +267,16 @@ export component Stage inherits Rectangle {
         visible: root.has-project && self.opacity > 0;
         left-live => { root.live-hover = false; }
     }
+    // Corta com reticências, nunca nas pontas (spec AJ, regra 31).
     if root.hint != "": Text {
+        x: Space.s4;
         y: parent.height - 22px;
+        width: parent.width - 2 * Space.s4;
         text: root.hint;
-        color: Theme.text-2;
+        color: Backdrop.text-2;
         font-size: Type.small;
+        horizontal-alignment: center;
+        overflow: elide;
     }
     // A lâmina que sai, esmaecendo e deslizando para o lado oposto (spec MV).
     // No deslize do rolo, ela fica no lugar dela e anda junto (spec RL, regra 13).
@@ -272,6 +295,8 @@ export component Stage inherits Rectangle {
         z: 2;
         width: pill-text.preferred-width + 24px;
         height: 32px;
+        // Nunca por cima da lâmina (spec AJ, regra 32).
+        visible: (parent.width - root.canvas-width) / 2 >= self.x + self.width;
         border-radius: self.height / 2;
         background: Theme.panel;
         border-width: 1px;
@@ -315,6 +340,7 @@ export component Stage inherits Rectangle {
         gutter-shadow: root.gutter-shadow;
         interactive: true;
         selected: root.selected-frame;
+        Mark { name: "lamina"; }
         drop-shadow-blur: 16px;
         drop-shadow-color: Theme.shadow;
         frame-down(i, x, y) => {

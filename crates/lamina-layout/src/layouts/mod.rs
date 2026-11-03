@@ -20,6 +20,7 @@ use std::collections::HashSet;
 use lamina_core::{ActivePages, AlbumSpec, Mm, Mounting};
 use rayon::prelude::*;
 
+use crate::learned::Learned;
 use area::{Ctx, MARGIN_LEVELS, Raw, aligned};
 pub use model::{ModelLook, ModelSlot, ModelText, SpreadModel, assign};
 use rank::{Limits, Sequence, Sort};
@@ -49,6 +50,7 @@ pub fn layout_candidates(
     let limits = Limits {
         max: usize::MAX,
         exclude: &HashSet::new(),
+        learned: &Learned::default(),
     };
     let all = rank::finish(
         &ctx,
@@ -70,6 +72,18 @@ pub fn layout_options(
     aspects: &[f64],
     options: &LayoutOptions,
 ) -> Result<LayoutLists, LayoutError> {
+    layout_options_learned(spec, active, aspects, options, &Learned::default())
+}
+
+/// As mesmas listas, com os desenhos que o fotógrafo mais escolhe mais para o começo (spec AL,
+/// regra 1). A nota de cada opção não muda.
+pub fn layout_options_learned(
+    spec: &AlbumSpec,
+    active: ActivePages,
+    aspects: &[f64],
+    options: &LayoutOptions,
+    learned: &Learned,
+) -> Result<LayoutLists, LayoutError> {
     let ctx = context(spec, active, aspects, options.gap)?;
     let original: Vec<usize> = (0..aspects.len()).collect();
     // A ordem original e as reordenações são independentes: montadas em paralelo.
@@ -90,6 +104,7 @@ pub fn layout_options(
     let limits = Limits {
         max,
         exclude: &none,
+        learned,
     };
     let in_order = rank::finish(&ctx, aspects, &first, Sort::Score, &limits);
     if in_order.is_empty() {
@@ -100,6 +115,7 @@ pub fn layout_options(
     let limits = Limits {
         max,
         exclude: &shown,
+        learned,
     };
     let reordered = rank::finish(&ctx, aspects, &sequences, Sort::Score, &limits);
     Ok(LayoutLists {
@@ -227,6 +243,10 @@ fn validate(active: ActivePages, aspects: &[f64]) -> Result<(), LayoutError> {
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+#[path = "tests/al.rs"]
+mod tests_al;
+
 #[cfg(test)]
 #[path = "tests/sb.rs"]
 mod tests_sb;

@@ -1,0 +1,39 @@
+// O fundo em volta da lâmina (spec AJ, regra 13): independente do tema. O que é desenhado direto
+// sobre ele usa estes tokens, porque as cores do tema não passam no contraste com qualquer fundo;
+// o que tem fundo próprio continua no tema (regra 14). A trava `cargo xtask contraste` mede os três.
+
+import { Theme } from "theme.slint";
+
+export struct BackdropColors {
+    color: color,
+    text: color,
+    text-2: color,
+    line: color,
+}
+
+export global Backdrops {
+    out property <BackdropColors> dark: {
+        color: #1c1c1c, text: #e6e6e6, text-2: #a6a6a6, line: #858585,
+    };
+    // Luminância de 18,4%, o cinza médio da fotografia. Só o preto passa de 4,5:1 sobre ele.
+    out property <BackdropColors> gray: {
+        color: #777777, text: #000000, text-2: #000000, line: #000000,
+    };
+    out property <BackdropColors> light: {
+        color: #dcdcdc, text: #1c1c1c, text-2: #555555, line: #7a7a7a,
+    };
+}
+
+export global Backdrop {
+    // 0 = como o tema, 1 = escuro, 2 = cinza 18%, 3 = claro.
+    in-out property <int> choice;
+    property <BackdropColors> fixed: root.choice == 1 ? Backdrops.dark : root.choice == 2 ? Backdrops.gray : Backdrops.light;
+    out property <color> color: root.choice == 0 ? Theme.stage : root.fixed.color;
+    out property <color> text: root.choice == 0 ? Theme.text : root.fixed.text;
+    out property <color> text-2: root.choice == 0 ? Theme.text-2 : root.fixed.text-2;
+    out property <color> line: root.choice == 0 ? Theme.line-strong : root.fixed.line;
+    // O contorno da lâmina atual e do que acende sobre o fundo.
+    out property <color> strong: root.choice == 0 ? Theme.text-strong : root.fixed.text;
+    // O anel de foco: o ciano dá 1,7:1 sobre o cinza 18%.
+    out property <color> focus: root.choice == 0 ? Theme.focus : root.fixed.text;
+}

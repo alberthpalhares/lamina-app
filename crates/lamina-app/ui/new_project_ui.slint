@@ -85,6 +85,8 @@ export global NewProjectUi {
     // Etapa 3.
     in-out property <string> name;
     in property <string> file;
+    // O caminho com o meio cortado (spec DD, regra 17); o inteiro fica na dica.
+    in property <string> file-short;
     in property <string> photos-text;
     in-out property <bool> no-photos;
     // "Montar as lâminas agora" (spec BR, regra 2): desmarcada, o álbum começa em branco.
@@ -94,6 +96,8 @@ export global NewProjectUi {
     in property <int> photos;
     in property <string> suggestion;
     in property <string> create-error;
+    // O que falta, sem ser erro: dica em cor neutra, com Criar apagado (spec DD, regra 16).
+    in property <string> create-hint;
     callback pick-binder(string);
     callback search-binders(string);
     callback pick-format(int);

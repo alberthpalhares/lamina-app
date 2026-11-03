@@ -3,11 +3,10 @@
 // lâmina atual. No modo organizar, só a faixa de lâminas fica (spec EG). Em cima de tudo, com o
 // painel de fotos aberto, a divisória que muda a altura da grade (spec PF, regra 5).
 
-import { Slider } from "std-widgets.slint";
 import { SpreadData } from "canvas.slint";
 import { Theme, Type } from "theme.slint";
 import { Icons } from "icons.slint";
-import { BarButton, FilterTab, IconTextButton } from "widgets.slint";
+import { BarButton, FilterTab, IconTextButton, NeutralSlider } from "widgets.slint";
 import { OrganizeUi } from "organize.slint";
 import { StripHeader, StripTheme } from "strip_header.slint";
 import { CoverTile, CoverUi } from "cover.slint";
@@ -16,6 +15,7 @@ import { TimelineStrip, TimelineItem } from "timeline.slint";
 import { PhotoGrid, PhotoData, PhotoGridUi } from "photo_strip.slint";
 import { DragUi } from "drag.slint";
 import { Motion } from "motion.slint";
+import { Mark } from "marks.slint";
 
 // A divisória: arrastar muda a altura da grade, duplo clique volta à padrão.
 component GridDivider inherits Rectangle {
@@ -140,8 +140,8 @@ export component BottomStrips inherits VerticalLayout {
             padding-left: 8px;
             padding-right: 8px;
             spacing: 4px;
-            spreads-tab := FilterTab { text: "Lâminas"; active: root.spreads-open; clicked => { root.header-clicked(0); } }
-            timeline-tab := FilterTab { text: "Sequência"; active: root.timeline-open; clicked => { root.header-clicked(1); } }
+            spreads-tab := FilterTab { text: "Lâminas"; active: root.spreads-open; clicked => { root.header-clicked(0); } Mark { name: "aba-laminas"; } }
+            timeline-tab := FilterTab { text: "Sequência"; active: root.timeline-open; clicked => { root.header-clicked(1); } Mark { name: "aba-sequencia"; } }
             Rectangle { width: 12px; }
             Text {
                 text: root.timeline-open ? root.strip-timeline : root.strip-spreads;
@@ -217,11 +217,12 @@ export component BottomStrips inherits VerticalLayout {
                 FilterTab { text: "Usadas"; active: root.filter == 1; clicked => { root.filter-changed(1); } }
                 FilterTab { text: "Não usadas"; active: root.filter == 2; clicked => { root.filter-changed(2); } }
                 // O zoom das miniaturas, de 64 a 240 px (spec PF, regra 4).
-                if root.photos-open: Slider {
+                if root.photos-open: NeutralSlider {
+                    label: "Tamanho das miniaturas";
                     width: 120px;
                     minimum: 64;
                     maximum: 240;
-                    step: 8;
+                    neutral: 64;
                     value <=> root.photo-zoom;
                     changed(v) => { root.photo-zoom-to(round(v / 8) * 8); }
                 }

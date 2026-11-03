@@ -45,6 +45,7 @@ pub fn refresh(app: &mut App) {
             .unwrap_or(-1),
     );
     ui.set_notice(panel.notice().into());
+    ui.set_hint(panel.hint().into());
     // As mesmas miniaturas: nada a refazer, só a opção em uso muda (spec MV, regra 3; MV-B17).
     let key = panel_key(&panel, session);
     if app.lists.panel.as_ref() == Some(&key) {
@@ -59,7 +60,6 @@ pub fn refresh(app: &mut App) {
             items.push(LayoutItem {
                 data: spread_data(preview, index, &missing, &image, (false, SMALL)),
                 title: card.title.as_str().into(),
-                score: card.score.as_str().into(),
                 favorite: card.favorite,
             });
         }
@@ -87,7 +87,7 @@ fn apply(app: &Shared, i: i32) {
     }
     app.borrow_mut().timed(
         "Aplicar o layout da faixa",
-        |app| app.editor.apply_option(Part::Spread, i),
+        |app| app.editor.choose_option(Part::Spread, i),
         |app| {
             app.refresh_strip();
             app.refresh_current();

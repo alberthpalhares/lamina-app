@@ -1,6 +1,6 @@
 //! Tamanho do texto da interface (spec DF, regra DF-B14): um fator que multiplica a escala de
 //! letras da janela (`Type` em `ui/theme/type.slint`). Fica entre 0,9 e 1,3, para a janela caber
-//! num notebook e nada sair do lugar; a preferência que o escolhe vem na D3.
+//! num notebook e nada sair do lugar; quem escolhe é a preferência (spec AJ, regra 15).
 
 /// O menor e o maior fator aceitos.
 pub const TEXT_SCALE_RANGE: (f32, f32) = (0.9, 1.3);

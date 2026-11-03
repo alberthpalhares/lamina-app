@@ -1,10 +1,14 @@
 //! Trava do contraste (spec DF, regras 2 a 5): mede as paletas de `ui/theme/palette.slint` com a
 //! conta da WCAG 2.x, em vez de confiar no olho. Também confere que os cinzas não têm matiz, que o
-//! destaque é o ciano da marca e que as superfícies do tema escuro se distinguem.
+//! destaque é o ciano da marca e que as superfícies do tema escuro se distinguem. A barra de
+//! atualização, a única fora do estilo sóbrio, tem conferência própria (`attention`, spec AV).
 
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
+
+mod attention;
+mod backdrop;
 
 type Palette = BTreeMap<String, [u8; 3]>;
 
@@ -120,8 +124,8 @@ pub fn problems(theme: &str, p: &Palette, brand: [u8; 3]) -> Vec<String> {
     for bg in TAG_BACKGROUNDS {
         need("tag-text", bg, 4.5);
     }
-    need("on-accent", "accent", 4.5);
-    need("on-accent", "accent-hover", 4.5);
+    need("on-accent", "accent-fill", 4.5);
+    need("on-accent", "accent-fill-hover", 4.5);
     out.extend(hue_problems(theme, p));
     if get("accent") != brand {
         out.push(format!("{theme}: o destaque não é o ciano da marca"));
@@ -228,11 +232,18 @@ pub fn run() -> bool {
     found.extend(surface_problems("dark", dark));
     found.extend(surface_problems("light", light));
     found.extend(alpha_problems(&text));
+    let backdrops =
+        fs::read_to_string("crates/lamina-app/ui/theme/backdrop.slint").unwrap_or_default();
+    found.extend(backdrop::problems(&backdrops));
     found.extend(
         missing(dark, light)
             .into_iter()
             .map(|k| format!("token só numa paleta: {k}")),
     );
+    found.extend(attention::problems(
+        &text,
+        Path::new("crates/lamina-app/ui"),
+    ));
     for f in &found {
         eprintln!("  {f}");
     }

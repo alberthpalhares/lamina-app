@@ -1,8 +1,7 @@
 # Como contribuir com o Lamina
 
-Obrigado por querer ajudar! O Lamina é um projeto acadêmico, gratuito e de código aberto, feito
-para fotógrafos. Toda ajuda conta: relatar um problema, sugerir uma ideia, testar uma versão nova
-ou mandar código.
+Obrigado por querer ajudar! O Lamina é um programa gratuito feito para fotógrafos. Toda ajuda
+conta: relatar um problema, sugerir uma ideia ou testar uma versão nova.
 
 ## Relatar um problema ou sugerir uma ideia
 
@@ -15,24 +14,12 @@ ou mandar código.
 - **Nunca anexe fotos de clientes.** Se precisar mostrar uma lâmina, use o álbum de exemplo
   (tela de boas-vindas → Álbum de exemplo).
 
-## Mandar código
+## Sobre o código
 
-Este repositório é o espelho público do código do Lamina; o desenvolvimento acontece num
-repositório principal, com as especificações e os documentos do projeto. Pull requests aqui são
-bem-vindos: depois da revisão, a mudança é levada ao repositório principal com o crédito de quem
-fez, e volta para cá na próxima sincronização.
-
-Antes de abrir o PR:
-
-1. Rode `cargo xtask verify` (formatação, lint, testes e as checagens do projeto). O CI roda o
-   mesmo comando.
-2. Toda função pública nova chega com teste; bug corrigido chega com o teste que o reproduz. Os
-   nomes dos testes descrevem o comportamento em português.
-3. Nada de `unwrap`, `expect` ou `unsafe` fora dos testes.
-4. Mensagens que chegam à janela são escritas em linguagem de fotógrafo, sem jargão.
-5. Nenhum código, texto, imagem ou modelo de outro programa de diagramação.
-
-Para mudanças grandes, abra antes uma issue para conversar sobre a ideia.
+O código do Lamina é distribuído sob a PolyForm Strict 1.0.0 (veja o arquivo `LICENSE`), que não
+permite alterar nem distribuir o código. Este repositório público é o espelho do código, para quem
+quiser conferir; o desenvolvimento acontece num repositório privado, e não aceitamos pull requests
+de fora. Para relatar um problema ou sugerir uma ideia, use os caminhos acima.
 
 ## Conduta
 

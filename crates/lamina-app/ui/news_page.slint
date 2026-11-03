@@ -4,11 +4,12 @@
 
 import { LineEdit, ListView } from "std-widgets.slint";
 import { Theme, Type, Line, Space } from "theme.slint";
-import { BarButton, DialogButton, FilterTab } from "widgets.slint";
+import { BarButton, DialogButton, DialogFocus, FilterTab } from "widgets.slint";
 import { NewsUi } from "news.slint";
 import { NewsItem, NewsCard } from "news_item.slint";
 
-export component NewsPage inherits Rectangle {
+component PageBody inherits Rectangle {
+    in property <int> order;
     callback closed();
     callback send-feedback();
     // "Experimente agora": a página fecha e o comando roda.
@@ -66,6 +67,14 @@ export component NewsPage inherits Rectangle {
     }
 
     keys := FocusScope {
+        // Sem parada invisível: Tab só para no que se vê.
+        focus-on-tab-navigation: false;
+        property <int> asked: DialogFocus.asked;
+        changed asked => {
+            if (root.order == DialogFocus.last) {
+                self.focus();
+            }
+        }
         key-pressed(event) => {
             if (event.text == Key.Escape) {
                 root.shut();
@@ -235,5 +244,39 @@ export component NewsPage inherits Rectangle {
     init => {
         root.narrow = root.width < 900px;
         keys.focus();
+    }
+}
+
+// A página num `PopupWindow`, como os diálogos (specs PV, regra 17, e DD, regra 8): só ali o Slint
+// prende o Tab, e os botões da janela, escondidos atrás, ficam fora do caminho. O tamanho do popup é
+// lido uma vez só; por isso ele nasce maior que qualquer tela, e quem segue a janela é a página.
+export component NewsPage inherits Rectangle {
+    callback closed();
+    callback send-feedback();
+    callback try-now(string);
+    popup := PopupWindow {
+        x: 0;
+        y: 0;
+        width: 16000px;
+        height: 16000px;
+        close-policy: no-auto-close;
+        // O popup maior que a janela encosta no canto dela; a barra de menus desenhada na janela (fora
+        // do Windows e do Mac) fica acima de `root`, então a página desconta o lugar dela.
+        PageBody {
+            x: root.absolute-position.x;
+            y: root.absolute-position.y;
+            width: root.width;
+            height: root.height;
+            closed => { root.closed(); }
+            send-feedback => { root.send-feedback(); }
+            order: root.order;
+            try-now(name) => { root.try-now(name); }
+        }
+    }
+    property <int> order;
+    init => {
+        DialogFocus.last += 1;
+        root.order = DialogFocus.last;
+        popup.show();
     }
 }

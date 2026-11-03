@@ -24,5 +24,9 @@ serde_json = { workspace = true }
 tempfile = { workspace = true }
 thiserror = { workspace = true }
 
+# O movimento do sistema no Windows (spec AJ, ADR 0016); a API usada não precisa de `unsafe`.
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true }
+
 [lints]
 workspace = true

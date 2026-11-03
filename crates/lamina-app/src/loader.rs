@@ -42,6 +42,13 @@ impl Loader {
 
     /// Pede as fotos da lâmina `center` do álbum `epoch`. Pedidos de outra lâmina que ainda não
     /// começaram saem da fila (regra 1).
+    /// Nada na fila (a filmagem espera por isto).
+    #[cfg(any(test, feature = "filmagem"))]
+    pub fn idle(&self) -> bool {
+        let queue = self.queue.0.lock().unwrap_or_else(PoisonError::into_inner);
+        queue.items.is_empty()
+    }
+
     pub fn ask(&self, epoch: u64, center: usize, items: Vec<(PhotoId, Photo)>) {
         let (lock, wake) = &*self.queue;
         let mut q = lock.lock().unwrap_or_else(PoisonError::into_inner);

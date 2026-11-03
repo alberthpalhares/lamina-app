@@ -132,6 +132,8 @@ fn proceed(app: &mut App, action: Pending) {
         Pending::Update => {
             // O fotógrafo já respondeu "Salvar as alterações?" (spec CS, regra 3).
             app.editor.finish_backups();
+            // O programa fecha sem voltar por `main` (spec AL, regra 19).
+            app.editor.flush_learned();
             crate::updates::restart(app);
         }
         Pending::Example => crate::welcome::open_example(app),
