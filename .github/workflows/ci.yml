@@ -226,8 +226,4 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      # O rust-version instala o toolchain fixado dentro da action (o contêiner musl às vezes não
-      # o traz; a action aceita o canal do rust-toolchain.toml).
       - uses: EmbarkStudios/cargo-deny-action@v2
-        with:
-          rust-version: 1.99.0

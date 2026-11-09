@@ -16,48 +16,6 @@ todo item com `video` ou `fixada` precisa dela.
 
 ## [Não lançado]
 
-## [0.1.0-beta.10] - 2026-11-09
-
-Esta versão traz a visualização das fotos, as guias de edição, os modelos reformados, a ordenação das fotos, o início rápido e mais.
-
-- **Ver a foto grande.** Clique numa foto do painel de fotografias: ela aparece na lateral direita,
-  com o enquadramento do quadro. Aperte Espaço: a foto abre ampliada no centro da tela — Esc fecha,
-  as setas folheiam o álbum. Arraste a miniatura da lateral para reenquadrar a foto no quadro, sem
-  abrir o modo de recorte. Experimente: clique numa foto e aperte Espaço.
-  <!-- comando: ajuda.atalhos; tipo: novo; fixada: sim -->
-- **Guias de alinhamento em qualquer edição.** Ao arrastar ou redimensionar uma foto na lâmina, as
-  linhas guia mostram quando o espaçamento fica igual ao de outro vão e quando o tamanho chega ao
-  de outra foto, com as marcas em destaque. Selecione várias fotos com Ctrl+clique e mexa todas de
-  uma vez, com as alças do grupo. Experimente: arraste uma foto perto de outra.
-  <!-- tipo: melhoria; fixada: sim -->
-- **Alinhar pela lâmina.** No painel de organizar, os botões de Alinhar e Distribuir ganham um
-  seletor: marcado, os comandos valem em relação à área da lâmina inteira (centralizar o grupo,
-  distribuir com as pontas iguais), como no Photoshop. Experimente: organize (tecla O), selecione
-  fotos e clique no seletor de moldura.
-  <!-- tipo: novo -->
-- **Modelos reformados.** A faixa de modelos (tecla L, ou o botão na barra de cima) passou a
-  priorizar os desenhos que preenchem mais a lâmina, sem as repetições que só mudavam a posição das
-  fotos; "layout" virou "modelo" em toda a interface. Há modelos de fábrica, que você pode
-  ocultar e restaurar. Experimente: aperte L e folheie as opções.
-  <!-- tipo: melhoria; fixada: sim -->
-- **Ordenação das fotos.** O painel de fotografias ganhou o seletor "Ordenar": por data de captura,
-  por nome do arquivo ou uma ordem personalizada sua — arraste as fotos na grade para montá-la. A
-  montagem automática da janela segue a ordem escolhida. Experimente: clique em "Ordenar" no
-  cabeçalho do painel de fotos.
-  <!-- tipo: novo -->
-- **Início rápido.** O botão "Início rápido" (e Arquivo, Início rápido) cria um álbum vazio com o
-  tamanho padrão, sem perguntas: as fotos e o tamanho você escolhe depois, e as lâminas se
-  readequam sozinhas. Experimente: feche o álbum e clique em "Início rápido".
-  <!-- comando: arquivo.inicio-rapido; tipo: novo -->
-- **Salvar como modelo no organizar.** Ajustou os quadros à mão no modo organizar? O botão direito
-  num quadro agora guarda o desenho como modelo, sem sair do modo. Também no menu Modelo.
-  Experimente: organize, ajuste e clique com o botão direito num quadro.
-  <!-- tipo: melhoria -->
-- **O painel de fotos no organizar.** As fotografias continuam à mão dentro do modo organizar,
-  com a divisória de altura arrastável — e a barra de cima ganhou o botão da faixa de modelos.
-  Experimente: aperte O e arraste a borda de cima do painel de fotos.
-  <!-- tipo: melhoria -->
-
 ## [0.1.0-beta.9] - 2026-11-02
 
 Esta versão traz a capa fotográfica, a aprovação do cliente, o tema claro com preferências, uma tela inicial nova e uma página de novidades nova.
