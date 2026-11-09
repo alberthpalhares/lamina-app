@@ -23,6 +23,9 @@ ignore = [
     { id = "RUSTSEC-2026-0369", reason = "transitivo do Velopack; função afetada não é usada; revisar a cada versão do Velopack" },
     # `derivative` sem manutenção (não é falha de segurança): macro de compilação do Velopack.
     { id = "RUSTSEC-2024-0388", reason = "macro de compilação do Velopack; revisar a cada versão do Velopack" },
+    # `pin-utils` sem manutenção (não é falha de segurança; o repositório foi arquivado). Chega
+    # pelo `spin_on` do Slint; sai quando o Slint trocar.
+    { id = "RUSTSEC-2026-0441", reason = "transitivo do Slint/spin_on; revisar a cada versão do Slint" },
 ]
 
 [licenses]
