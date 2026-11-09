@@ -226,4 +226,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      # O rustup instala o toolchain fixado antes do cargo-deny (às vezes a action não o acha
+      # instalado; o mesmo passo dos outros jobs).
+      - run: rustup toolchain install $(rustup show active-toolchain | cut -d' ' -f1)
       - uses: EmbarkStudios/cargo-deny-action@v2
