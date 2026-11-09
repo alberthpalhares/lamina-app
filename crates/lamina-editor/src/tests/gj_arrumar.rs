@@ -181,3 +181,28 @@ fn gj_b17_clique_no_quadro_continua_selecionando() {
     assert!(editor.frame_release());
     assert!(close(editor.frames_mm()[1].x.get(), 165.0));
 }
+
+/// Bug da beta 10 (2026-11-09): o painel de alinhar gerava `organizar.alinhar-esquerda-lamina`
+/// (sufixo no fim), nome que não existe no registro; e "à lâmina" exigia 2 quadros. O nome é
+/// `organizar.alinhar-lamina-*` (o painel passa os dois nomes prontos) e uma foto só basta.
+#[test]
+fn gj_b18_alinhar_a_lamina_com_uma_foto_sozinha() {
+    let project = album_mm(&[(60.0, 50.0, 60.0, 60.0)]);
+    let mut editor = editor_at(project, 1);
+    editor.frame_click(0, false, false);
+    assert_eq!(editor.selected_frames().len(), 1);
+    // O comando do painel, pelo nome estável como o Slint manda.
+    let Some(command) = Command::from_name("organizar.alinhar-lamina-esquerda") else {
+        panic!("o nome que o painel manda existe no registro");
+    };
+    assert!(editor.run(command));
+    let frames = editor.frames_mm();
+    let s = editor.session().unwrap();
+    let left = s.project().spec.safe_rect(lamina_core::PageSide::Left);
+    assert!(
+        close(frames[0].x.get(), left.x.get()),
+        "a foto encosta na borda esquerda da área útil: {:?} (área começa em {})",
+        frames[0],
+        left.x.get()
+    );
+}

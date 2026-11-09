@@ -17,13 +17,12 @@ pub enum Formato {
     Tiff,
 }
 
-/// Espaço de cor da saída (spec CT).
+/// Espaço de cor da saída: só sRGB (pedido do dono 2026-11-09 — os laboratórios pedem sRGB e a
+/// opção de Adobe RGB confundia; a leitura de fotos Adobe RGB que chegam continua).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, ValueEnum)]
 pub enum Cor {
     #[default]
     Srgb,
-    /// Compatível com Adobe RGB (1998).
-    AdobeRgb,
 }
 
 #[derive(Debug, Args)]
@@ -34,7 +33,7 @@ pub struct SaidaArgs {
     /// Marcas de corte nos cantos (só no PDF).
     #[arg(long)]
     pub marcas_de_corte: bool,
-    /// Espaço de cor da saída (padrão: o do preset, ou srgb).
+    /// Espaço de cor da saída: só srgb (Adobe RGB saiu; aceito para não quebrar roteiros).
     #[arg(long, value_enum)]
     pub cor: Option<Cor>,
 }
@@ -67,12 +66,12 @@ impl SaidaArgs {
         }
     }
 
-    /// O espaço digitado, ou o do preset.
+    /// O espaço digitado, ou o do preset — mas sempre sRGB na saída (Adobe RGB saiu, 2026-11-09):
+    /// um preset antigo em Adobe RGB não continua exportando num espaço que a janela não oferece
+    /// mais.
     pub fn space_with(&self, prefs: ExportPrefs) -> ColorSpace {
-        match self.cor {
-            Some(Cor::Srgb) => ColorSpace::Srgb,
-            Some(Cor::AdobeRgb) => ColorSpace::AdobeRgb,
-            None => prefs.space,
-        }
+        let _ = self.cor;
+        let _ = prefs.space;
+        ColorSpace::Srgb
     }
 }

@@ -187,7 +187,6 @@ export component AppWindow inherits Window {
     in-out property <int> ex-cover;
     in-out property <bool> ex-has-cover;
     in-out property <bool> ex-marks;
-    in-out property <bool> ex-adobe;
     in property <string> ex-error;
     in property <int> ex-step;
     in property <[string]> ex-warnings;
@@ -756,7 +755,6 @@ export component AppWindow inherits Window {
         quality <=> root.ex-quality;
         format <=> root.ex-format;
         marks <=> root.ex-marks;
-        adobe <=> root.ex-adobe;
         error: root.ex-error;
         step: root.ex-step;
         tab <=> root.ex-tab;

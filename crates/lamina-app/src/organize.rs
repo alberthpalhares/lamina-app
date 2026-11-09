@@ -266,3 +266,7 @@ fn union(a: PxRect, b: PxRect) -> PxRect {
         height: (a.y + a.height).max(b.y + b.height) - y,
     }
 }
+
+#[cfg(test)]
+#[path = "organize_tests.rs"]
+mod tests;

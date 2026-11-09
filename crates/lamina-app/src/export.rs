@@ -36,7 +36,6 @@ pub fn start(app: &mut App) {
     w.set_ex_marks(false);
     w.set_ex_has_cover(session.album().cover.is_some());
     w.set_ex_cover(0);
-    w.set_ex_adobe(prefs.space == ColorSpace::AdobeRgb);
     w.set_ex_quality(i32::from(DEFAULT_QUALITY));
     w.set_ex_step(0);
     w.set_ex_tab(0);
@@ -68,11 +67,9 @@ fn form(w: &AppWindow) -> ExportForm {
             2 => CoverExport::Without,
             _ => CoverExport::WithSpreads,
         },
-        space: if w.get_ex_adobe() {
-            ColorSpace::AdobeRgb
-        } else {
-            ColorSpace::Srgb
-        },
+        // Sem a opção de Adobe RGB na janela (pedido do dono 2026-11-09: os laboratórios pedem
+        // sRGB; a opção confundia). Quem tinha Adobe RGB nas preferências volta ao sRGB.
+        space: ColorSpace::Srgb,
     }
 }
 

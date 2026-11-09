@@ -51,12 +51,13 @@ fn arrange_of(command: Command) -> Option<Arrange> {
 impl Editor {
     /// Disponibilidade de Alinhar, Igualar e Distribuir; `None` = não é deles. Valem no modo
     /// organizar e na edição comum (spec GJ): pedem 2 quadros selecionados (3 para Distribuir
-    /// entre os selecionados; Distribuir à lâmina basta 1).
+    /// entre os selecionados); os "à lâmina" bastam 1 — alinhar uma foto só à área da lâmina é
+    /// a uso comum (pedido do dono 2026-11-09).
     pub(super) fn arrange_available(&self, command: Command) -> Option<bool> {
         let n = self.selected_frames().len();
         let need = match arrange_of(command)? {
             Arrange::Distribute(_) => 3,
-            Arrange::DistributeToSpread(_) => 1,
+            Arrange::AlignToSpread(_) | Arrange::DistributeToSpread(_) => 1,
             _ => 2,
         };
         Some(n >= need)

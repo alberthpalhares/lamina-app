@@ -10,10 +10,11 @@ use super::*;
 use crate::Theme;
 use crate::headless::Screen;
 
-/// O fio do botão Fechar: duas linhas de contorno inteiras no canto de cima à direita da janela. A
-/// beta 8 cortava o fundo dele; se o botão sai da janela ou é cortado, falta uma das linhas.
+/// As linhas do botão Fechar no canto de cima à direita da janela. A beta 8 cortava o fundo dele;
+/// agora ele é o botão primário (ciano, pedido do dono 2026-11-09), então medimos o preenchimento:
+/// as fileiras com bastante ciano do tema são a altura do botão.
 fn close_outline_rows(screen: &Screen, pixels: &[Rgb8Pixel]) -> Vec<usize> {
-    let color = screen.app.global::<Theme>().get_line_strong().to_argb_u8();
+    let fill = screen.app.global::<Theme>().get_accent_fill().to_argb_u8();
     let (width, height) = (screen.width() as usize, screen.height() as usize);
     let look_from = width - 140;
     (0..height.min(120))
@@ -21,7 +22,7 @@ fn close_outline_rows(screen: &Screen, pixels: &[Rgb8Pixel]) -> Vec<usize> {
             let row = &pixels[y * width + look_from..(y + 1) * width];
             let same = row
                 .iter()
-                .filter(|p| (p.r, p.g, p.b) == (color.red, color.green, color.blue))
+                .filter(|p| (p.r, p.g, p.b) == (fill.red, fill.green, fill.blue))
                 .count();
             same >= 50
         })

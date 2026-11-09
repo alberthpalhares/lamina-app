@@ -127,7 +127,9 @@ component PageBody inherits Rectangle {
                         }
                         VerticalLayout {
                             alignment: center;
-                            DialogButton { text: "Fechar"; clicked => { root.shut(); } }
+                            // Primário (ciano): a única saída visível da página inteira, para o
+                            // usuário saber como sair (pedido do dono, beta 10).
+                            DialogButton { text: "Fechar"; primary: true; clicked => { root.shut(); } }
                         }
                     }
                     if root.narrow: HorizontalLayout {

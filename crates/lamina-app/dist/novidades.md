@@ -24,7 +24,7 @@ Esta versão traz a visualização das fotos, as guias de edição, os modelos r
   com o enquadramento do quadro. Aperte Espaço: a foto abre ampliada no centro da tela — Esc fecha,
   as setas folheiam o álbum. Arraste a miniatura da lateral para reenquadrar a foto no quadro, sem
   abrir o modo de recorte. Experimente: clique numa foto e aperte Espaço.
-  <!-- comando: ajuda.atalhos; tipo: novo -->
+  <!-- imagem: ver-a-foto-grande.png; comando: ajuda.atalhos; tipo: novo -->
 - **Guias de alinhamento em qualquer edição.** Ao arrastar ou redimensionar uma foto na lâmina, as
   linhas guia mostram quando o espaçamento fica igual ao de outro vão e quando o tamanho chega ao
   de outra foto, com as marcas em destaque. Selecione várias fotos com Ctrl+clique e mexa todas de
@@ -34,7 +34,7 @@ Esta versão traz a visualização das fotos, as guias de edição, os modelos r
   seletor: marcado, os comandos valem em relação à área da lâmina inteira (centralizar o grupo,
   distribuir com as pontas iguais), como no Photoshop. Experimente: organize (tecla O), selecione
   fotos e clique no seletor de moldura.
-  <!-- tipo: novo -->
+  <!-- imagem: alinhar-pela-lamina.png; tipo: novo -->
 - **Modelos reformados.** A faixa de modelos (tecla L, ou o botão na barra de cima) passou a
   priorizar os desenhos que preenchem mais a lâmina, sem as repetições que só mudavam a posição das
   fotos; "layout" virou "modelo" em toda a interface. Há modelos de fábrica, que você pode
@@ -44,11 +44,11 @@ Esta versão traz a visualização das fotos, as guias de edição, os modelos r
   por nome do arquivo ou uma ordem personalizada sua — arraste as fotos na grade para montá-la. A
   montagem automática da janela segue a ordem escolhida. Experimente: clique em "Ordenar" no
   cabeçalho do painel de fotos.
-  <!-- tipo: novo -->
+  <!-- imagem: ordenacao-das-fotos.png; tipo: novo -->
 - **Início rápido.** O botão "Início rápido" (e Arquivo, Início rápido) cria um álbum vazio com o
   tamanho padrão, sem perguntas: as fotos e o tamanho você escolhe depois, e as lâminas se
   readequam sozinhas. Experimente: feche o álbum e clique em "Início rápido".
-  <!-- comando: arquivo.inicio-rapido; tipo: novo -->
+  <!-- imagem: inicio-rapido.png; comando: arquivo.inicio-rapido; tipo: novo -->
 - **Salvar como modelo no organizar.** Ajustou os quadros à mão no modo organizar? O botão direito
   num quadro agora guarda o desenho como modelo, sem sair do modo. Também no menu Modelo.
   Experimente: organize, ajuste e clique com o botão direito num quadro.

@@ -43,8 +43,6 @@ export component ExportDialog inherits Dialog {
     // Formato (spec PD e CT): 0 = JPEG, 1 = PDF, 2 = TIFF; marcas de corte só no PDF.
     in-out property <int> format;
     in-out property <bool> marks;
-    // Cor da saída (spec CT): sRGB ou Adobe RGB.
-    in-out property <bool> adobe;
     in property <string> error;
     // 0 = opções, 1 = avisos da pré-impressão, 2 = substituir arquivos.
     in property <int> step;
@@ -120,17 +118,6 @@ export component ExportDialog inherits Dialog {
                 model: ["JPEG (um arquivo por lâmina)", "PDF de impressão (PDF/X-4)", "TIFF (um arquivo por lâmina, sem perda)"];
                 current-index <=> root.format;
                 selected => { root.changed(); }
-            }
-        }
-        Field {
-            label: "Cor";
-            ComboBox {
-                model: ["sRGB (padrão)", "Adobe RGB (1998)"];
-                current-index: root.adobe ? 1 : 0;
-                selected => {
-                    root.adobe = self.current-index == 1;
-                    root.changed();
-                }
             }
         }
         if root.format == 1: Field {

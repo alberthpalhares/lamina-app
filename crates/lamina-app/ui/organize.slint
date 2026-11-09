@@ -250,13 +250,6 @@ component MenuButton inherits Rectangle {
     touch := TouchArea {
         clicked => { root.open(false); }
     }
-    // Balão explicativo ao parar o mouse (conferência do dono 2026-11-07).
-    if root.tip != "": Tip {
-        x: 0px;
-        y: parent.height + 4px;
-        text: root.tip;
-        shown: touch.has-hover;
-    }
     focus := FocusScope {
         x: 0;
         width: 0;
@@ -288,8 +281,11 @@ component MenuButton inherits Rectangle {
             }
         }
         Rectangle {
-            x: 0;
-            y: 32px + Line.focus;
+            // Pela posição absoluta do botão na janela, como a página de novidades: o popup
+            // gigante fica preso no canto da janela, e o painel deve seguir o botão, não o
+            // popup (bug da beta 10: o menu abria no canto esquerdo).
+            x: root.absolute-position.x;
+            y: root.absolute-position.y + root.height + Line.focus;
             width: list.preferred-width + 2 * Space.s1;
             background: Theme.raised;
             border-radius: Radius.medium;
@@ -688,6 +684,9 @@ component AlignCell inherits Rectangle {
     // A fileira "à lâmina" (spread) usa o tom de foco no ícone, para distinguir da fileira de
     // selecionados (conferência do dono 2026-11-08).
     in property <bool> spread: false;
+    // A dica abre acima da célula: embaixo, a da última fileira era cortada pelo fim do painel
+    // (conferência do dono 2026-11-09).
+    in property <bool> tip-above: false;
     accessible-role: button;
     accessible-label: root.tip;
     accessible-action-default => { root.picked(); }
@@ -712,7 +711,7 @@ component AlignCell inherits Rectangle {
     // Balão explicativo ao parar o mouse (conferência do dono 2026-11-07).
     Tip {
         x: 0px;
-        y: parent.height + 4px;
+        y: root.tip-above ? -self.height - 4px : parent.height + 4px;
         text: root.tip;
         shown: touch.has-hover;
     }
@@ -726,46 +725,27 @@ component AlignGrid inherits Rectangle {
     // A referência dos comandos: 0 = entre os selecionados, 1 = a área da lâmina (spec GJ,
     // conferência do dono 2026-11-08: como o seletor do Photoshop, sem ícones duplicados).
     property <int> reference: 0;
-    // Os comandos "à lâmina" têm o sufixo no meio (organizar.distribuir-lamina-horizontal).
-    function cmd(base: string) {
-        if (reference != 1) {
-            root.command(base);
-        } else if (base == "organizar.distribuir-horizontal") {
-            root.command("organizar.distribuir-lamina-horizontal");
-        } else if (base == "organizar.distribuir-vertical") {
-            root.command("organizar.distribuir-lamina-vertical");
-        } else {
-            root.command(base + "-lamina");
-        }
+    // Os nomes vêm prontos de cada célula: "à lâmina" insere no meio
+    // (organizar.alinhar-lamina-esquerda), e montar por sufixo gerava nome que não existe.
+    function cmd(base: string, to-spread: string) {
+        root.command(reference == 1 ? to-spread : base);
     }
     VerticalLayout {
         spacing: Space.s1;
-        HorizontalLayout {
-            spacing: Space.s2;
-            Text {
-                text: "Alinhar";
-                color: Theme.text;
-                font-size: Type.small;
-                font-weight: Type.semibold;
-                vertical-alignment: center;
-            }
-            Rectangle { horizontal-stretch: 1; }
-            // O seletor de referência: 0 = os selecionados, 1 = a área da lâmina.
-            AlignCell {
-                icon: Icons.spread-frame;
-                tip: "Alinhar em relação à área da lâmina (marcado) ou entre os selecionados";
-                spread: root.reference == 1;
-                picked => { root.reference = root.reference == 1 ? 0 : 1; }
-            }
+        Text {
+            text: "Alinhar";
+            color: Theme.text;
+            font-size: Type.small;
+            font-weight: Type.semibold;
         }
         HorizontalLayout {
             spacing: Space.s1;
-            AlignCell { icon: Icons.align-left; tip: "Alinhar à esquerda"; picked => { root.cmd("organizar.alinhar-esquerda"); } }
-            AlignCell { icon: Icons.align-center; tip: "Alinhar ao centro (horizontal)"; picked => { root.cmd("organizar.alinhar-centro"); } }
-            AlignCell { icon: Icons.align-right; tip: "Alinhar à direita"; picked => { root.cmd("organizar.alinhar-direita"); } }
-            AlignCell { icon: Icons.align-top; tip: "Alinhar ao topo"; picked => { root.cmd("organizar.alinhar-topo"); } }
-            AlignCell { icon: Icons.align-middle; tip: "Alinhar ao meio (vertical)"; picked => { root.cmd("organizar.alinhar-meio"); } }
-            AlignCell { icon: Icons.align-bottom; tip: "Alinhar à base"; picked => { root.cmd("organizar.alinhar-base"); } }
+            AlignCell { icon: Icons.align-left; tip: "Alinhar à esquerda"; picked => { root.cmd("organizar.alinhar-esquerda", "organizar.alinhar-lamina-esquerda"); } }
+            AlignCell { icon: Icons.align-center; tip: "Alinhar ao centro (horizontal)"; picked => { root.cmd("organizar.alinhar-centro", "organizar.alinhar-lamina-centro"); } }
+            AlignCell { icon: Icons.align-right; tip: "Alinhar à direita"; picked => { root.cmd("organizar.alinhar-direita", "organizar.alinhar-lamina-direita"); } }
+            AlignCell { icon: Icons.align-top; tip: "Alinhar ao topo"; picked => { root.cmd("organizar.alinhar-topo", "organizar.alinhar-lamina-topo"); } }
+            AlignCell { icon: Icons.align-middle; tip: "Alinhar ao meio (vertical)"; picked => { root.cmd("organizar.alinhar-meio", "organizar.alinhar-lamina-meio"); } }
+            AlignCell { icon: Icons.align-bottom; tip: "Alinhar à base"; picked => { root.cmd("organizar.alinhar-base", "organizar.alinhar-lamina-base"); } }
         }
         Text {
             text: "Distribuir";
@@ -775,8 +755,18 @@ component AlignGrid inherits Rectangle {
         }
         HorizontalLayout {
             spacing: Space.s1;
-            AlignCell { icon: Icons.distribute-horizontal; tip: "Distribuir na horizontal"; picked => { root.cmd("organizar.distribuir-horizontal"); } }
-            AlignCell { icon: Icons.distribute-vertical; tip: "Distribuir na vertical"; picked => { root.cmd("organizar.distribuir-vertical"); } }
+            AlignCell { icon: Icons.distribute-horizontal; tip: "Distribuir na horizontal"; picked => { root.cmd("organizar.distribuir-horizontal", "organizar.distribuir-lamina-horizontal"); } }
+            AlignCell { icon: Icons.distribute-vertical; tip: "Distribuir na vertical"; picked => { root.cmd("organizar.distribuir-vertical", "organizar.distribuir-lamina-vertical"); } }
+            // O seletor de referência (pedido do dono 2026-11-09): abaixo do sexto ícone de alinhar,
+            // na mesma linha dos de distribuir. Marcado, os comandos valem em relação à área da
+            // lâmina — inclusive com uma foto só.
+            AlignCell {
+                icon: Icons.spread-frame;
+                tip: "Alinhar em relação à área da lâmina (marcado) ou entre os selecionados";
+                spread: root.reference == 1;
+                tip-above: true;
+                picked => { root.reference = root.reference == 1 ? 0 : 1; }
+            }
         }
     }
 }
