@@ -24,12 +24,12 @@ Esta versão traz a visualização das fotos, as guias de edição, os modelos r
   com o enquadramento do quadro. Aperte Espaço: a foto abre ampliada no centro da tela — Esc fecha,
   as setas folheiam o álbum. Arraste a miniatura da lateral para reenquadrar a foto no quadro, sem
   abrir o modo de recorte. Experimente: clique numa foto e aperte Espaço.
-  <!-- comando: ajuda.atalhos; tipo: novo; fixada: sim -->
+  <!-- comando: ajuda.atalhos; tipo: novo -->
 - **Guias de alinhamento em qualquer edição.** Ao arrastar ou redimensionar uma foto na lâmina, as
   linhas guia mostram quando o espaçamento fica igual ao de outro vão e quando o tamanho chega ao
   de outra foto, com as marcas em destaque. Selecione várias fotos com Ctrl+clique e mexa todas de
   uma vez, com as alças do grupo. Experimente: arraste uma foto perto de outra.
-  <!-- tipo: melhoria; fixada: sim -->
+  <!-- tipo: melhoria -->
 - **Alinhar pela lâmina.** No painel de organizar, os botões de Alinhar e Distribuir ganham um
   seletor: marcado, os comandos valem em relação à área da lâmina inteira (centralizar o grupo,
   distribuir com as pontas iguais), como no Photoshop. Experimente: organize (tecla O), selecione
@@ -39,7 +39,7 @@ Esta versão traz a visualização das fotos, as guias de edição, os modelos r
   priorizar os desenhos que preenchem mais a lâmina, sem as repetições que só mudavam a posição das
   fotos; "layout" virou "modelo" em toda a interface. Há modelos de fábrica, que você pode
   ocultar e restaurar. Experimente: aperte L e folheie as opções.
-  <!-- tipo: melhoria; fixada: sim -->
+  <!-- tipo: melhoria -->
 - **Ordenação das fotos.** O painel de fotografias ganhou o seletor "Ordenar": por data de captura,
   por nome do arquivo ou uma ordem personalizada sua — arraste as fotos na grade para montá-la. A
   montagem automática da janela segue a ordem escolhida. Experimente: clique em "Ordenar" no
