@@ -1,23 +1,53 @@
-// Modelos do fotógrafo (spec MD): o nome ao salvar a lâmina como modelo e a lista "Meus modelos"
-// (renomear, apagar). Só desenho: as decisões são do editor.
+// Modelos do fotógrafo e de fábrica (specs MD e RM, beta 9.1): o nome ao salvar a lâmina como
+// modelo e o painel de gerenciamento (agrupado por quantidade de fotos, com busca, favoritar,
+// ocultar de fábrica, salvar como cópia e restaurar). Só desenho: as decisões são do editor.
 
-import { LineEdit } from "std-widgets.slint";
-import { Theme, Space } from "theme.slint";
+import { LineEdit, ScrollView } from "std-widgets.slint";
+import { Theme, Type, Space } from "theme.slint";
 import { Icons } from "icons.slint";
-import { Dialog, DialogSize, DialogFooter, DialogButton, FirstLineEdit, PickList, EmptyState } from "widgets.slint";
+import { Dialog, DialogSize, DialogFooter, DialogButton, FirstLineEdit, EmptyState } from "widgets.slint";
+
+// Uma linha do painel de gerenciamento (spec RM, seção 4): o título do grupo quando `heading`
+// não é vazio; senão, o modelo.
+// O retângulo de um quadro da miniatura, em frações do corte.
+export struct ModelBox {
+    x: float,
+    y: float,
+    w: float,
+    h: float,
+}
+
+export struct ModelRow {
+    heading: string,
+    name: string,
+    factory: bool,
+    favorite: bool,
+    boxes: [ModelBox],
+}
 
 export global ModelUi {
     in-out property <bool> show-name;
     in-out property <string> name;
     in property <string> name-message;
-    in-out property <bool> show-list;
-    in property <[string]> models;
-    in-out property <int> list-selected: -1;
-    in-out property <string> list-name;
-    in property <string> list-message;
+    in-out property <bool> show-manage;
+    in-out property <string> search;
+    in property <[ModelRow]> rows;
+    in-out property <string> manage-name;
+    in property <string> manage-message;
+    in property <bool> can-restore;
+    // A cópia de fábrica pede nome novo.
+    in-out property <bool> show-copy;
+    in property <string> copy-source;
+    in property <string> copy-message;
+    in-out property <string> copy-name;
     callback name-save();
-    callback list-rename();
-    callback list-delete();
+    callback search-changed(string);
+    callback row-favorite(string, bool);
+    // Ocultar (fábrica) ou excluir (meu).
+    callback row-remove(string, bool);
+    callback row-copy(string);
+    callback copy-save();
+    callback restore();
     callback closed();
 }
 
@@ -38,37 +68,159 @@ export component ModelNameDialog inherits Dialog {
     }
 }
 
-// Lâmina → Meus modelos… Sem nada salvo, diz o que fazer; a linha de renomear só aparece com um
-// modelo escolhido (spec DD, regra 24).
-export component ModelsDialog inherits Dialog {
-    title: "Meus modelos";
-    size: DialogSize.form;
-    child-focus: true;
-    dismissed => { ModelUi.show-list = false; ModelUi.closed(); }
-    if ModelUi.models.length == 0: EmptyState {
-        icon: Icons.layouts;
-        text: "Nenhum modelo salvo.\nMonte uma lâmina e use Lâmina → Salvar como modelo…";
+// A linha de um modelo no painel de gerenciamento.
+component ModelLine inherits Rectangle {
+    in property <string> name;
+    in property <bool> factory;
+    in property <bool> favorite;
+    in property <[ModelBox]> boxes;
+    callback toggle-favorite();
+    callback remove();
+    callback copy();
+    height: 44px;
+    accessible-role: list-item;
+    accessible-label: (root.factory ? "Modelo de fábrica " : "Modelo ") + root.name
+        + (root.favorite ? ", favorito" : "");
+    HorizontalLayout {
+        spacing: Space.s2;
+        padding-left: Space.s2;
+        // A miniatura do desenho: os quadros em frações do corte (conferência do dono 2026-11-07:
+        // sem miniatura não dá para identificar o modelo).
+        Rectangle {
+            width: 56px;
+            height: 36px;
+            border-width: 1px;
+            border-color: Theme.line;
+            background: Theme.raised;
+            for b in root.boxes: Rectangle {
+                x: b.x * parent.width;
+                y: b.y * parent.height;
+                width: max(1px, b.w * parent.width);
+                height: max(1px, b.h * parent.height);
+                background: Theme.dim;
+                border-width: 1px;
+                border-color: Theme.text-3;
+            }
+        }
+        Image {
+            accessible-role: none;
+            accessible-label: "";
+            source: Icons.star;
+            width: 16px;
+            height: 16px;
+            colorize: root.favorite ? Theme.warning : Theme.text-3;
+            TouchArea {
+                mouse-cursor: pointer;
+                clicked => { root.toggle-favorite(); }
+            }
+        }
+        Text {
+            text: root.name;
+            font-size: Type.small;
+            color: Theme.text;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        if root.factory: Text {
+            text: "· fábrica";
+            font-size: Type.small;
+            color: Theme.text-2;
+            vertical-alignment: center;
+        }
+        Rectangle { horizontal-stretch: 1; }
+        Rectangle {
+            width: 96px;
+            Text {
+                text: root.factory ? "Ocultar" : "Apagar";
+                color: root.factory ? Theme.text-2 : Theme.error;
+                font-size: Type.small;
+                vertical-alignment: center;
+            }
+            TouchArea { mouse-cursor: pointer; clicked => { root.remove(); } }
+        }
+        if root.factory: Rectangle {
+            width: 140px;
+            Text {
+                text: "Salvar como cópia…";
+                color: Theme.text-2;
+                font-size: Type.small;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+            TouchArea { mouse-cursor: pointer; clicked => { root.copy(); } }
+        }
     }
-    if ModelUi.models.length > 0: Text {
-        text: "Os modelos aparecem no painel de layouts quando as fotos casam com eles.";
+}
+
+// Lâmina → Gerenciar modelos… (spec RM): agrupado por quantidade de fotos, com busca.
+export component ModelsManageDialog inherits Dialog {
+    title: "Modelos";
+    size: DialogSize.wizard;
+    fixed-height: DialogSize.wizard-height;
+    child-focus: true;
+    dismissed => { ModelUi.show-manage = false; ModelUi.closed(); }
+    LineEdit {
+        placeholder-text: "Buscar por nome ou quantidade de fotos…";
+        edited(text) => { ModelUi.search-changed(text); }
+    }
+    if ModelUi.can-restore: Rectangle {
+        height: 36px;
+        HorizontalLayout {
+            alignment: end;
+            DialogButton { text: "Restaurar os de fábrica"; clicked => { ModelUi.restore(); } }
+        }
+    }
+    if ModelUi.rows.length == 0: EmptyState {
+        icon: Icons.layouts;
+        text: "Nenhum modelo com esta busca.";
+    }
+    ScrollView {
+        VerticalLayout {
+            for r in ModelUi.rows: Rectangle {
+                height: r.heading != "" ? 28px : 36px;
+                if r.heading != "": Text {
+                    text: r.heading;
+                    font-size: Type.small;
+                    font-weight: Type.semibold;
+                    color: Theme.text-2;
+                    vertical-alignment: center;
+                }
+                if r.heading == "": ModelLine {
+                    name: r.name;
+                    factory: r.factory;
+                    favorite: r.favorite;
+                    boxes: r.boxes;
+                    toggle-favorite => { ModelUi.row-favorite(r.name, r.factory); }
+                    remove => { ModelUi.row-remove(r.name, r.factory); }
+                    copy => { ModelUi.row-copy(r.name); }
+                }
+            }
+        }
+    }
+    if ModelUi.manage-message != "": Text { text: ModelUi.manage-message; color: Theme.warning; wrap: word-wrap; }
+    DialogFooter {
+        DialogButton { text: "Fechar"; primary: true; takes-focus: true; clicked => { ModelUi.show-manage = false; ModelUi.closed(); } }
+    }
+}
+
+// Cópia de um modelo de fábrica com nome novo (spec RM, regra 8).
+export component ModelCopyDialog inherits Dialog {
+    title: "Salvar como cópia";
+    child-focus: true;
+    dismissed => { ModelUi.show-copy = false; ModelUi.closed(); }
+    Text {
+        text: "O modelo de fábrica continua igual. A cópia é sua.";
         color: Theme.text-2;
         wrap: word-wrap;
     }
-    if ModelUi.models.length > 0: PickList {
-        label: "Meus modelos";
-        items: ModelUi.models;
-        selected <=> ModelUi.list-selected;
-        picked(name) => { ModelUi.list-name = name; }
+    FirstLineEdit {
+        text <=> ModelUi.copy-name;
+        placeholder-text: "ex.: Minha abertura";
+        accepted => { ModelUi.copy-save(); }
     }
-    if ModelUi.list-selected >= 0: HorizontalLayout {
-        spacing: Space.s2;
-        vertical-stretch: 0;
-        LineEdit { text <=> ModelUi.list-name; accepted => { ModelUi.list-rename(); } }
-        DialogButton { text: "Renomear"; clicked => { ModelUi.list-rename(); } }
-        DialogButton { text: "Apagar"; danger: true; clicked => { ModelUi.list-delete(); } }
-    }
-    if ModelUi.list-message != "": Text { text: ModelUi.list-message; color: Theme.warning; wrap: word-wrap; }
+    if ModelUi.copy-message != "": Text { text: ModelUi.copy-message; color: Theme.warning; wrap: word-wrap; }
     DialogFooter {
-        DialogButton { text: "Fechar"; primary: true; takes-focus: true; clicked => { ModelUi.show-list = false; ModelUi.closed(); } }
+        DialogButton { text: "Cancelar"; clicked => { ModelUi.show-copy = false; ModelUi.closed(); } }
+        DialogButton { text: "Salvar"; primary: true; clicked => { ModelUi.copy-save(); } }
     }
 }

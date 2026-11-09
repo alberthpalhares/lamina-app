@@ -51,6 +51,7 @@ mod panel_need;
 mod photo_panel;
 mod photo_sliders;
 mod photo_style;
+mod photo_view;
 mod recents;
 mod rename;
 mod report;
@@ -112,7 +113,11 @@ pub struct Editor {
     anchor: Option<PhotoId>,
     /// A aba do painel de fotos e a primeira foto visível da grade (spec PF, regra 7).
     photo_filter: Filter,
+    /// O critério de ordenação do painel (spec OF, beta 9.1); fica na memória.
+    photo_sort: crate::ordering::SortBy,
     grid_anchor: Option<PhotoId>,
+    /// A foto escolhida para ver (prévia e ampliada, spec VF); não vai para o arquivo.
+    photo_view: photo_view::PhotoView,
     /// Quadro em modo recorte e o recorte provisório do gesto (spec RC).
     crop_frame: Option<usize>,
     pending_crop: Option<Crop>,
@@ -194,7 +199,9 @@ impl Editor {
             selection: Vec::new(),
             anchor: None,
             photo_filter: Filter::All,
+            photo_sort: crate::ordering::SortBy::default(),
             grid_anchor: None,
+            photo_view: photo_view::PhotoView::default(),
             crop_frame: None,
             pending_crop: None,
             turning: false,

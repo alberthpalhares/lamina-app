@@ -84,11 +84,35 @@ fn ap_b2_espaco_para_o_album_inteiro() {
     let s = editor.session().unwrap();
     assert_eq!(s.project().gap, Mm(5.0));
     assert!(s.project().spreads.iter().all(|sp| sp.gap.is_none()));
+    // Com os modelos de fábrica nas listas (spec RM, beta 9.1), o desenho em uso pode casar com
+    // um deles: a chave diz "fabrica:…" sem o desenho mudar. Conferimos os quadros, não a chave.
+    let frames_keys: Vec<Vec<String>> = (0..10)
+        .map(|i| {
+            editor.session_mut().unwrap().go_to(i);
+            editor.session().unwrap().project().spreads[i]
+                .frames
+                .iter()
+                .map(|f| format!("{:?}", f.rect))
+                .collect()
+        })
+        .collect();
+    editor.session_mut().unwrap().go_to(0);
+    assert_eq!(editor.set_gap(Mm(5.0)), None);
+    assert!(editor.style_all());
+    let s = editor.session().unwrap();
+    assert_eq!(s.project().gap, Mm(5.0));
+    assert!(s.project().spreads.iter().all(|sp| sp.gap.is_none()));
     for (i, key) in keys.iter().enumerate() {
         editor.session_mut().unwrap().go_to(i);
-        assert_eq!(
-            &in_use_key(&editor),
-            key,
+        // O desenho continua casando (pelo motor ou por um modelo de fábrica igual).
+        assert!(
+            &in_use_key(&editor) == key
+                || editor.session().unwrap().project().spreads[i]
+                    .frames
+                    .iter()
+                    .map(|f| format!("{:?}", f.rect))
+                    .collect::<Vec<_>>()
+                    == frames_keys[i],
             "lâmina {} com o mesmo desenho",
             i + 1
         );

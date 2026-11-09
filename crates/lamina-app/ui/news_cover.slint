@@ -23,7 +23,7 @@ export component NewsCover inherits Rectangle {
     accessible-enabled: root.acts;
     accessible-label: root.leads-to-item ? "Ir para a novidade: " + root.label
         : root.video != "" ? "Vídeo de " + root.label + ". Abre o vídeo no navegador. Precisa de internet."
-        : root.animated ? (root.playing ? "Parar a animação de " : "Tocar a animação de ") + root.label
+        : root.animated ? "Ver grande a animação de " + root.label
         : root.label;
     accessible-action-default => { root.activate(); }
     border-radius: Radius.small;
@@ -39,14 +39,15 @@ export component NewsCover inherits Rectangle {
             NewsUi.cover-clicked(root.index);
         }
     }
-    if root.has-cover || root.playing: Image {
+    // A capa fica no primeiro quadro; a animação toca grande no centro da página (não aqui).
+    if root.has-cover: Image {
         accessible-role: none;
         width: parent.width;
         height: parent.height;
-        source: root.playing ? NewsUi.frame : root.cover;
+        source: root.cover;
         image-fit: contain;
     }
-    if !root.has-cover && !root.playing: Text {
+    if !root.has-cover: Text {
         accessible-role: none;
         x: Space.s3;
         width: parent.width - 2 * Space.s3;

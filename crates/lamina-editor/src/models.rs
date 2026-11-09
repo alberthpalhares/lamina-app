@@ -25,6 +25,8 @@ pub enum ModelError {
     },
     #[error("Já existe um modelo chamado \"{0}\".")]
     Exists(String),
+    #[error("O modelo de fábrica não foi encontrado.")]
+    NotFound,
     #[error("Não foi possível gravar os modelos: {0}.")]
     Write(String),
 }
@@ -204,5 +206,6 @@ pub fn model_from_spread(
         texts,
         left,
         right,
+        factory: false,
     })
 }

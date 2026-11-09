@@ -162,6 +162,9 @@ pub(crate) fn lists_learned(
     let options = LayoutOptions {
         gap: sel.gap,
         mounting: project.mounting,
+        // As listas da janela (spec RM, beta 9.1): sem variantes deslocadas, ordenadas pelo
+        // preenchimento.
+        window: true,
         ..LayoutOptions::default()
     };
     layout_options_learned(&project.spec, sel.active, &sel.aspects, &options, learned)

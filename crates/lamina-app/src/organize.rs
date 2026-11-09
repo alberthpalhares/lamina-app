@@ -26,7 +26,9 @@ pub fn connect(window: &AppWindow, app: &Shared) {
         a.borrow_mut().timed(
             "Selecionar quadro",
             |app| {
-                app.editor.organize_click(frame, ctrl, shift);
+                // `frame_click` também escolhe a foto do quadro para a prévia (spec VF).
+                app.editor.frame_click(frame, ctrl, shift);
+                crate::photo_view::refresh(app);
                 true
             },
             App::refresh_current,
@@ -185,6 +187,10 @@ pub fn refresh(app: &App) {
     ui.set_group(group.map(boxed).unwrap_or_default());
     ui.set_boxes(model(rects.into_iter().map(boxed).collect()));
     ui.set_marks(model(marks(app)));
+    // As marcas do ímã na edição comum: só durante um gesto à mão (spec GJ).
+    if let Some(w) = app.window.upgrade() {
+        w.set_gesture_marking(!app.editor.organizing() && app.editor.in_gesture());
+    }
     let [x, y, w, h] = app.editor.group_fields();
     ui.set_gx(x.into());
     ui.set_gy(y.into());
@@ -224,7 +230,9 @@ fn selected_rects(app: &App) -> Vec<PxRect> {
     let (Some(s), Some(project)) = (app.session(), app.editor.view_project()) else {
         return Vec::new();
     };
-    if !app.editor.organizing() {
+    // Na edição comum, os contornos só com a seleção múltipla (spec GJ); o quadro único tem as
+    // próprias alças (spec TX).
+    if !app.editor.organizing() && app.editor.selected_frames().len() < 2 {
         return Vec::new();
     }
     // Com o gesto do grupo aplicado: as marcas acompanham o mouse.

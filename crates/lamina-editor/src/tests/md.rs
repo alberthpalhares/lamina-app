@@ -128,7 +128,7 @@ fn md_b2_o_modelo_aparece_no_painel_e_e_aplicado() {
             .expect("quadro do modelo");
         assert_eq!(slot.orientation, Some(o));
     }
-    assert_eq!(s.undo_label(), Some("Trocar layout"));
+    assert_eq!(s.undo_label(), Some("Trocar modelo"));
     assert_eq!(project.spreads[1].model.as_deref(), Some("modelo:Abertura"));
 }
 
@@ -160,9 +160,10 @@ fn md_b4_nao_casa() {
     abertura(&mut editor);
     for index in [1, 2] {
         editor.session_mut().unwrap().go_to(index);
-        assert!(!titles(&editor).iter().any(|t| t.starts_with("Modelo")));
+        // O modelo do fotógrafo não aparece; os de fábrica da mistura podem (spec RM, beta 9.1).
+        assert!(!titles(&editor).iter().any(|t| t.starts_with("Modelo ·")));
         editor.run(Command::ToggleReordered);
-        assert!(!titles(&editor).iter().any(|t| t.starts_with("Modelo")));
+        assert!(!titles(&editor).iter().any(|t| t.starts_with("Modelo ·")));
         editor.run(Command::ToggleReordered);
     }
 }
@@ -185,6 +186,7 @@ pub(super) fn symmetric() -> SpreadModel {
         texts: Vec::new(),
         left: true,
         right: true,
+        factory: false,
     }
 }
 

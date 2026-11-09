@@ -49,7 +49,7 @@ fn fl_b8_favoritar_e_rejeitar_pela_faixa() {
     assert!(editor.mark_option(used, false));
     assert_eq!(steps(&editor).len(), 1);
     assert!(
-        steps(&editor)[0].starts_with("Trocar layout"),
+        steps(&editor)[0].starts_with("Trocar modelo"),
         "aplica a seguinte"
     );
     let prefs = editor.preferences();

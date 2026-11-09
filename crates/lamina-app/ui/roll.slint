@@ -222,7 +222,8 @@ component SpreadBar inherits Rectangle {
                 horizontal-stretch: 1;
                 overflow: elide;
             }
-            // O botão Layouts depende da faixa de layouts (spec FL): sem ela, não aparece.
+            // O botão de modelos volta a ser só o ícone na barra da lâmina (conferência do
+            // dono 2026-11-08: o rótulo foi para a barra de cima).
             for b in RollUi.buttons: RollIcon {
                 visible: b.name != "ver.faixa-layouts" || b.enabled;
                 width: self.visible ? 24px : 0px;

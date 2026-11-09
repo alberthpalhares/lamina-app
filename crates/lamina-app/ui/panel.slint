@@ -7,6 +7,7 @@ import { LookPanel } from "look.slint";
 import { FramePanel } from "frame.slint";
 import { HistoryPanel, HistoryItem } from "history.slint";
 import { PanelTabs, InfoPanel, DetailRow } from "side.slint";
+import { PhotoPreview } from "photo_view.slint";
 import { OrganizeUi, OrganizePanel } from "organize.slint";
 
 // A borda esquerda do painel (spec FX, regra 13): arrastar muda a largura, clique duplo volta à
@@ -46,6 +47,8 @@ export component PanelDivider inherits Rectangle {
 export component RightPanel inherits Rectangle {
     // A largura arrastada pela borda (spec FX, regra 13).
     in property <length> panel-width: 300px;
+    // A prévia da foto escolhida, acima das abas (spec VF, decisão do dono 2026-11-04).
+    in property <bool> photo-preview: false;
     in-out property <int> tab;
     in property <[HistoryItem]> history;
     in property <int> history-pos;
@@ -63,6 +66,8 @@ export component RightPanel inherits Rectangle {
     in property <string> details-count;
     callback history-go(int);
     callback done();
+    // Um comando do registro pelo nome estável (o painel de alinhar do modo; spec GJ).
+    callback command(string);
     width: root.panel-width;
     background: Theme.panel;
     // A zona própria do painel: um fio na borda (spec DJ, saída 5).
@@ -70,10 +75,13 @@ export component RightPanel inherits Rectangle {
     VerticalLayout {
         padding: 12px;
         spacing: 8px;
+        // A prévia da foto (spec VF): área fixa acima das abas; some (0 px) sem foto escolhida.
+        PhotoPreview { }
         // No modo organizar, o painel do modo no lugar das abas (spec EG, EG-B23).
         if OrganizeUi.on: OrganizePanel {
             vertical-stretch: 1;
             done => { root.done(); }
+            command(c) => { root.command(c); }
         }
         if !OrganizeUi.on: PanelTabs { tab <=> root.tab; }
         if !OrganizeUi.on && root.tab == 2: LookPanel {

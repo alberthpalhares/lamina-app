@@ -17,6 +17,9 @@ struct OnDisk {
     versao: u32,
     favoritos: Vec<String>,
     rejeitados: Vec<String>,
+    /// Modelos de fábrica ocultos (spec RM, beta 9.1).
+    #[serde(default)]
+    ocultos: Vec<String>,
 }
 
 /// As preferências e onde elas moram. Sem arquivo (`path` = `None`), vivem só na memória.
@@ -85,6 +88,7 @@ fn parse(text: &str) -> Result<Preferences, String> {
     Ok(Preferences {
         favorites: disk.favoritos.into_iter().collect(),
         rejected: disk.rejeitados.into_iter().collect(),
+        hidden: disk.ocultos.into_iter().collect(),
     })
 }
 
@@ -95,6 +99,7 @@ fn write(path: &Path, prefs: &Preferences) -> Result<(), String> {
         versao: VERSION,
         favoritos: prefs.favorites.iter().cloned().collect(),
         rejeitados: prefs.rejected.iter().cloned().collect(),
+        ocultos: prefs.hidden.iter().cloned().collect(),
     };
     let json = serde_json::to_string_pretty(&disk).map_err(|e| e.to_string())?;
     let mut tmp = tempfile::NamedTempFile::new_in(folder).map_err(|e| e.to_string())?;

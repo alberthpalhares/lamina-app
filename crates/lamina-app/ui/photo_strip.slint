@@ -43,9 +43,17 @@ component PhotoTile inherits Rectangle {
     // Na seleção (ou cruzada pelo laço) e a foto dos dados do painel.
     in property <bool> lit;
     in property <bool> current;
+    // Reordenar na Personalizada (spec OF, beta 9.1).
+    in property <bool> reorderable: false;
+    in property <int> hover-index: -1;
     callback pressed(int, bool, bool);
     callback double-clicked(int);
     callback dropped();
+    // Reordenar na Personalizada (spec OF): a foto `from` vai para a posição `to` (índice na
+    // grade).
+    callback reorder(int, int);
+    // Atualiza o índice sob o ponteiro (o grid calcula).
+    callback update-hover(length, length);
     // A roda sobre a peça vai para a grade (posição na janela, para o zoom pela Ctrl+roda).
     callback wheel(length, bool, length, length);
     callback focus-main();
@@ -146,6 +154,7 @@ component PhotoTile inherits Rectangle {
             }
             DragUi.x = x;
             DragUi.y = y;
+            root.update-hover(x, y);
         }
         pointer-event(e) => {
             if (e.button == PointerEventButton.right && e.kind == PointerEventKind.down) {
@@ -164,7 +173,12 @@ component PhotoTile inherits Rectangle {
             }
             if (e.button == PointerEventButton.left && e.kind == PointerEventKind.up) {
                 if (DragUi.kind == 1) {
-                    root.dropped();
+                    // Reordenar na Personalizada: soltar sobre outra peça da grade.
+                    if (root.reorderable && root.hover-index >= 0 && root.hover-index != root.index) {
+                        root.reorder(root.index, root.hover-index);
+                    } else {
+                        root.dropped();
+                    }
                 } else {
                     root.pressed(root.index, e.modifiers.control || e.modifiers.meta, e.modifiers.shift);
                 }
@@ -191,6 +205,13 @@ export component PhotoGrid inherits Rectangle {
     callback photo-pressed(int, bool, bool);
     // Uma foto foi solta fora do painel: a janela calcula onde.
     callback dropped();
+    // Reordenar na Personalizada (spec OF, beta 9.1).
+    callback reorder(int, int);
+    // Atualiza o índice sob o ponteiro (o grid calcula).
+    callback update-hover(length, length);
+    in property <bool> reorderable: false;
+    // A peça sob o ponteiro (índice na grade), para o destino do arrasto.
+    property <int> hover-index: -1;
     callback focus-main();
     background: StripTheme.photos;
     clip: true;
@@ -206,6 +227,18 @@ export component PhotoGrid inherits Rectangle {
 
     function notify() {
         root.view-changed(root.width, root.height, root.scroll);
+    }
+    // O índice da peça sob o ponto (x, y) da janela; -1 se fora (spec OF).
+    function index-at(x: length, y: length) -> int {
+        let lx = (x - root.absolute-position.x) / 1px;
+        let ly = (y - root.absolute-position.y + root.scroll) / 1px;
+        let col = floor((lx - root.gap / 1px) / (root.tile / 1px + root.gap / 1px));
+        let row = floor((ly - root.gap / 1px) / (root.row-h / 1px));
+        if (col < 0 || col >= root.columns || row < 0) {
+            return -1;
+        }
+        let i = row * root.columns + col;
+        return i < root.photos.length ? i : -1;
     }
     init => { root.notify(); }
     changed width => { root.notify(); }
@@ -339,6 +372,10 @@ export component PhotoGrid inherits Rectangle {
             index: self.i;
             tile: root.tile;
             Mark { name: "foto-" + (parent.i + 1); on: parent.visible; }
+            reorderable: root.reorderable;
+            hover-index: root.hover-index;
+            reorder(from, to) => { root.reorder(from, to); }
+            update-hover(x, y) => { root.hover-index = root.index-at(x, y); }
             named: root.named;
             lit: root.lassoing && root.lasso-moved
                 ? (root.crosses(parent.line, c) || (root.lasso-add && self.data.selected))

@@ -28,6 +28,8 @@ pub enum Menu {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Command {
     NewAlbum,
+    /// "Início rápido": o álbum vazio com o tamanho padrão, sem assistente (spec IQ).
+    QuickStart,
     Open,
     Save,
     SaveAs,
@@ -134,6 +136,16 @@ pub enum Command {
     EqualSize,
     DistributeAcross,
     DistributeDown,
+    /// Alinhar e Distribuir com referência na lâmina inteira (spec GJ, regra nova; conferência do
+    /// dono 2026-11-04).
+    AlignLeftToSpread,
+    AlignCenterToSpread,
+    AlignRightToSpread,
+    AlignTopToSpread,
+    AlignMiddleToSpread,
+    AlignBottomToSpread,
+    DistributeAcrossToSpread,
+    DistributeDownToSpread,
     /// A área de cópia (spec EG, regra 12).
     CopyFrames,
     PasteFrames,

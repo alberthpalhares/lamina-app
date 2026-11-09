@@ -5,7 +5,7 @@ use serde_json::Value;
 use super::FilmError;
 
 /// Os nomes de tecla que um roteiro aceita, além de um caractere só.
-pub const KEYS: [&str; 15] = [
+pub const KEYS: [&str; 18] = [
     "ArrowUp",
     "ArrowDown",
     "ArrowLeft",
@@ -21,6 +21,9 @@ pub const KEYS: [&str; 15] = [
     "Delete",
     "Backspace",
     "F1",
+    "Control",
+    "Shift",
+    "Alt",
 ];
 
 /// Quanto a câmera leva para chegar, quando o roteiro não diz.
@@ -44,14 +47,49 @@ pub enum Opening {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Step {
     WaitPhotos,
-    Pause { ms: u64 },
-    Camera { target: String, zoom: f64, ms: u64 },
-    Move { mark: String, ms: u64 },
-    Click { button: Button },
-    Key { key: String },
-    Drag { from: String, to: String, ms: u64 },
-    Command { name: String },
-    Caption { text: String, ms: u64 },
+    Pause {
+        ms: u64,
+    },
+    Camera {
+        target: String,
+        zoom: f64,
+        ms: u64,
+    },
+    Move {
+        mark: String,
+        ms: u64,
+    },
+    Click {
+        button: Button,
+    },
+    Key {
+        key: String,
+    },
+    /// Segura a tecla-modificador (só `KeyPressed`), para o passo seguinte vir com ela (Ctrl+clique).
+    Hold {
+        key: String,
+    },
+    /// Solta a tecla-modificador segurada por `Hold` (só `KeyReleased`).
+    Release {
+        key: String,
+    },
+    Drag {
+        from: String,
+        to: String,
+        ms: u64,
+    },
+    Command {
+        name: String,
+    },
+    Caption {
+        text: String,
+        ms: u64,
+    },
+    /// Realça a marca na tela por `ms`: o Remotion desenha o círculo ao redor do alvo.
+    Highlight {
+        mark: String,
+        ms: u64,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -115,6 +153,17 @@ impl Fields<'_> {
         Err(self.error(format!("a tecla \"{key}\" não existe")))
     }
 
+    /// A tecla-modificador de `segurar`/`soltar` (Ctrl+clique do roteiro): só Control, Shift e Alt.
+    fn modifier(&self, name: &str) -> Result<String, FilmError> {
+        let key = self.text(name)?;
+        if matches!(key.as_str(), "Control" | "Shift" | "Alt") {
+            return Ok(key);
+        }
+        Err(self.error(format!(
+            "\"{name}\" só aceita Control, Shift e Alt, não \"{key}\""
+        )))
+    }
+
     fn camera(&self) -> Result<Step, FilmError> {
         Ok(Step::Camera {
             target: self.text("camera")?,
@@ -145,6 +194,14 @@ impl Fields<'_> {
             self.click()
         } else if has("tecla") {
             self.key()
+        } else if has("segurar") {
+            Ok(Step::Hold {
+                key: self.modifier("segurar")?,
+            })
+        } else if has("soltar") {
+            Ok(Step::Release {
+                key: self.modifier("soltar")?,
+            })
         } else if has("arrastar") {
             Ok(Step::Drag {
                 from: self.text("arrastar")?,
@@ -158,6 +215,11 @@ impl Fields<'_> {
         } else if has("legenda") {
             Ok(Step::Caption {
                 text: self.text("legenda")?,
+                ms: self.ms("ms")?,
+            })
+        } else if has("destaque") {
+            Ok(Step::Highlight {
+                mark: self.text("destaque")?,
                 ms: self.ms("ms")?,
             })
         } else {
@@ -198,6 +260,26 @@ impl Script {
                 Fields { number, value }.step()
             })
             .collect::<Result<Vec<Step>, FilmError>>()?;
+        // Toda tecla segurada tem de ser solta: senão o modificador fica aceso para o passo
+        // seguinte (a trava pega erro de digitação antes de gravar quadro algum).
+        let mut held: Vec<&str> = Vec::new();
+        for step in &steps {
+            match step {
+                Step::Hold { key } => held.push(key),
+                Step::Release { key } => {
+                    let Some(position) = held.iter().position(|k| k == key) else {
+                        return Err(whole(format!("\"soltar\" sem \"segurar\" da tecla {key}")));
+                    };
+                    held.remove(position);
+                }
+                _ => {}
+            }
+        }
+        if let Some(key) = held.first() {
+            return Err(whole(format!(
+                "\"segurar\" da tecla {key} sem \"soltar\" no fim"
+            )));
+        }
         Ok(Script {
             name: value["nome"]
                 .as_str()

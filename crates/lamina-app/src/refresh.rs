@@ -5,6 +5,9 @@ use lamina_editor::forms::album_info;
 use lamina_editor::{BAR_COMMANDS, Command, bar_tip, photos_title, strip_titles};
 use slint::SharedString;
 
+use slint::ComponentHandle;
+
+use crate::SortUi;
 use crate::convert::model;
 use crate::state::App;
 
@@ -48,6 +51,13 @@ impl App {
         w.set_bar_tips(model(tips));
         // O zoom e a altura guardada da grade de fotos (spec PF, regras 4 e 5).
         w.set_photo_zoom(self.editor.photos_zoom() as f32);
+        // O critério de ordenação do painel (spec OF, beta 9.1).
+        let sort = match self.editor.photo_sort() {
+            lamina_editor::ordering::SortBy::Name => 1,
+            lamina_editor::ordering::SortBy::Custom => 2,
+            lamina_editor::ordering::SortBy::Capture => 0,
+        };
+        w.global::<SortUi>().set_sort(sort);
         self.show_grid_height();
         w.set_can_prev(self.editor.available(Command::PreviousSpread));
         w.set_can_next(self.editor.available(Command::NextSpread));

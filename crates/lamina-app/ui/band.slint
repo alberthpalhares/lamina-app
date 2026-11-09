@@ -7,6 +7,7 @@ import { Theme, Type, Radius } from "theme.slint";
 import { Icons } from "icons.slint";
 import { SpreadCanvas, SpreadData } from "canvas.slint";
 import { Motion } from "motion.slint";
+import { Tip } from "widgets.slint";
 
 export struct LayoutItem {
     data: SpreadData,
@@ -46,6 +47,8 @@ component Tab inherits Rectangle {
     accessible-checked: root.active;
     accessible-action-default => { root.clicked(); }
     in property <string> text;
+    // Balão explicativo (conferência do dono 2026-11-07): aparece ao parar o mouse.
+    in property <string> tip;
     in property <bool> active;
     in property <bool> enabled: true;
     callback clicked();
@@ -56,12 +59,18 @@ component Tab inherits Rectangle {
         color: !root.enabled ? Theme.text-disabled : root.active ? Theme.text-strong : Theme.text-2;
         font-weight: root.active ? Type.semibold : Type.regular;
     }
+    if root.tip != "": Tip {
+        x: 0px;
+        y: parent.height + 4px;
+        text: root.tip;
+        shown: touch.has-hover;
+    }
     Rectangle {
         y: parent.height - 2px;
         height: 2px;
         background: root.active ? Theme.text-strong : transparent;
     }
-    TouchArea {
+    touch := TouchArea {
         enabled: root.enabled;
         clicked => { root.clicked(); }
     }
@@ -183,13 +192,17 @@ export component LayoutBand inherits Rectangle {
                 padding-left: root.pad;
                 padding-right: root.pad;
                 spacing: 16px;
+                // Nomes que dizem o que cada lista faz (conferência do dono 2026-11-07: "Na
+                // ordem" × "Reordenadas" não era claro para o usuário comum).
                 Tab {
-                    text: "Na ordem";
+                    text: "Na ordem da linha do tempo";
+                    tip: "As fotos entram no modelo na ordem em que estão no álbum.";
                     active: BandUi.list == 0;
                     clicked => { BandUi.list-changed(0); root.done(); }
                 }
                 Tab {
-                    text: "Reordenadas";
+                    text: "Reorganizar para encaixar";
+                    tip: "As fotos mudam de lugar para encaixar melhor, com menos recorte.";
                     active: BandUi.list == 1;
                     enabled: BandUi.has-reordered;
                     clicked => { BandUi.list-changed(1); root.done(); }

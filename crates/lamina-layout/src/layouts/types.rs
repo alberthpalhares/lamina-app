@@ -67,8 +67,13 @@ pub enum Family {
     Mosaic { scope: Scope, layout: PageLayout },
     /// As fotos chegam ao corte por fora; só o espaço do álbum as separa (spec SB).
     FullBleed(FullBleed),
-    /// Um modelo salvo pelo fotógrafo (spec MD), talvez espelhado.
-    Model { name: String, mirrored: bool },
+    /// Um modelo salvo pelo fotógrafo (spec MD), tal vez espelhado; ou um **de fábrica** (spec RM,
+    /// beta 9.1), com a chave de preferências `fabrica:` em vez de `modelo:`.
+    Model {
+        name: String,
+        mirrored: bool,
+        factory: bool,
+    },
 }
 
 /// Formato de uma lâmina sem borda (spec SB).
@@ -180,6 +185,10 @@ pub struct LayoutOptions {
     pub reordered: bool,
     /// Quanto recortar e quais famílias opcionais usar (spec NP; padrão = o de sempre).
     pub mounting: lamina_core::Mounting,
+    /// **Listas da janela** (spec RM, beta 9.1): corta as variantes deslocadas (só o centralizado)
+    /// e ordena pelo preenchimento. Padrão desligado: a linha de comando e a montagem automática
+    /// continuam gerando exatamente como antes (regra 12).
+    pub window: bool,
 }
 
 impl Default for LayoutOptions {
@@ -189,6 +198,7 @@ impl Default for LayoutOptions {
             max_candidates: 200,
             reordered: true,
             mounting: lamina_core::Mounting::default(),
+            window: false,
         }
     }
 }

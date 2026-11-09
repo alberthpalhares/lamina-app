@@ -188,9 +188,10 @@ fn place_slots(app: &mut App, place: Place, frames: &[FrameView], data: &mut cra
             .map(|f| boxed(f.rect))
             .unwrap_or_default()
     };
-    // No modo organizar com vários quadros, as alças são as da caixa do grupo (spec EG).
+    // No modo organizar ou na edição comum (spec GJ) com vários quadros, as alças são as da caixa
+    // do grupo.
     let group: Vec<usize> = app.editor.selected_frames();
-    data.selected_box = if app.editor.organizing() && group.len() > 1 {
+    data.selected_box = if group.len() > 1 {
         let rects: Vec<_> = group
             .iter()
             .filter_map(|f| frames.get(*f))

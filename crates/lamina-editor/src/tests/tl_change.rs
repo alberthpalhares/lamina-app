@@ -16,25 +16,47 @@ fn tl_b1_sugestoes_da_lamina_atual() {
     for (i, (w, h)) in photos.iter().enumerate() {
         project.add_photo(format!("f{i:02}.jpg"), *w, *h);
     }
-    let built = lamina_layout::auto_build(&project, 1, &Default::default()).unwrap();
+    let build_options = lamina_layout::BuildOptions {
+        window: true,
+        ..Default::default()
+    };
+    let built = lamina_layout::auto_build(&project, 1, &build_options).unwrap();
     let index = 0;
     let editor = editor_at(built.project.clone(), index);
     let panel = editor.panel(Part::Spread);
     let sel = selection(&built.project, index, Part::Spread).unwrap();
     assert_eq!(sel.photos.len(), 4);
-    let expected = layout_options(
+    // O painel da janela usa as listas novas (spec RM, beta 9.1), com os modelos de fábrica da
+    // mistura (3 H e 1 V).
+    let window_options = LayoutOptions {
+        window: true,
+        ..LayoutOptions::default()
+    };
+    let mut expected_lists = layout_options(
         &built.project.spec,
         sel.active,
         &sel.aspects,
-        &LayoutOptions::default(),
+        &window_options,
     )
-    .unwrap()
-    .in_order;
-    assert_eq!(panel.options, expected);
-    assert_eq!(
-        panel.in_use,
-        Some(built.report[index].position - 1),
-        "a escolha da montagem automática"
+    .unwrap();
+    let models = lamina_layout::factory::factory_models(3, 1, 0, true);
+    if !models.is_empty() {
+        let at = (sel.active, built.project.gap);
+        lamina_layout::add_models(
+            &mut expected_lists,
+            &built.project.spec,
+            at,
+            &sel.aspects,
+            &models,
+        )
+        .unwrap();
+    }
+    assert_eq!(panel.options, expected_lists.in_order);
+    // A escolha da montagem automática está no painel (a posição pode diferir: o painel insere os
+    // modelos de fábrica da mistura, o build a biblioteca inteira; spec RM, beta 9.1).
+    assert!(
+        panel.in_use.is_some(),
+        "a escolha da montagem automática está no painel"
     );
 }
 

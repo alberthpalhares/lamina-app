@@ -240,6 +240,7 @@ impl Project {
             gap: self.gap,
             photos: self.photos.clone(),
             spreads: vec![cover.content.clone()],
+            photo_order: self.photo_order.clone(),
             cover: None,
             page_limits: self.page_limits,
             export: self.export,

@@ -55,14 +55,22 @@ export global Palettes {
 export global Fixed {
     out property <color> paper: #ffffff;
     out property <color> ink: #000000;
+    // A legenda da foto ampliada, direto sobre o véu (spec VF, beta 9.1): papel sobre o escuro,
+    // igual nos dois temas.
+    out property <color> on-veil: #ffffff;
     out property <color> placeholder: #808080;
     out property <color> placeholder-line: #80808099;
+    // As sobras da foto ampliada fora do enquadramento, esmaecidas (spec VF, beta 9.1): branco
+    // translúcido sobre o conteúdo, igual nos dois temas.
     // Guia do ímã, destino de soltar e laço de seleção sobre a lâmina (iguais nos dois temas).
     out property <color> guide: #ff4fd8;
     out property <color> guide-soft: #d84fc4;
     out property <color> target: #ffd23f;
     // A margem de segurança sobre a lâmina: cinza, porque o ciano é só da seleção (spec DG, regra 10).
     out property <color> margin: #80808099;
+    // As sobras da foto ampliada em volta do enquadramento (spec VF, conferência do dono
+    // 2026-11-07): esmaecidas sobre a foto, iguais nos dois temas.
+    out property <color> clip-scrim: #ffffff66;
     // O contorno do quadro em recorte, sobre a foto.
     out property <color> crop: #e3b341;
     // A barra de atualização (spec AV, regra 7): a única exceção ao estilo sóbrio, e só ela usa estes

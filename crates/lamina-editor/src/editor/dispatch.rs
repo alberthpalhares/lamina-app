@@ -24,6 +24,7 @@ impl Editor {
             return matches!(
                 command,
                 Command::NewAlbum
+                    | Command::QuickStart
                     | Command::Open
                     | Command::OpenExample
                     | Command::ToggleReduceMotion
@@ -55,7 +56,11 @@ impl Editor {
         }
         let last = s.spread_count().saturating_sub(1);
         match command {
-            Command::NewAlbum | Command::Open | Command::Save | Command::SaveAs => true,
+            Command::NewAlbum
+            | Command::QuickStart
+            | Command::Open
+            | Command::Save
+            | Command::SaveAs => true,
             Command::OpenExample | Command::CloseAlbum | Command::RenameAlbum => true,
             Command::Quit => true,
             Command::ClearRecents => self.recents.has_unpinned(),
@@ -147,6 +152,14 @@ impl Editor {
             | Command::EqualSize
             | Command::DistributeAcross
             | Command::DistributeDown
+            | Command::AlignLeftToSpread
+            | Command::AlignCenterToSpread
+            | Command::AlignRightToSpread
+            | Command::AlignTopToSpread
+            | Command::AlignMiddleToSpread
+            | Command::AlignBottomToSpread
+            | Command::DistributeAcrossToSpread
+            | Command::DistributeDownToSpread
             | Command::NextSpread
             | Command::PreviousSpread
             | Command::FirstSpread

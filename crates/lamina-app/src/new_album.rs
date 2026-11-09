@@ -70,7 +70,13 @@ pub fn message(app: &mut App, msg: Msg) {
         }
         Msg::ImagesReady => app.images_ready(),
         Msg::SystemMotion(reduces) => crate::window_look::motion_read(app, reduces),
-        Msg::Screen { epoch, id, pixels } => app.images.screen_arrived(epoch, id, pixels),
+        Msg::Screen { epoch, id, pixels } => {
+            app.images.screen_arrived(epoch, id, pixels);
+            // A foto à vista pode ter chegado (spec VF): a prévia e a ampliada trocam na hora.
+            if app.editor.photo_view().chosen == Some(id) {
+                crate::photo_view::refresh(app);
+            }
+        }
         Msg::Thumb { epoch, id, pixels } => app.images.thumb_arrived(epoch, id, pixels),
         Msg::SpreadImage(painted) => crate::roll::arrived(app, *painted),
         Msg::Original(id, pixels) => crate::crop::original_ready(app, id, pixels),

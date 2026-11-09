@@ -8,8 +8,8 @@ use lamina_core::{PhotoId, Project};
 use lamina_editor::forms::photo_text;
 use lamina_editor::motion::{photo_rows, strip_rows};
 use lamina_editor::{
-    Cache, Editor, ExportCheck, Filter, PhotoItem, Session, guarded, photo_info, photo_list,
-    photos_title, prepare_images, same_photo_list,
+    Cache, Editor, ExportCheck, Filter, PhotoItem, Session, guarded, photo_info, photos_title,
+    prepare_images, same_photo_list,
 };
 use slint::{ComponentHandle, Image};
 
@@ -25,6 +25,8 @@ pub enum Pending {
     Close,
     Open,
     NewAlbum,
+    /// O início rápido: o álbum vazio com o tamanho padrão, sem assistente (spec IQ).
+    QuickStart,
     /// "Reiniciar e atualizar" (spec DS, regra 5).
     Update,
     /// O álbum de exemplo (spec PC, regra 4).
@@ -114,7 +116,11 @@ pub struct App {
     pub(crate) seen_thumbs: std::cell::RefCell<lamina_editor::recents::ThumbCache>,
     list: Vec<PhotoItem>,
     /// De que álbum e filtro veio `list`: mexer num quadro não refaz a lista (spec LV, regra 6).
-    list_from: Option<(std::sync::Arc<Project>, Filter)>,
+    list_from: Option<(
+        std::sync::Arc<Project>,
+        Filter,
+        lamina_editor::ordering::SortBy,
+    )>,
     selected: Option<PhotoId>,
 }
 
@@ -237,6 +243,25 @@ impl App {
         self.show_grid(true);
     }
 
+    /// Troca o critério de ordenação do painel (spec OF, beta 9.1).
+    pub fn set_sort(&mut self, sort: lamina_editor::ordering::SortBy) {
+        self.editor.set_photo_sort(sort);
+        // O global do seletor precisa mudar na hora (o refresh_photos não o toca; a conferência
+        // do dono 2026-11-08 viu o dropdown abrir e nada acontecer).
+        if let Some(w) = self.window.upgrade() {
+            use slint::ComponentHandle;
+            let n = match sort {
+                lamina_editor::ordering::SortBy::Name => 1,
+                lamina_editor::ordering::SortBy::Custom => 2,
+                lamina_editor::ordering::SortBy::Capture => 0,
+            };
+            w.global::<crate::SortUi>().set_sort(n);
+        }
+        self.refresh_photos();
+        self.restore_grid_scroll();
+        self.show_grid(true);
+    }
+
     /// As fotos na ordem em que o painel mostra agora.
     pub fn shown_photos(&self) -> Vec<PhotoId> {
         self.list.iter().map(|p| p.id).collect()
@@ -307,14 +332,25 @@ impl App {
         let title = photos_title(session, self.editor.selection().len());
         let filter = self.editor.photo_filter();
         let missing = session.missing().to_vec();
+        // A ordem do critério do painel (spec OF, beta 9.1): captura, nome ou personalizada. O
+        // cache só vale para a mesma foto nas mesmas lâminas E o mesmo critério.
+        let sort = self.editor.photo_sort();
+        // A ordem personalizada muda sem mexer nas lâminas: o cache também confere o
+        // photo_order do projeto.
         let same = self
             .list_from
             .as_ref()
-            .is_some_and(|(from, seen)| *seen == filter && same_photo_list(from, &project));
+            .is_some_and(|(from, seen, seen_sort)| {
+                *seen == filter
+                    && *seen_sort == sort
+                    && same_photo_list(from, &project)
+                    && (sort != lamina_editor::ordering::SortBy::Custom
+                        || from.photo_order == project.photo_order)
+            });
         if !same {
-            self.list = photo_list(&project, filter);
+            self.list = lamina_editor::photo_list_sorted(&project, filter, sort);
         }
-        self.list_from = Some((project.clone(), filter));
+        self.list_from = Some((project.clone(), filter, sort));
         let mut rows = photo_rows(&self.list, self.editor.selection(), filter);
         for (id, row) in &mut rows {
             row.missing = missing.contains(id);

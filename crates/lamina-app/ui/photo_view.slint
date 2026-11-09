@@ -1,0 +1,243 @@
+// A foto à vista (spec VF, beta 9.1): a prévia na lateral direita (acima das abas do painel) e a
+// foto ampliada no centro da tela, sobre o véu. A prévia da foto de um quadro da lâmina mostra o
+// enquadramento dele, e arrastar nela reenquadra (conferência do dono, 2026-11-04). Só desenho:
+// as decisões são do editor.
+
+import { Theme, Type, Radius, Space, Elevation } from "theme.slint";
+import { Fixed } from "theme.slint";
+import { Icons } from "icons.slint";
+
+export global PhotoViewUi {
+    // A prévia na lateral: a imagem, a legenda e o selo de usos.
+    in property <bool> has-preview;
+    in property <image> preview-img;
+    in property <string> caption;
+    in property <string> uses;
+    // A proporção da foto da prévia (altura ÷ largura): a caixa segue o formato da foto, sem
+    // cortar nada (conferência do dono, 2026-11-04).
+    in property <float> preview-aspect: 1;
+    // O recorte visível da prévia (frações 0..1 da imagem); sem quadro por trás, a foto inteira.
+    in property <bool> has-clip;
+    in property <float> clip-x;
+    in property <float> clip-y;
+    in property <float> clip-w;
+    in property <float> clip-h;
+    // Arrastar na prévia reenquadra (só com quadro por trás).
+    in property <bool> can-frame;
+    callback drag(float, float);
+    callback release();
+    // A ampliada no centro.
+    in property <bool> open;
+    in property <image> img;
+    in property <string> big-caption;
+    callback toggle();
+    callback close();
+    callback step(bool);
+    callback clicked-outside();
+}
+
+// A prévia da lateral direita: área fixa acima das abas do painel (decisão do dono, 2026-11-04).
+// Sem foto escolhida, não ocupa nada (o `if` desmonta o conteúdo e a altura vai a 0).
+export component PhotoPreview inherits Rectangle {
+    if PhotoViewUi.has-preview: VerticalLayout {
+        padding: Space.s2;
+        spacing: Space.s1;
+        Rectangle {
+            // Altura limitada para não empurrar as abas do painel (conferência 2026-11-07:
+            // com 2 fotos selecionadas, a miniatura sobrepunha textos e funções).
+            height: min(self.width * PhotoViewUi.preview-aspect, 200px);
+            border-width: 1px;
+            border-color: Theme.line;
+            // A foto inteira (formato original, sem cortar — conferência do dono 2026-11-07).
+            Image {
+                accessible-role: none;
+                accessible-label: "";
+                width: parent.width;
+                height: parent.height;
+                source: PhotoViewUi.preview-img;
+                image-fit: contain;
+            }
+            // As sobras (fora do enquadramento) ficam esmaecidas, e o frame amarelo marca a
+            // região que vai para a lâmina (conferência do dono 2026-11-07).
+            if PhotoViewUi.has-clip: Rectangle {
+                x: 0;
+                y: 0;
+                width: parent.width;
+                height: PhotoViewUi.clip-y * parent.height;
+                background: Fixed.clip-scrim;
+            }
+            if PhotoViewUi.has-clip: Rectangle {
+                x: 0;
+                y: (PhotoViewUi.clip-y + PhotoViewUi.clip-h) * parent.height;
+                width: parent.width;
+                height: (1 - PhotoViewUi.clip-y - PhotoViewUi.clip-h) * parent.height;
+                background: Fixed.clip-scrim;
+            }
+            if PhotoViewUi.has-clip: Rectangle {
+                x: 0;
+                y: PhotoViewUi.clip-y * parent.height;
+                width: PhotoViewUi.clip-x * parent.width;
+                height: PhotoViewUi.clip-h * parent.height;
+                background: Fixed.clip-scrim;
+            }
+            if PhotoViewUi.has-clip: Rectangle {
+                x: (PhotoViewUi.clip-x + PhotoViewUi.clip-w) * parent.width;
+                y: PhotoViewUi.clip-y * parent.height;
+                width: (1 - PhotoViewUi.clip-x - PhotoViewUi.clip-w) * parent.width;
+                height: PhotoViewUi.clip-h * parent.height;
+                background: Fixed.clip-scrim;
+            }
+            if PhotoViewUi.has-clip: Rectangle {
+                x: PhotoViewUi.clip-x * parent.width;
+                y: PhotoViewUi.clip-y * parent.height;
+                width: PhotoViewUi.clip-w * parent.width;
+                height: PhotoViewUi.clip-h * parent.height;
+                border-width: 2px;
+                border-color: Fixed.crop;
+            }
+            TouchArea {
+                enabled: PhotoViewUi.can-frame;
+                mouse-cursor: PhotoViewUi.can-frame ? move : default;
+                property <length> last-x;
+                property <length> last-y;
+                pointer-event(e) => {
+                    if (e.button == PointerEventButton.left) {
+                        if (e.kind == PointerEventKind.down) {
+                            self.last-x = self.mouse-x;
+                            self.last-y = self.mouse-y;
+                        }
+                        if (e.kind == PointerEventKind.up) {
+                            PhotoViewUi.release();
+                        }
+                    }
+                }
+                moved => {
+                    if (self.pressed) {
+                        PhotoViewUi.drag(
+                            (self.mouse-x - self.last-x) / self.width,
+                            (self.mouse-y - self.last-y) / self.height
+                        );
+                        self.last-x = self.mouse-x;
+                        self.last-y = self.mouse-y;
+                    }
+                }
+            }
+        }
+        Text {
+            text: PhotoViewUi.caption;
+            font-size: Type.small;
+            color: Theme.text-2;
+            overflow: elide;
+            wrap: no-wrap;
+        }
+        if PhotoViewUi.uses != "": Text {
+            text: PhotoViewUi.uses;
+            font-size: Type.small;
+            color: Theme.text-2;
+        }
+        if PhotoViewUi.can-frame: Text {
+            text: "Arraste para reenquadrar";
+            font-size: Type.small;
+            color: Theme.text-3;
+        }
+    }
+}
+
+// A foto ampliada no centro, sobre o véu escuro (como os diálogos, spec DD): um PopupWindow,
+// que pega o teclado ao abrir — Esc e as setas são daqui, Espaço fecha no key-pressed do
+// `app.slint` (o toggle; o popup devolve o foco ao fechar).
+export component PhotoOverlay inherits Rectangle {
+    // Como os diálogos (surfaces.slint): montar um PopupWindow não mostra nada — o show() é o
+    // que o registra, pega o teclado ao abrir e devolve o foco ao fechar.
+    init => {
+        view-popup.show();
+    }
+    view-popup := PopupWindow {
+        x: 0;
+        y: 0;
+        // Como os diálogos: maior que a janela, encostado no canto (o véu desenha do tamanho da
+        // janela por dentro).
+        width: 16000px;
+        height: 16000px;
+        close-policy: no-auto-close;
+        keys := FocusScope {
+            focus-on-tab-navigation: false;
+            init => {
+                self.focus();
+            }
+            key-pressed(event) => {
+                if (event.text == " " || event.text == Key.Escape) {
+                    PhotoViewUi.close();
+                    return accept;
+                }
+                if (event.text == Key.LeftArrow) {
+                    PhotoViewUi.step(false);
+                    return accept;
+                }
+                if (event.text == Key.RightArrow) {
+                    PhotoViewUi.step(true);
+                    return accept;
+                }
+                reject
+            }
+        }
+        Rectangle {
+        x: 0;
+        y: 0;
+        width: root.width;
+        height: root.height;
+        background: Theme.veil;
+        // Clique fora da foto fecha (spec VF, seção 3).
+        TouchArea {
+            mouse-cursor: default;
+            clicked => { PhotoViewUi.clicked-outside(); }
+        }
+        VerticalLayout {
+            alignment: center;
+            padding: Space.s4;
+            // A foto inteira, sem cortar, centrada, até 85% da janela.
+            Image {
+                accessible-role: none;
+                accessible-label: "";
+                source: PhotoViewUi.img;
+                image-fit: contain;
+                width: min(parent.width, parent.height * 1.5);
+            }
+            HorizontalLayout {
+                alignment: center;
+                Text {
+                    text: PhotoViewUi.big-caption;
+                    font-size: Type.small;
+                    color: Fixed.on-veil;
+                }
+            }
+        }
+        // O botão de fechar no canto (pedido do dono na conferência, 2026-11-04): um círculo
+            // visível sobre o véu, por cima de tudo.
+            Rectangle {
+            x: parent.width - self.width - 16px;
+            y: 16px;
+            width: 44px;
+            height: 44px;
+            border-radius: self.height / 2;
+            background: touch.has-hover ? Theme.dim : Theme.shadow;
+            border-width: 1px;
+            border-color: Theme.veil;
+            Image {
+                accessible-role: none;
+                accessible-label: "";
+                source: Icons.close;
+                width: 22px;
+                height: 22px;
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                colorize: Fixed.on-veil;
+            }
+            touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => { PhotoViewUi.close(); }
+            }
+        }
+    }
+}
+}

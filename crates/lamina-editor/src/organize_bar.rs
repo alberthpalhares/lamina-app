@@ -71,7 +71,8 @@ impl BarMenu {
         }
     }
 
-    /// Os comandos do menu, na ordem das linhas (regra 1, item 4).
+    /// Os comandos do menu, na ordem das linhas (regra 1, item 4). Os "à lâmina" (spec GJ,
+    /// conferência do dono 2026-11-04) vêm depois dos entre os selecionados.
     pub fn commands(self) -> &'static [Command] {
         match self {
             BarMenu::Align => &[
@@ -81,13 +82,24 @@ impl BarMenu {
                 Command::AlignTop,
                 Command::AlignMiddle,
                 Command::AlignBottom,
+                Command::AlignLeftToSpread,
+                Command::AlignCenterToSpread,
+                Command::AlignRightToSpread,
+                Command::AlignTopToSpread,
+                Command::AlignMiddleToSpread,
+                Command::AlignBottomToSpread,
             ],
             BarMenu::Equal => &[
                 Command::EqualWidth,
                 Command::EqualHeight,
                 Command::EqualSize,
             ],
-            BarMenu::Distribute => &[Command::DistributeAcross, Command::DistributeDown],
+            BarMenu::Distribute => &[
+                Command::DistributeAcross,
+                Command::DistributeDown,
+                Command::DistributeAcrossToSpread,
+                Command::DistributeDownToSpread,
+            ],
         }
     }
 

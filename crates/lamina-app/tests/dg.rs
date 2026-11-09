@@ -67,10 +67,14 @@ fn dg_b4_foco_por_tab_na_barra() {
     assert!(menu.contains("FocusScope"));
     assert!(menu.contains("FocusRing"));
     assert!(menu.contains("Key.Space") && menu.contains("Key.Return"));
-    // Dentro do menu, as setas e o Tab andam pelas linhas.
-    let rows = &text[text.find("component MenuRows").unwrap()..start];
-    assert!(rows.contains("Key.Tab") && rows.contains("Key.Backtab"));
-    assert!(rows.contains("Key.DownArrow") && rows.contains("Key.UpArrow"));
+    // Dentro do menu, as setas e o Tab andam pelas linhas; o aro da linha vive no `MenuRow`
+    // (declarado antes do `MenuRows`, o Slint só vê componentes já declarados).
+    let rows =
+        &text[text.find("component MenuRow").unwrap()..text.find("component MenuRows").unwrap()];
+    assert!(text[text.find("component MenuRows").unwrap()..start].contains("Key.Tab"));
+    assert!(text[text.find("component MenuRows").unwrap()..start].contains("Key.Backtab"));
+    assert!(text[text.find("component MenuRows").unwrap()..start].contains("Key.DownArrow"));
+    assert!(text[text.find("component MenuRows").unwrap()..start].contains("Key.UpArrow"));
     assert!(rows.contains("FocusRing"));
     // O ⋯ é um botão da DF.
     assert!(bar(&text).contains("icon: Icons.more;"));

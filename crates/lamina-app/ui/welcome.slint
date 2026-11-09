@@ -86,6 +86,8 @@ component FirstUse inherits VerticalLayout {
                 padding-top: Space.s2;
                 spacing: Space.s2;
                 DialogButton { text: "Novo álbum…"; primary: true; clicked => { root.command("arquivo.novo"); } }
+                // Início rápido (spec IQ): o álbum vazio com o tamanho padrão, sem assistente.
+                DialogButton { text: "Início rápido"; clicked => { root.command("arquivo.inicio-rapido"); } }
                 DialogButton { text: "Álbum de exemplo"; clicked => { root.command("arquivo.exemplo"); } }
             }
         }

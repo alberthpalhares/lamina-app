@@ -41,6 +41,8 @@ impl Editor {
         let Some(&id) = shown.get(index) else {
             return;
         };
+        // A prévia passa a ser a foto clicada, qualquer que seja o clique (spec VF, regra 1).
+        self.view_photo_clicked(shown, index);
         let anchor = self.anchor.and_then(|a| shown.iter().position(|p| *p == a));
         let mut chosen: Vec<PhotoId> = match (ctrl, shift, anchor) {
             (_, true, Some(a)) => shown[a.min(index)..=a.max(index)].to_vec(),

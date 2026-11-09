@@ -24,6 +24,8 @@ export component Stage inherits Rectangle {
     in property <bool> guides;
     in property <bool> gutter-shadow;
     in property <int> selected-frame: -1;
+    // Um gesto à mão em curso com marcas de ímã na edição comum (spec GJ).
+    in property <bool> gesture-marking;
     // O álbum sem lâminas (spec IM), fora da capa aberta (spec CA), e quantas fotos há.
     in property <bool> empty-album;
     in property <int> photo-count;
@@ -139,8 +141,14 @@ export component Stage inherits Rectangle {
     // O laço do modo organizar: os dois cantos em frações da largura da lâmina e o Shift.
     callback lasso-done(float, float, float, float, bool);
     out property <bool> lasso-moved;
+    // Clique no vazio da lâmina (fora do organizar) desmarca os quadros (conferência do dono,
+    // 2026-11-07).
+    callback background-clicked();
     function background-event(kind: int, x: length, y: length, shift: bool) {
         if (!OrganizeUi.on) {
+            if (kind == 2) {
+                root.background-clicked();
+            }
             return;
         }
         if (kind == 0) {
@@ -327,6 +335,7 @@ export component Stage inherits Rectangle {
         grab(i, n, x, y, w) => { root.frame-grab(i, n, x, y, w); }
         grab-move(x, y, alt, shift) => { root.frame-drag(x, y, alt, shift); }
         organizing: OrganizeUi.on;
+        multi-selected: OrganizeUi.has-group;
         organize-press(i, ctrl, shift, x, y, w) => { root.organize-press(i, ctrl, shift, x, y, w); }
         grab-end => { root.frame-release(); root.focus-main(); }
         hover-fx <=> root.hover-fx;
@@ -389,8 +398,9 @@ export component Stage inherits Rectangle {
         import => { root.command("arquivo.importar"); }
         build => { root.command("lamina.montar-album"); }
     }
-    // O modo organizar: os quadros selecionados e a barra da lâmina em destaque.
-    if OrganizeUi.on: OrganizeMarks {
+    // O modo organizar: os quadros selecionados e a barra da lâmina em destaque. Na edição comum,
+    // as marcas dos ímãs durante o gesto de mover/redimensionar (spec GJ).
+    if OrganizeUi.on || root.gesture-marking: OrganizeMarks {
         x: big.x;
         y: big.y;
         width: big.width;

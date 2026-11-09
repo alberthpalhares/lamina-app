@@ -161,18 +161,28 @@ impl Editor {
         Some((spread.id, spread.frames.iter().map(|f| f.id).collect()))
     }
 
-    /// Clique num quadro. No modo, Ctrl ou Shift soma ou tira; fora dele, só seleciona um.
+    /// Clique num quadro na lâmina (spec GJ): na edição comum e no modo organizar, Ctrl ou Shift
+    /// soma ou tira e monta a seleção de quadros; sem eles, só seleciona um. Com foto no quadro,
+    /// a prévia da lateral passa a ser ela (spec VF, conferência do dono 2026-11-04).
+    pub fn frame_click(&mut self, frame: usize, ctrl: bool, shift: bool) {
+        self.view_frame_photo(frame);
+        self.organize_click(frame, ctrl, shift);
+    }
+
+    /// Clique num quadro. No modo organizar (EG) ou na edição comum (spec GJ), Ctrl ou Shift soma
+    /// ou tira e monta a seleção de quadros; sem eles, só seleciona um.
     pub fn organize_click(&mut self, frame: usize, ctrl: bool, shift: bool) {
-        if !self.organize.on {
-            self.select_frame(Some(frame));
-            return;
-        }
         let Some((spread, ids)) = self.current_ids() else {
             return;
         };
         let Some(&id) = ids.get(frame) else {
             return;
         };
+        if !self.organize.on && !ctrl && !shift {
+            self.organize.ids.clear();
+            self.select_frame(Some(frame));
+            return;
+        }
         if self.organize.spread != Some(spread) {
             self.organize.ids.clear();
             self.organize.spread = Some(spread);
@@ -204,9 +214,21 @@ impl Editor {
             .and_then(|(_, ids)| reference.and_then(|r| ids.iter().position(|i| *i == r)));
     }
 
-    /// Os quadros selecionados da lâmina atual, na ordem da lâmina. Fora do modo, o quadro
-    /// selecionado de sempre.
+    /// Os quadros selecionados da lâmina atual, na ordem da lâmina. Fora do modo organizar, o
+    /// quadro selecionado de sempre — ou a seleção múltipla da edição comum, quando ela tem 2 ou
+    /// mais (spec GJ).
     pub fn selected_frames(&self) -> Vec<usize> {
+        if !self.organize.on
+            && let Some((spread, ids)) = self.current_ids()
+            && self.organize.spread == Some(spread)
+            && self.organize.ids.len() > 1
+            && ids.iter().any(|i| self.organize.ids.contains(i))
+        {
+            let sel: Vec<usize> = (0..ids.len())
+                .filter(|i| self.organize.ids.contains(&ids[*i]))
+                .collect();
+            return sel;
+        }
         if !self.organize.on {
             return self.selected_frame.into_iter().collect();
         }
@@ -238,6 +260,11 @@ impl Editor {
         self.organize.ids = ids;
         self.sync_reference();
         !self.organize.ids.is_empty()
+    }
+
+    /// Desmarca os quadros (modo organizar ou edição comum); `true` se havia algum.
+    pub fn deselect_frames(&mut self) -> bool {
+        self.clear_frames()
     }
 
     /// Desmarca os quadros do modo; `true` se havia algum.

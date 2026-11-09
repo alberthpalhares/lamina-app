@@ -2,7 +2,10 @@
 //! preferências. As contas estão em [`crate::suggestions`]; aqui fica o estado.
 
 use lamina_core::Project;
-use lamina_layout::{LayoutCandidate, LayoutLists, add_models, apply_preferences, design_key};
+use lamina_layout::factory;
+use lamina_layout::{
+    LayoutCandidate, LayoutLists, SpreadModel, add_models, apply_preferences, design_key,
+};
 
 use super::Editor;
 use crate::suggestions::{
@@ -50,12 +53,14 @@ impl Editor {
             return found.clone();
         }
         let mut computed = lists_learned(project, sel, self.learned()).unwrap_or_default();
-        // Os modelos do fotógrafo valem para a lâmina inteira (spec MD; uma página só fica sem
-        // fase). Sem lista do motor (erro), não há onde pôr.
+        // Os modelos do fotógrafo (spec MD) e os de fábrica (spec RM, beta 9.1) valem para a
+        // lâmina inteira; uma página só fica sem fase. Sem lista do motor (erro), não há onde pôr.
         if sel.whole && !computed.in_order.is_empty() {
             let at = (sel.active, sel.gap);
-            let models = self.models.all();
-            let _ = add_models(&mut computed, &project.spec, at, &sel.aspects, models);
+            let mut models = self.models.all().to_vec();
+            // A fábrica da mistura de orientações da seleção (regra 5 da RM).
+            models.extend(factory_for(sel));
+            let _ = add_models(&mut computed, &project.spec, at, &sel.aspects, &models);
         }
         self.lists.borrow_mut().insert(key, computed.clone());
         computed
@@ -130,7 +135,7 @@ impl Editor {
             return false;
         };
         let index = session.current();
-        match session.edit("Trocar layout", |p| apply(p, index, &sel, &c)) {
+        match session.edit("Trocar modelo", |p| apply(p, index, &sel, &c)) {
             Ok(()) => true,
             Err(e) => {
                 self.report(&e);
@@ -183,7 +188,7 @@ impl Editor {
         Some((design_key(&panel.options[p], &sel.aspects), p))
     }
 
-    fn save_prefs(&mut self) {
+    pub(super) fn save_prefs(&mut self) {
         if let Err(message) = self.prefs.save() {
             self.notice = Some(message);
         }
@@ -191,6 +196,18 @@ impl Editor {
 
     /// Estrela ou "×" num cartão da faixa: favorita ou rejeita a opção `i` da lâmina
     /// inteira. Rejeitar a que está em uso passa para a seguinte.
+    /// Marca um desenho pela chave (favorito `true`, rejeitado `false`), sem passar pela faixa —
+    /// para o painel de gerenciamento (spec RM, beta 9.1).
+    pub fn preferences_mark(&mut self, key: &str, favorite: bool) -> bool {
+        if favorite {
+            self.prefs.prefs.toggle_favorite(key);
+        } else {
+            self.prefs.prefs.reject(key);
+        }
+        self.save_prefs();
+        true
+    }
+
     pub fn mark_option(&mut self, i: usize, favorite: bool) -> bool {
         // A lista de cartões muda: a prévia é limpa (spec FL, regra 9).
         self.clear_hover();
@@ -242,4 +259,22 @@ impl Editor {
         self.apply_option(Part::Spread, next);
         true
     }
+}
+
+/// A biblioteca de fábrica inteira (para a montagem automática da janela; spec RM, regra 5).
+pub(super) fn factory_models_all() -> Vec<SpreadModel> {
+    factory::factory_models_all()
+}
+
+/// Os modelos de fábrica que casam com a seleção (spec RM, regra 5): a mistura de orientações
+/// dela, na configuração de páginas dela.
+fn factory_for(sel: &Selection) -> Vec<SpreadModel> {
+    let (h, v, q) = sel.aspects.iter().fold((0, 0, 0), |(h, v, q), a| {
+        match lamina_core::Orientation::from_aspect_ratio(*a) {
+            lamina_core::Orientation::Portrait => (h, v + 1, q),
+            lamina_core::Orientation::Square => (h, v, q + 1),
+            lamina_core::Orientation::Landscape => (h + 1, v, q),
+        }
+    });
+    factory::factory_models(h, v, q, sel.active.left && sel.active.right)
 }

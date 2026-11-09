@@ -56,7 +56,7 @@ fn ia_b22_modelo_e_especificacao() {
     assert_eq!(
         labels[labels.len() - 2..],
         [
-            "IA: Trocar layout · lâmina 2",
+            "IA: Trocar modelo · lâmina 2",
             "IA: Trocar a especificação · todas as lâminas"
         ]
     );

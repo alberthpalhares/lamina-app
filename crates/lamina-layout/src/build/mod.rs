@@ -13,7 +13,7 @@ use crate::layouts::{
     Family, LayoutCandidate, LayoutError, LayoutOptions, add_models, layout_options_learned,
 };
 use crate::learned::Learned;
-use crate::plan::{PlanError, PlanOptions, SpreadPlan, SpreadRole, plan_spreads};
+use crate::plan::{PlanError, PlanOptions, SpreadPlan, SpreadRole, plan_spreads_ordered};
 use crate::prefs::{Preferences, design_key};
 use window::{WINDOW, Window, window};
 
@@ -39,6 +39,13 @@ pub struct BuildOptions {
     pub models: Vec<crate::layouts::SpreadModel>,
     /// O que o fotógrafo mais escolhe (spec AL, regra 5). Vazio = escolha de sempre.
     pub learned: Learned,
+    /// **Pela janela** (spec RM, beta 9.1): a montagem segue as listas da janela (sem variantes
+    /// deslocadas, ordenadas pelo preenchimento). Padrão desligado: a linha de comando e a
+    /// remontagem automática continuam como sempre (regra 12).
+    pub window: bool,
+    /// A ordem das fotos na montagem (spec OF, beta 9.1): os ids na ordem do critério do painel.
+    /// Vazia = a ordem do projeto (captura). A linha de comando deixa vazia (regra 12).
+    pub photo_order: Vec<PhotoId>,
 }
 
 /// Uma linha do relatório: o que foi escolhido para a lâmina e por quê.
@@ -95,7 +102,15 @@ pub fn auto_build(
         ));
     }
     let edges = project.spec.edges();
-    let plan = plan_spreads(&project.photos, spreads, edges, &options.plan)?;
+    // A ordem das fotos na montagem (spec OF, beta 9.1): o critério do painel. A linha de
+    // comando deixa `photo_order` vazio e monta na ordem de captura (regra 12).
+    let plan = plan_spreads_ordered(
+        &project.photos,
+        spreads,
+        edges,
+        &options.plan,
+        &options.photo_order,
+    )?;
     let suggestions = suggestions(project, &plan, options)?;
     let mut out = project.clone();
     out.spreads.clear();
@@ -148,6 +163,7 @@ fn suggestions(
         reordered: false,
         gap: project.gap,
         mounting: project.mounting,
+        window: build.window,
     };
     let results: Vec<Result<Window, BuildError>> = plan
         .par_iter()
@@ -186,10 +202,16 @@ fn place(
     }
     if let Some(look) = &candidate.model {
         dress(project, spread, look)?;
-        if let (Family::Model { name, mirrored }, Some(s)) =
-            (&candidate.family, project.spreads.last_mut())
+        if let (
+            Family::Model {
+                name,
+                mirrored,
+                factory,
+            },
+            Some(s),
+        ) = (&candidate.family, project.spreads.last_mut())
         {
-            s.model = Some(crate::prefs::model_key(name, *mirrored));
+            s.model = Some(crate::prefs::model_key(name, *mirrored, *factory));
         }
     }
     Ok(())

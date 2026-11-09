@@ -42,6 +42,14 @@ pub(super) struct CaptionLog {
     pub texto: String,
 }
 
+/// Um destaque (passo `destaque`): o círculo ao redor da marca, de `de` até `ate`.
+#[derive(Debug, Serialize)]
+pub(super) struct HighlightLog {
+    pub de: u64,
+    pub ate: u64,
+    pub marca: String,
+}
+
 #[derive(Debug, Serialize)]
 pub(super) struct Log {
     pub nome: String,
@@ -52,6 +60,7 @@ pub(super) struct Log {
     pub passos: Vec<StepLog>,
     pub cameras: Vec<CameraLog>,
     pub legendas: Vec<CaptionLog>,
+    pub destaques: Vec<HighlightLog>,
 }
 
 impl Log {
@@ -65,6 +74,7 @@ impl Log {
             passos: Vec::new(),
             cameras: Vec::new(),
             legendas: Vec::new(),
+            destaques: Vec::new(),
         }
     }
 

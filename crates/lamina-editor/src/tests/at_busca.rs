@@ -114,6 +114,8 @@ fn at_b11_arrastar_e_clicar_no_topo() {
             "Recortar a foto",
             "Organizar a lâmina à mão, com réguas",
             "Ver as opções do quadro",
+            // Selecionar vários quadros (spec GJ, beta 9.1).
+            "Selecionar vários quadros",
         ]
     );
     assert_eq!(

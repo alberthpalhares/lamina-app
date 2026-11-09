@@ -17,6 +17,9 @@ fn first_only(gap: lamina_core::Mm, mounting: lamina_core::Mounting) -> LayoutOp
         max_candidates: 12,
         reordered: false,
         mounting,
+        // A remontagem automática segue sem as listas da janela (spec RM, regra 4; como o
+        // `layout_with` da AL, regra 6).
+        window: false,
     }
 }
 

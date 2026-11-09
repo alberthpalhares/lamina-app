@@ -129,6 +129,7 @@ fn proceed(app: &mut App, action: Pending) {
         }
         Pending::Open => open(app),
         Pending::NewAlbum => crate::new_project::start(app),
+        Pending::QuickStart => crate::quick_start::open(app),
         Pending::Update => {
             // O fotógrafo já respondeu "Salvar as alterações?" (spec CS, regra 3).
             app.editor.finish_backups();

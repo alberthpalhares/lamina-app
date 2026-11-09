@@ -10,6 +10,7 @@
 //! - [`build`]: montagem automática, o álbum inteiro com um layout por lâmina (spec `auto-build`).
 
 pub mod build;
+pub mod factory;
 pub mod layouts;
 pub mod learned;
 pub mod plan;

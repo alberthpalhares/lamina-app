@@ -9,6 +9,7 @@ import { BoxData } from "canvas.slint";
 import { LookPanel } from "look.slint";
 import { PhotoUi, PhotoSection } from "photo.slint";
 import { FocusRing, IconButton, NeutralSlider, Tip, DialogButton, CheckRow } from "widgets.slint";
+import { Mark } from "marks.slint";
 import { PaletteUi } from "palette.slint";
 
 // Uma marca do ímã de mesmo tamanho ou de espaçamento igual: a linha e o texto, em frações da
@@ -108,14 +109,57 @@ export global OrganizeUi {
     callback zoom-slider(float);
 }
 
+// Uma linha de menu da barra (spec BO): ícone, nome, foco e a marca da filmagem dentro do
+// componente, como o menu de contexto faz (a marca solta no `for` não reporta no popup).
+component MenuRow inherits Rectangle {
+    in property <BarRow> data;
+    in property <bool> active;
+    in property <bool> focused;
+    callback run();
+    height: 28px;
+    min-width: 210px;
+    border-radius: Radius.small;
+    background: (row-touch.has-hover || root.active) && root.data.enabled ? Theme.press : transparent;
+    HorizontalLayout {
+        padding-left: Space.s2;
+        padding-right: Space.s3;
+        spacing: Space.s2;
+        alignment: start;
+        VerticalLayout {
+            alignment: center;
+            Image {
+                accessible-role: none;
+                width: 18px;
+                height: 18px;
+                source: root.data.icon;
+                colorize: root.data.enabled ? Theme.text : Theme.text-disabled;
+            }
+        }
+        Text { text: root.data.label; color: root.data.enabled ? Theme.text : Theme.text-disabled; vertical-alignment: center; }
+    }
+    accessible-role: button;
+    accessible-label: root.data.label;
+    accessible-enabled: root.data.enabled;
+    accessible-action-default => { root.run(); }
+    row-touch := TouchArea {
+        enabled: root.data.enabled;
+        clicked => { root.run(); }
+    }
+    FocusRing { shown: root.active && root.focused; x: 0; y: 0; width: parent.width; height: parent.height; }
+}
+
 // As linhas de um menu (ícone e nome); clicar roda o comando e fecha. Pelo teclado, as setas andam
 // pelas linhas e Enter ou Espaço rodam (spec DG, regra 5); com `tab-moves`, o Tab também, porque o menu
 // sozinho não tem para onde ir. Dentro do ⋯, o Tab passa para o próximo grupo.
 component MenuRows inherits VerticalLayout {
     in property <[BarRow]> rows;
+    // O prefixo das marcas da filmagem: a linha i é `prefixo-i` (1 é a primeira); vazio = sem marca.
+    in property <string> mark-prefix;
     in property <bool> tab-moves;
     in-out property <int> active: -1;
     callback picked();
+    // Esc dentro do menu: quem o abriu fecha o popup (a política é no-auto-close).
+    callback escaped();
     function run(i: int) {
         if (root.rows[i].enabled) {
             PaletteUi.command(root.rows[i].command);
@@ -144,40 +188,19 @@ component MenuRows inherits VerticalLayout {
                 root.run(root.active);
                 return accept;
             }
+            if (e.text == Key.Escape) {
+                root.escaped();
+                return accept;
+            }
             return reject;
         }
     }
-    for r[i] in root.rows: Rectangle {
-        height: 28px;
-        min-width: 210px;
-        border-radius: Radius.small;
-        background: (row-touch.has-hover || i == root.active) && r.enabled ? Theme.press : transparent;
-        HorizontalLayout {
-            padding-left: Space.s2;
-            padding-right: Space.s3;
-            spacing: Space.s2;
-            alignment: start;
-            VerticalLayout {
-                alignment: center;
-                Image {
-                    accessible-role: none;
-                    width: 18px;
-                    height: 18px;
-                    source: r.icon;
-                    colorize: r.enabled ? Theme.text : Theme.text-disabled;
-                }
-            }
-            Text { text: r.label; color: r.enabled ? Theme.text : Theme.text-disabled; vertical-alignment: center; }
-        }
-        accessible-role: button;
-        accessible-label: r.label;
-        accessible-enabled: r.enabled;
-        accessible-action-default => { root.run(i); }
-        row-touch := TouchArea {
-            enabled: r.enabled;
-            clicked => { root.run(i); }
-        }
-        FocusRing { shown: i == root.active && scope.has-focus; x: 0; y: 0; width: parent.width; height: parent.height; }
+    for r[i] in root.rows: MenuRow {
+        data: r;
+        active: i == root.active;
+        focused: scope.has-focus;
+        run => { root.run(i); }
+        Mark { name: root.mark-prefix == "" ? "" : root.mark-prefix + (i + 1); on: root.mark-prefix != ""; }
     }
 }
 
@@ -190,6 +213,10 @@ component MenuButton inherits Rectangle {
     in property <string> text;
     in property <string> tip;
     in property <bool> enabled;
+    // O prefixo das marcas das linhas do popup (filmagem): a linha i é `prefixo-i`.
+    in property <string> mark-prefix;
+    // O nome da marca da filmagem do próprio botão; vazio = sem marca.
+    in property <string> mark;
     in property <[BarRow]> rows;
     property <int> first: -1;
     function open(by-keys: bool) {
@@ -219,8 +246,16 @@ component MenuButton inherits Rectangle {
         source: Icons.chevron-down;
         colorize: root.enabled ? Theme.text-strong : Theme.text-disabled;
     }
+    Mark { name: root.mark; on: root.mark != ""; }
     touch := TouchArea {
         clicked => { root.open(false); }
+    }
+    // Balão explicativo ao parar o mouse (conferência do dono 2026-11-07).
+    if root.tip != "": Tip {
+        x: 0px;
+        y: parent.height + 4px;
+        text: root.tip;
+        shown: touch.has-hover;
     }
     focus := FocusScope {
         x: 0;
@@ -235,10 +270,27 @@ component MenuButton inherits Rectangle {
         }
     }
     FocusRing { shown: focus.has-focus; x: -3px; y: -3px; width: parent.width + 6px; height: parent.height + 6px; }
+    // Sem fechar sozinho (o menu de contexto faz igual): a marca da filmagem não reporta quando o
+    // popup se fecha no clique que o abre; fechar é no `picked`, no Esc e no clique fora.
     popup := PopupWindow {
         forward-focus: list;
-        y: parent.height + Line.focus;
+        close-policy: no-auto-close;
+        x: 0;
+        y: 0;
+        width: 16000px;
+        height: 16000px;
+        // Fecha no soltar fora do painel: assim o clique fora não vaza para a lâmina.
+        TouchArea {
+            pointer-event(e) => {
+                if (e.kind == PointerEventKind.up) {
+                    popup.close();
+                }
+            }
+        }
         Rectangle {
+            x: 0;
+            y: 32px + Line.focus;
+            width: list.preferred-width + 2 * Space.s1;
             background: Theme.raised;
             border-radius: Radius.medium;
             border-width: Line.thin;
@@ -246,7 +298,7 @@ component MenuButton inherits Rectangle {
             drop-shadow-blur: Elevation.menu-blur;
             drop-shadow-offset-y: Elevation.menu-y;
             drop-shadow-color: Elevation.menu-color;
-            list := MenuRows { rows: root.rows; tab-moves: true; active: root.first; picked => { popup.close(); } }
+            list := MenuRows { rows: root.rows; mark-prefix: root.mark-prefix; tab-moves: true; active: root.first; picked => { popup.close(); } escaped => { popup.close(); } }
         }
     }
     Tip {
@@ -327,8 +379,9 @@ export component OrganizeBar inherits Rectangle {
         if OrganizeUi.bar-menus: HorizontalLayout {
             horizontal-stretch: 0;
             spacing: Space.s1;
+            Mark { name: "barra-alinhar"; }
             VerticalLayout { alignment: center; Separator { } }
-            VerticalLayout { alignment: center; MenuButton { text: "Alinhar"; tip: OrganizeUi.menu-tips[0]; enabled: PaletteUi.can-align; rows: OrganizeUi.align-rows; } }
+            VerticalLayout { alignment: center; MenuButton { text: "Alinhar"; tip: OrganizeUi.menu-tips[0]; enabled: PaletteUi.can-align; rows: OrganizeUi.align-rows; mark-prefix: "menu-alinhar-"; mark: "botao-alinhar"; } }
             VerticalLayout { alignment: center; MenuButton { text: "Igualar"; tip: OrganizeUi.menu-tips[1]; enabled: PaletteUi.can-align; rows: OrganizeUi.equal-rows; } }
             VerticalLayout { alignment: center; MenuButton { text: "Distribuir"; tip: OrganizeUi.menu-tips[2]; enabled: PaletteUi.can-distribute; rows: OrganizeUi.distribute-rows; } }
         }
@@ -587,26 +640,31 @@ export component OrganizeMarks inherits Rectangle {
         border-color: Theme.overlay-strong;
     }
     for m in OrganizeUi.marks: Rectangle {
+        // As linhas do ímã mais grossas e o rótulo com fundo sólido (conferência do dono
+        // 2026-11-07: destacar o vão igual).
         Rectangle {
             x: m.line.x * root.unit;
             y: m.line.y * root.unit;
-            width: max(1px, m.line.w * root.unit);
-            height: max(1px, m.line.h * root.unit);
+            width: max(2px, m.line.w * root.unit);
+            height: max(2px, m.line.h * root.unit);
             background: Fixed.guide;
         }
         Rectangle {
             x: m.tx * root.unit;
             y: m.ty * root.unit - self.height / 2;
-            width: label.preferred-width + 8px;
-            height: label.preferred-height + 4px;
+            width: label.preferred-width + 10px;
+            height: label.preferred-height + 6px;
             background: Theme.shadow-strong;
+            border-width: 1px;
+            border-color: Fixed.guide;
             border-radius: Radius.small;
             label := Text {
-                x: 4px;
-                y: 2px;
+                x: 5px;
+                y: 3px;
                 text: m.text;
                 color: Fixed.guide;
                 font-size: Type.caption;
+                font-weight: Type.semibold;
             }
         }
     }
@@ -623,16 +681,116 @@ export component LassoBox inherits Rectangle {
     border-color: Theme.accent;
 }
 
-// O painel da direita no modo (EG-B23): a seleção, a foto, fundo e espaço da lâmina. Os campos de
-// posição e tamanho foram para a barra de cima (spec BO, regra 1).
+// Uma célula do painel de alinhar: ícone com dica (spec GJ, conferência do dono 2026-11-04).
+component AlignCell inherits Rectangle {
+    in property <string> tip;
+    in property <image> icon;
+    // A fileira "à lâmina" (spread) usa o tom de foco no ícone, para distinguir da fileira de
+    // selecionados (conferência do dono 2026-11-08).
+    in property <bool> spread: false;
+    accessible-role: button;
+    accessible-label: root.tip;
+    accessible-action-default => { root.picked(); }
+    callback picked();
+    width: 30px;
+    height: 30px;
+    border-radius: Radius.small;
+    border-width: 1px;
+    border-color: root.spread ? Theme.accent : Theme.line;
+    background: touch.has-hover ? Theme.dim : Theme.raised;
+    Image {
+        accessible-role: none;
+        accessible-label: "";
+        source: root.icon;
+        colorize: root.spread ? Theme.accent : Theme.text;
+        width: 18px;
+        height: 18px;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+    }
+    touch := TouchArea { mouse-cursor: pointer; clicked => { root.picked(); } }
+    // Balão explicativo ao parar o mouse (conferência do dono 2026-11-07).
+    Tip {
+        x: 0px;
+        y: parent.height + 4px;
+        text: root.tip;
+        shown: touch.has-hover;
+    }
+}
+
+// Os botões de alinhar e distribuir como o painel do Photoshop (pedido do dono na conferência
+// da beta 9.1): ícones pequenos, duas fileiras — entre os selecionados e na área da lâmina.
+component AlignGrid inherits Rectangle {
+    horizontal-stretch: 1;
+    callback command(string);
+    // A referência dos comandos: 0 = entre os selecionados, 1 = a área da lâmina (spec GJ,
+    // conferência do dono 2026-11-08: como o seletor do Photoshop, sem ícones duplicados).
+    property <int> reference: 0;
+    // Os comandos "à lâmina" têm o sufixo no meio (organizar.distribuir-lamina-horizontal).
+    function cmd(base: string) {
+        if (reference != 1) {
+            root.command(base);
+        } else if (base == "organizar.distribuir-horizontal") {
+            root.command("organizar.distribuir-lamina-horizontal");
+        } else if (base == "organizar.distribuir-vertical") {
+            root.command("organizar.distribuir-lamina-vertical");
+        } else {
+            root.command(base + "-lamina");
+        }
+    }
+    VerticalLayout {
+        spacing: Space.s1;
+        HorizontalLayout {
+            spacing: Space.s2;
+            Text {
+                text: "Alinhar";
+                color: Theme.text;
+                font-size: Type.small;
+                font-weight: Type.semibold;
+                vertical-alignment: center;
+            }
+            Rectangle { horizontal-stretch: 1; }
+            // O seletor de referência: 0 = os selecionados, 1 = a área da lâmina.
+            AlignCell {
+                icon: Icons.spread-frame;
+                tip: "Alinhar em relação à área da lâmina (marcado) ou entre os selecionados";
+                spread: root.reference == 1;
+                picked => { root.reference = root.reference == 1 ? 0 : 1; }
+            }
+        }
+        HorizontalLayout {
+            spacing: Space.s1;
+            AlignCell { icon: Icons.align-left; tip: "Alinhar à esquerda"; picked => { root.cmd("organizar.alinhar-esquerda"); } }
+            AlignCell { icon: Icons.align-center; tip: "Alinhar ao centro (horizontal)"; picked => { root.cmd("organizar.alinhar-centro"); } }
+            AlignCell { icon: Icons.align-right; tip: "Alinhar à direita"; picked => { root.cmd("organizar.alinhar-direita"); } }
+            AlignCell { icon: Icons.align-top; tip: "Alinhar ao topo"; picked => { root.cmd("organizar.alinhar-topo"); } }
+            AlignCell { icon: Icons.align-middle; tip: "Alinhar ao meio (vertical)"; picked => { root.cmd("organizar.alinhar-meio"); } }
+            AlignCell { icon: Icons.align-bottom; tip: "Alinhar à base"; picked => { root.cmd("organizar.alinhar-base"); } }
+        }
+        Text {
+            text: "Distribuir";
+            color: Theme.text;
+            font-size: Type.small;
+            font-weight: Type.semibold;
+        }
+        HorizontalLayout {
+            spacing: Space.s1;
+            AlignCell { icon: Icons.distribute-horizontal; tip: "Distribuir na horizontal"; picked => { root.cmd("organizar.distribuir-horizontal"); } }
+            AlignCell { icon: Icons.distribute-vertical; tip: "Distribuir na vertical"; picked => { root.cmd("organizar.distribuir-vertical"); } }
+        }
+    }
+}
+
 export component OrganizePanel inherits ScrollView {
     callback done();
+    callback command(string);
     VerticalLayout {
     width: root.visible-width;
     spacing: Space.s2;
     Text { text: OrganizeUi.title; color: Theme.text; font-weight: Type.semibold; }
     if OrganizeUi.count != "": Text { text: OrganizeUi.count; color: Theme.text-2; wrap: word-wrap; }
     if OrganizeUi.field-error != "": Text { text: OrganizeUi.field-error; color: Theme.error; wrap: word-wrap; }
+    AlignGrid { command(c) => { root.command(c); } }
     if PhotoUi.has-photo: PhotoSection { }
     LookPanel {
         frame-style: !PhotoUi.has-photo;

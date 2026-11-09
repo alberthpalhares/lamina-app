@@ -22,7 +22,7 @@ fn ia_b4_sugerir_e_aplicar_um_layout() {
     assert!(window.apply_option(Part::Spread, 1));
     let expected = &window.session().unwrap().project().spreads[2];
     assert_eq!(&lab.project().spreads[2], expected);
-    assert_eq!(lab.labels(), ["IA: Trocar layout · lâmina 3"]);
+    assert_eq!(lab.labels(), ["IA: Trocar modelo · lâmina 3"]);
 }
 
 #[test]

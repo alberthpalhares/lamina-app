@@ -247,10 +247,12 @@ fn je_b8_o_botao_painel_com_o_painel_temporario() {
 #[test]
 fn je_b9_o_que_sai_da_barra_continua_no_registro() {
     let names: Vec<&str> = BAR_COMMANDS.iter().map(|c| c.name()).collect();
+    // O botão da faixa de modelos entrou (pedido do dono 2026-11-08; spec JE).
     assert_eq!(
         names,
         [
             "arquivo.fechar",
+            "ver.faixa-layouts",
             "ver.faixas",
             "ver.painel",
             "arquivo.exportar"

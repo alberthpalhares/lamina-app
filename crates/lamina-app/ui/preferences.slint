@@ -5,6 +5,7 @@
 import { Theme, Fixed, Type, Space, Radius, Line } from "theme.slint";
 import { Backdrops } from "theme/backdrop.slint";
 import { Dialog, DialogBody, DialogSize, DialogFooter, DialogGap, DialogButton, FocusRing } from "widgets.slint";
+import { Mark } from "marks.slint";
 
 export global PrefsUi {
     in-out property <bool> show;
@@ -35,6 +36,8 @@ export struct ChoiceData {
 // Um botão do grupo, com a escolha marcada. `ask` muda quando o grupo pede o foco para `aimed`.
 component ChoiceButton inherits Rectangle {
     in property <ChoiceData> data;
+    // O nome da marca da filmagem; vazio = sem marca (a marca solta no `for` não reporta).
+    in property <string> mark;
     in property <bool> selected;
     in property <bool> aimed;
     in property <int> ask;
@@ -74,6 +77,7 @@ component ChoiceButton inherits Rectangle {
             vertical-alignment: center;
         }
     }
+    Mark { name: root.mark; on: root.mark != ""; }
     touch := TouchArea {
         mouse-cursor: pointer;
         clicked => { root.clicked(); }
@@ -108,6 +112,8 @@ component ChoiceGroup inherits VerticalLayout {
     in property <string> title;
     in property <string> note;
     in property <[ChoiceData]> choices;
+    // O prefixo das marcas da filmagem: o botão i é `prefixo-i` na ordem da lista; vazio = sem marca.
+    in property <string> mark-prefix;
     in property <int> current;
     in property <bool> takes-focus;
     // A opção sob o mouse ou o foco; -1 = nenhuma (regra 33).
@@ -153,6 +159,7 @@ component ChoiceGroup inherits VerticalLayout {
             spacing: Space.s1;
             for choice[i] in root.choices: ChoiceButton {
                 data: choice;
+                mark: root.mark-prefix == "" ? "" : root.mark-prefix + i;
                 selected: i == root.current;
                 aimed: i == root.target;
                 ask: root.asked;
@@ -235,8 +242,10 @@ export component PreferencesDialog inherits Dialog {
     DialogBody {
         gap: Space.s3;
         ChoiceGroup {
+            Mark { name: "pref-tema"; }
             title: "Tema";
             note: PrefsUi.theme-note;
+            mark-prefix: "pref-tema-op-";
             takes-focus: true;
             current: PrefsUi.theme;
             choices: [
@@ -249,6 +258,7 @@ export component PreferencesDialog inherits Dialog {
         ChoiceGroup {
             title: "Fundo da lâmina";
             note: "Só em volta da lâmina. A lâmina não muda.";
+            mark-prefix: "pref-fundo-op-";
             current: PrefsUi.backdrop;
             choices: [
                 { label: "Como o tema" },
@@ -259,7 +269,9 @@ export component PreferencesDialog inherits Dialog {
             picked(i) => { PrefsUi.backdrop-picked(i); }
         }
         ChoiceGroup {
+            Mark { name: "pref-texto"; }
             title: "Tamanho do texto";
+            mark-prefix: "pref-texto-op-";
             current: PrefsUi.size;
             choices: [
                 { label: "90%" },

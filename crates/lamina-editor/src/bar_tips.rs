@@ -5,8 +5,9 @@
 use crate::Command;
 
 /// Os comandos que a barra de cima chama, da esquerda para a direita (JE-B9).
-pub const BAR_COMMANDS: [Command; 4] = [
+pub const BAR_COMMANDS: [Command; 5] = [
     Command::CloseAlbum,
+    Command::ToggleLayoutBand,
     Command::ToggleStrips,
     Command::TogglePanel,
     Command::Export,
@@ -24,6 +25,9 @@ pub fn bar_tip(command: Command, open: bool) -> String {
         Command::ToggleStrips => "Mostrar as faixas de baixo",
         Command::TogglePanel if open => "Esconder painel",
         Command::TogglePanel => "Mostrar painel",
+        // O botão da faixa de modelos (conferência do dono 2026-11-08).
+        Command::ToggleLayoutBand if open => "Esconder a faixa de modelos",
+        Command::ToggleLayoutBand => "Modelos  (L)",
         Command::Export => "Exportar",
         other => other.label().trim_end_matches('…'),
     };

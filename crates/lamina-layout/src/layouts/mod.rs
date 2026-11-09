@@ -9,6 +9,7 @@ mod full_bleed;
 mod hero;
 mod justified;
 mod model;
+
 mod orders;
 mod rank;
 mod rotation;
@@ -22,7 +23,7 @@ use rayon::prelude::*;
 
 use crate::learned::Learned;
 use area::{Ctx, MARGIN_LEVELS, Raw, aligned};
-pub use model::{ModelLook, ModelSlot, ModelText, SpreadModel, assign};
+pub use model::{ModelLook, ModelSlot, ModelText, SpreadModel, assign, model_from_candidate};
 use rank::{Limits, Sequence, Sort};
 pub use types::*;
 
@@ -44,7 +45,7 @@ pub fn layout_candidates(
     let splits = families::splits(&ctx, aspects.len(), false);
     let mut raws = fill::across(&ctx, aspects, None);
     for shaped in families::per_page(&ctx, aspects, &splits, families::BLOCK_KEEP) {
-        raws.extend(aligned(shaped, 0, ctx.gutter()).into_iter().take(1));
+        raws.extend(aligned(shaped, 0, ctx.gutter(), false).into_iter().take(1));
     }
     let order = (0..aspects.len()).collect();
     let limits = Limits {
@@ -96,7 +97,7 @@ pub fn layout_options_learned(
         .chain(reorderings)
         .collect::<Vec<_>>()
         .into_par_iter()
-        .map(|order| sequence(&ctx, aspects, order, options.mounting))
+        .map(|order| sequence(&ctx, aspects, order, options.mounting, options.window))
         .collect();
     let first = [sequences.remove(0)];
     let max = options.max_candidates.max(1);
@@ -106,7 +107,12 @@ pub fn layout_options_learned(
         exclude: &none,
         learned,
     };
-    let in_order = rank::finish(&ctx, aspects, &first, Sort::Score, &limits);
+    let sort = if options.window {
+        Sort::Window
+    } else {
+        Sort::Score
+    };
+    let in_order = rank::finish(&ctx, aspects, &first, sort, &limits);
     if in_order.is_empty() {
         return Err(LayoutError::GapTooLarge);
     }
@@ -117,7 +123,7 @@ pub fn layout_options_learned(
         exclude: &shown,
         learned,
     };
-    let reordered = rank::finish(&ctx, aspects, &sequences, Sort::Score, &limits);
+    let reordered = rank::finish(&ctx, aspects, &sequences, sort, &limits);
     Ok(LayoutLists {
         in_order,
         reordered,
@@ -157,7 +163,13 @@ fn insert_by_score(list: &mut Vec<LayoutCandidate>, c: LayoutCandidate) {
 
 /// Todas as famílias para as fotos na sequência `order`, as que recortam só dentro do que a
 /// montagem aceita (spec NP, regra 6).
-fn sequence(base: &Ctx, aspects: &[f64], order: Vec<usize>, mounting: Mounting) -> Sequence {
+fn sequence(
+    base: &Ctx,
+    aspects: &[f64],
+    order: Vec<usize>,
+    mounting: Mounting,
+    window: bool,
+) -> Sequence {
     let seq: Vec<f64> = order.iter().map(|&i| aspects[i]).collect();
     let mut raws: Vec<Raw> = Vec::new();
     for (level, inset) in (0u8..).zip(MARGIN_LEVELS) {
@@ -169,7 +181,7 @@ fn sequence(base: &Ctx, aspects: &[f64], order: Vec<usize>, mounting: Mounting) 
             .chain(hero::hero(&ctx, &seq))
             .chain(families::mirrored(&ctx, &seq, families::SIDE_KEEP));
         for s in shaped {
-            raws.extend(aligned(s, level, ctx.gutter()));
+            raws.extend(aligned(s, level, ctx.gutter(), window));
         }
     }
     raws.extend(cropping(base, &seq, mounting));
@@ -247,6 +259,9 @@ mod tests;
 #[path = "tests/al.rs"]
 mod tests_al;
 
+#[cfg(test)]
+#[path = "tests/rm.rs"]
+mod tests_rm;
 #[cfg(test)]
 #[path = "tests/sb.rs"]
 mod tests_sb;

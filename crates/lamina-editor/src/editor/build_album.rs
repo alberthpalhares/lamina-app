@@ -23,13 +23,26 @@ impl Editor {
     }
 
     /// As opções da montagem automática da janela: a variedade escolhida, os favoritos, os rejeitados, os
-    /// modelos do fotógrafo (regra 6) e o aprendizado (spec AL, regra 5).
+    /// modelos do fotógrafo (regra 6) e o aprendizado (spec AL, regra 5). Pela janela, as listas
+    /// novas da RM (beta 9.1): sem variantes deslocadas, ordenadas pelo preenchimento.
     pub fn build_options(&self, reuse: Reuse) -> BuildOptions {
+        // Os modelos do fotógrafo e os de fábrica da mistura de cada lâmina: a fábrica entra na
+        // disputa como os do fotógrafo (spec RM, regra 5).
+        let mut models = self.models().to_vec();
+        models.extend(super::layouts::factory_models_all());
+        // A ordem das fotos na montagem segue o critério do painel (spec OF, beta 9.1). A linha
+        // de comando não passa photo_order e monta na ordem de captura (regra 12).
+        let photo_order = match self.photo_sort() {
+            crate::ordering::SortBy::Capture => Vec::new(),
+            _ => self.shown_photos(),
+        };
         BuildOptions {
             reuse,
             preferences: self.preferences().clone(),
-            models: self.models().to_vec(),
+            models,
             learned: self.learned().clone(),
+            window: true,
+            photo_order,
             ..BuildOptions::default()
         }
     }

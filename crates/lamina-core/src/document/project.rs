@@ -33,6 +33,10 @@ pub struct Project {
     pub gap: Mm,
     pub photos: Vec<Photo>,
     pub spreads: Vec<Spread>,
+    /// A ordem personalizada das fotos do painel (spec OF, beta 9.1): os ids na ordem que o
+    /// fotógrafo montou arrastando. Vazia = sem ordem personalizada (usa a de captura).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub photo_order: Vec<PhotoId>,
     /// A capa fotográfica, fora das lâminas e da numeração (spec CA; formato 8).
     #[serde(rename = "capa", default, skip_serializing_if = "Option::is_none")]
     pub cover: Option<super::Cover>,
@@ -64,6 +68,7 @@ impl Project {
             gap,
             photos,
             spreads,
+            photo_order: _,
             cover,
             page_limits,
             export: _,
@@ -109,6 +114,7 @@ impl Project {
             gap: DEFAULT_GAP,
             photos: Vec::new(),
             spreads: Vec::new(),
+            photo_order: Vec::new(),
             cover: None,
             page_limits: PageLimits::default(),
             export: ExportPrefs::default(),

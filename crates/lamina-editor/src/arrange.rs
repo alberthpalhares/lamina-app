@@ -75,6 +75,63 @@ pub fn equalize(rects: &[Rect], reference: usize, how: Equal) -> Option<Vec<Rect
     )
 }
 
+/// Os quadros alinhados à **área útil da lâmina** `spread` (pedido do dono na conferência da
+/// beta 9.1: alinhar com referência na lâmina inteira, não só entre os selecionados). Alinhar ao
+/// "Left" é a borda esquerda da área; "Center", o centro dela; e assim por diante.
+pub fn align_to(rects: &[Rect], spread: Rect, how: Align) -> Vec<Rect> {
+    let (cx, cy) = (
+        spread.x.get() + spread.width.get() / 2.0,
+        spread.y.get() + spread.height.get() / 2.0,
+    );
+    rects
+        .iter()
+        .map(|o| {
+            let (w, h) = (o.width.get(), o.height.get());
+            let (x, y) = (o.x.get(), o.y.get());
+            let (x, y) = match how {
+                Align::Left => (spread.x.get(), y),
+                Align::Center => (cx - w / 2.0, y),
+                Align::Right => (spread.right().get() - w, y),
+                Align::Top => (x, spread.y.get()),
+                Align::Middle => (x, cy - h / 2.0),
+                Align::Bottom => (x, spread.bottom().get() - h),
+            };
+            Rect::new(Mm(x), Mm(y), o.width, o.height)
+        })
+        .collect()
+}
+
+/// Distribuir na horizontal (`across`) ou vertical **dentro da área útil da lâmina**: os vãos
+/// entre os quadros (e das pontas até a borda da área) ficam iguais. `None` com menos de um
+/// quadro.
+pub fn distribute_to(rects: &[Rect], spread: Rect, across: bool) -> Option<Vec<Rect>> {
+    if rects.is_empty() {
+        return None;
+    }
+    let mut order: Vec<usize> = (0..rects.len()).collect();
+    order.sort_by(|a, b| {
+        axis(&rects[*a], across)
+            .0
+            .total_cmp(&axis(&rects[*b], across).0)
+    });
+    let total: f64 = order.iter().map(|i| axis(&rects[*i], across).1).sum();
+    let span = axis(&spread, across).1;
+    let gaps = f64::from(u32::try_from(rects.len() + 1).unwrap_or(u32::MAX));
+    let gap = (span - total) / gaps;
+    let mut out = rects.to_vec();
+    let mut at = axis(&spread, across).0 + gap;
+    for i in order {
+        let r = rects[i];
+        out[i] = if across {
+            Rect::new(Mm(at), r.y, r.width, r.height)
+        } else {
+            Rect::new(r.x, Mm(at), r.width, r.height)
+        };
+        at += axis(&r, across).1 + gap;
+    }
+    Some(out)
+}
+
 /// O começo e o tamanho num eixo: x (`across`) ou y.
 fn axis(r: &Rect, across: bool) -> (f64, f64) {
     if across {

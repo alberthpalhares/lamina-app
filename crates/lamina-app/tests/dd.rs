@@ -49,7 +49,8 @@ const DIALOGS: &[(&str, &str)] = &[
     ("dialogs.slint", "RecoverDialog"),
     ("export.slint", "ExportDialog"),
     ("models.slint", "ModelNameDialog"),
-    ("models.slint", "ModelsDialog"),
+    ("models.slint", "ModelsManageDialog"),
+    ("models.slint", "ModelCopyDialog"),
     ("new_project.slint", "NewProjectDialog"),
     ("photo_menu.slint", "RemoveAskDialog"),
     ("preferences.slint", "PreferencesDialog"),
@@ -216,13 +217,26 @@ fn dd_b6_o_que_apaga_nao_e_ciano() {
         ("export.slint", "\"Substituir\""),
         ("dialogs.slint", "\"Descartar\""),
         ("welcome.slint", "\"Limpar\""),
-        ("models.slint", "\"Apagar\""),
         ("spec.slint", "\"Apagar\""),
     ] {
         let text = ui(file);
         let line = button_line(&text, button);
         assert!(line.contains("danger: true"), "{button} em {file}");
         assert!(!line.contains("primary"), "{button} em {file}");
+    }
+    // No painel de modelos (spec RM), "Apagar" é uma ação de linha: em vermelho de erro (o
+    // `Theme.error` na linha de cor logo abaixo do texto).
+    let models = ui("models.slint");
+    let mut lines = models.lines().peekable();
+    while let Some(line) = lines.next() {
+        if line.contains("root.factory ? \"Ocultar\" : \"Apagar\"") {
+            let color = lines.next().unwrap_or_default();
+            assert!(
+                color.contains("Theme.error"),
+                "a ação de apagar em vermelho: {color}"
+            );
+            break;
+        }
     }
 }
 
@@ -329,29 +343,25 @@ fn dd_b13_mais_opcoes_comeca_recolhido() {
 
 #[test]
 fn dd_b16_listas_vazias_dizem_o_que_fazer() {
-    for (file, name, list, selected) in [
-        (
-            "models.slint",
-            "ModelsDialog",
-            "ModelUi.models",
-            "ModelUi.list-selected",
-        ),
-        (
-            "spec.slint",
-            "PresetsDialog",
-            "PresetUi.user-presets",
-            "PresetUi.list-selected",
-        ),
+    // O painel de modelos virou o gerenciamento da RM (beta 9.1): a lista vazia com busca diz o
+    // que fazer; os presets seguem como antes.
+    for (file, name, list) in [
+        ("models.slint", "ModelsManageDialog", "ModelUi.rows"),
+        ("spec.slint", "PresetsDialog", "PresetUi.user-presets"),
     ] {
+        // Os presets têm a linha de renomear presa à seleção; o gerenciamento tem ações por linha.
+        let selected = "PresetUi.list-selected";
         let text = component(&ui(file), name);
         assert!(
             text.contains(&format!("if {list}.length == 0: EmptyState {{")),
             "{name}"
         );
-        assert!(
-            text.contains(&format!("if {selected} >= 0: HorizontalLayout {{")),
-            "{name}"
-        );
+        if name == "PresetsDialog" {
+            assert!(
+                text.contains(&format!("if {selected} >= 0: HorizontalLayout {{")),
+                "{name}"
+            );
+        }
     }
 }
 

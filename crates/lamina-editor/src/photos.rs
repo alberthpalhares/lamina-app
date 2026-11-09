@@ -77,6 +77,29 @@ pub fn photo_list(project: &Project, filter: Filter) -> Vec<PhotoItem> {
         .collect()
 }
 
+/// Como [`photo_list`], mas na ordem do critério do painel (spec OF, beta 9.1): captura, nome ou
+/// a personalizada do projeto.
+pub fn photo_list_sorted(
+    project: &Project,
+    filter: Filter,
+    sort: crate::ordering::SortBy,
+) -> Vec<PhotoItem> {
+    let mut items = photo_list(project, filter);
+    if sort == crate::ordering::SortBy::Capture {
+        return items;
+    }
+    let custom = project.photo_order.clone();
+    let ordered: Vec<PhotoId> = crate::ordering::sorted(project.photos.iter(), sort, &custom)
+        .into_iter()
+        .map(|p| p.id)
+        .collect();
+    items.sort_by_key(|i| {
+        let pos = ordered.iter().position(|id| *id == i.id);
+        (pos.is_none(), pos.unwrap_or(usize::MAX))
+    });
+    items
+}
+
 /// A lista de fotos sairia igual nos dois projetos: as mesmas fotos, cada uma nas mesmas lâminas.
 /// Mexer só num quadro não refaz a lista (spec LV, regra 6).
 pub fn same_photo_list(a: &Project, b: &Project) -> bool {

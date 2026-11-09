@@ -100,8 +100,13 @@ fn br_b2_com_a_caixa_marcada_como_antes() {
     )
     .unwrap();
     put_style(&mut imported.project, &new.style);
+    // O mesmo caminho do create_album (spec RM, beta 9.1): listas novas e fábrica na disputa.
+    let mut models = lamina_layout::factory::factory_models_all();
+    models.extend(new.models.clone());
     let options = BuildOptions {
         reuse: new.reuse,
+        window: true,
+        models,
         ..BuildOptions::default()
     };
     let mut before = auto_build(&imported.project, 10, &options).unwrap();

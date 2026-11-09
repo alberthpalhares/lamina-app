@@ -158,6 +158,7 @@ fn model(name: &str) -> SpreadModel {
         texts: Vec::new(),
         left: true,
         right: true,
+        factory: false,
     }
 }
 
@@ -182,7 +183,7 @@ fn al_b6_modelo_nao_ganha_bonus_e_aprendido_de_nota_menor_nao_passa() {
         .filter(|c| !is_model(c))
         .map(|c| (design_key(c, &aspects), 200_000))
         .collect();
-    weights.push((crate::prefs::model_key("Casamento", false), 200_000));
+    weights.push((crate::prefs::model_key("Casamento", false, false), 200_000));
     let learned = Learned::from_weights(weights);
     let mut lists =
         layout_options_learned(&spec(), BOTH, &aspects, &everything(), &learned).unwrap();

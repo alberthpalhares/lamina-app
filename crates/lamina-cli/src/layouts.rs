@@ -147,7 +147,7 @@ pub fn family_name(family: &Family) -> String {
             support_name(*support),
             layout(p)
         ),
-        Family::Model { name, mirrored } => {
+        Family::Model { name, mirrored, .. } => {
             let e = if *mirrored { ", espelhado" } else { "" };
             format!("modelo {name}{e}")
         }

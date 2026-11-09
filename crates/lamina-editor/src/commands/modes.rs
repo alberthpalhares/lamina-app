@@ -33,8 +33,9 @@ impl Command {
             | C::ResetCrop
             | C::ToggleLayoutBand
             | C::SelectAllPhotos => mode == Mode::Normal,
-            // Só no modo: mover a seleção, selecionar todos, o zoom da lâmina, Alinhar, Igualar e
-            // Distribuir; Z, a lupa; 1, o tamanho real (spec ZR).
+            // Só no modo: mover a seleção, selecionar todos, o zoom da lâmina; Z, a lupa; 1, o
+            // tamanho real (spec ZR). Alinhar, Igualar e Distribuir passam a valer também na
+            // edição comum com a seleção de quadros (spec GJ, conferência do dono 2026-11-04).
             C::NudgeLeft
             | C::NudgeRight
             | C::NudgeUp
@@ -47,17 +48,6 @@ impl Command {
             | C::ViewZoomIn
             | C::ViewZoomOut
             | C::ViewFit
-            | C::AlignLeft
-            | C::AlignCenter
-            | C::AlignRight
-            | C::AlignTop
-            | C::AlignMiddle
-            | C::AlignBottom
-            | C::EqualWidth
-            | C::EqualHeight
-            | C::EqualSize
-            | C::DistributeAcross
-            | C::DistributeDown
             | C::Loupe
             | C::ActualSize => mode == Mode::Organize,
             _ => true,

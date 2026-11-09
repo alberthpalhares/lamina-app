@@ -30,6 +30,10 @@ pub enum Action {
     Press(Button),
     Release(Button),
     Key(String),
+    /// `KeyPressed` sozinho, para segurar o modificador (Ctrl+clique do roteiro).
+    Hold(String),
+    /// `KeyReleased` sozinho, para soltar o modificador segurado.
+    ReleaseKey(String),
     Command(String),
 }
 
@@ -110,7 +114,7 @@ impl Timeline {
                 Action::Press(Button::Left) => self.pressed = 1,
                 Action::Press(Button::Right) => self.pressed = 2,
                 Action::Release(_) => self.pressed = 0,
-                Action::Key(_) | Action::Command(_) => {}
+                Action::Key(_) | Action::Command(_) | Action::Hold(_) | Action::ReleaseKey(_) => {}
             }
         }
         let teclas = actions

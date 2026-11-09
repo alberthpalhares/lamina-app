@@ -203,6 +203,7 @@ fn modelo_simetrico_nas_fotos_mas_com_titulo_ganha_espelho() {
         texts: vec![title],
         left: true,
         right: true,
+        factory: false,
     };
     assert!(!model.is_symmetric(), "o título só está à esquerda");
     let swapped = SpreadModel {

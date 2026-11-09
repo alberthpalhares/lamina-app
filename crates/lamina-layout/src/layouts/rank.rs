@@ -30,6 +30,9 @@ pub enum Sort {
     Coverage,
     /// VL: nota, com rodízio de famílias nas primeiras posições.
     Score,
+    /// RM (beta 9.1, listas da janela): preenchimento em pontos (`coverage × 100`) com o bônus do
+    /// aprendizado somado (regra 3 da RM: a escala continua comparável — o favorito vale 10).
+    Window,
 }
 
 /// Uma sequência de fotos (índices originais) e os candidatos brutos montados nela.
@@ -72,7 +75,7 @@ pub fn finish(
     });
     let mut seen = HashSet::new();
     entries.retain(|e| !limits.exclude.contains(&e.key) && seen.insert(e.key));
-    if sort == Sort::Score {
+    if matches!(sort, Sort::Score | Sort::Window) {
         entries = rotate(entries, |e| &sequences[e.seq].raws[e.raw].family);
     }
     entries.truncate(limits.max);
@@ -125,6 +128,8 @@ fn entries(
                 Sort::Coverage => m.coverage,
                 // O bônus só ordena; a nota da opção continua pura (spec AL, regra 1).
                 Sort::Score => m.score.total + bonus(&sequence.order, r),
+                // Preenchimento em pontos, com o bônus na mesma escala (spec RM, regra 3).
+                Sort::Window => m.coverage * 100.0 + bonus(&sequence.order, r),
             };
             Some(Entry {
                 value: (value * 1e6).round() / 1e6,

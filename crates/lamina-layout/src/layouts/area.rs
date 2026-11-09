@@ -92,11 +92,18 @@ pub struct Raw {
     pub rects: Vec<Rect>,
 }
 
-/// As três versões de alinhamento de um arranjo (as que mudam alguma coisa).
-pub fn aligned(shaped: Shaped, margin_level: u8, gutter: f64) -> Vec<Raw> {
+/// As três versões de alinhamento de um arranjo (as que mudam alguma coisa). Com `window`
+/// (listas da janela, spec RM), só o centralizado: as variantes deslocadas (Start/End, cima/baixo
+/// e esquerda/direita) saem — quem quiser deslocado ajusta à mão e salva como modelo.
+pub fn aligned(shaped: Shaped, margin_level: u8, gutter: f64, window: bool) -> Vec<Raw> {
     let (family, blocks) = shaped;
     let mut out = Vec::with_capacity(3);
-    for align in [Align::Center, Align::Start, Align::End] {
+    let alignments: &[Align] = if window {
+        &[Align::Center]
+    } else {
+        &[Align::Center, Align::Start, Align::End]
+    };
+    for &align in alignments {
         let mut moved = false;
         let mut rects = Vec::new();
         for block in &blocks {

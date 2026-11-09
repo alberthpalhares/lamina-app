@@ -77,36 +77,42 @@ fn al_b10_a_remontagem_segue_a_regra_e_o_enter_segue_a_faixa() {
     let extra = project.photos[4].id;
     let all: Vec<_> = project.photos.iter().map(|p| p.id).collect();
     let five = [1.5; 5];
-    let plain = |aspects: &[f64]| {
-        let options = LayoutOptions::default();
+    let lists_of = |window: bool| {
+        let options = LayoutOptions {
+            window,
+            ..LayoutOptions::default()
+        };
         layout_options(
             &project.spec,
             lamina_core::ActivePages {
                 left: true,
                 right: true,
             },
-            aspects,
+            &five,
             &options,
         )
         .unwrap()
         .in_order
     };
-    let list = plain(&five);
-    let learned = rival(&list, &five);
+    // A remontagem usa a 1ª das listas de sempre (regra 6 da AL); a faixa, as da janela (RM).
+    let plain = lists_of(false);
+    // O rival do aprendido vem das listas da janela: é nelas que ele muda a 1ª posição.
+    let window_list = lists_of(true);
+    let learned = rival(&window_list, &five);
     let mut editor = editor_at(project.clone(), 0);
     editor.set_learned(learned);
 
     // Soltar a foto refaz a lâmina com a 1ª opção da regra.
     assert!(editor.drop_photos(DropPlace::Spread(0), &[extra]));
     let got = sorted(frames(&editor).into_iter().map(|(_, r)| r));
-    assert_eq!(got, sorted(list[0].frames.iter().copied()));
+    assert_eq!(got, sorted(plain[0].frames.iter().copied()));
 
     // A faixa já mostra o aprendido na frente, e o Enter usa o que ela mostra.
     editor.set_selection(all);
     let shown = editor.panel(Part::Spread).options;
     assert_ne!(
         sorted(shown[0].frames.iter().copied()),
-        sorted(list[0].frames.iter().copied()),
+        sorted(window_list[0].frames.iter().copied()),
         "o peso devia mudar a 1ª opção da faixa"
     );
     assert!(editor.run(Command::BuildFromSelection));

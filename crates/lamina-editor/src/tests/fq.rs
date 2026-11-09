@@ -80,8 +80,12 @@ fn fq_b4_opcoes_para_a_selecao() {
         .map(|id| project.photo(*id).unwrap().aspect_ratio())
         .collect();
     let active = project.spec.edges().active_pages(1, 3);
-    let expected =
-        layout_options(&project.spec, active, &aspects, &LayoutOptions::default()).unwrap();
+    // O painel da janela usa as listas novas (spec RM, beta 9.1).
+    let window_options = LayoutOptions {
+        window: true,
+        ..LayoutOptions::default()
+    };
+    let expected = layout_options(&project.spec, active, &aspects, &window_options).unwrap();
     assert_eq!(panel.options, expected.in_order);
     assert_eq!(panel.in_use, None);
 }

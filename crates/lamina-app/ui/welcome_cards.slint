@@ -253,4 +253,9 @@ export component WelcomeActions inherits HorizontalLayout {
         alignment: center;
         DialogButton { text: "Novo álbum…"; primary: RecentsUi.main-new; clicked => { root.command("arquivo.novo"); } }
     }
+    if RecentsUi.has-recents: VerticalLayout {
+        alignment: center;
+        // Início rápido (spec IQ, regra 8): ao lado do "Novo álbum…", sem mudar o principal.
+        BarButton { height: 32px; text: "Início rápido"; clicked => { root.command("arquivo.inicio-rapido"); } }
+    }
 }

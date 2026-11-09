@@ -35,7 +35,7 @@ fn hi_b1_lista_com_rotulo_e_lamina() {
         labels(&editor),
         [
             "Álbum criado",
-            "Trocar layout · lâmina 3",
+            "Trocar modelo · lâmina 3",
             "Colocar foto · lâmina 1",
             "Aplicar aparência a todas · todas as lâminas"
         ]
@@ -121,7 +121,7 @@ fn hi_b6_menu_editar() {
     let mut editor = three_edits();
     assert!(editor.go_to_step(1));
     let s = editor.session().unwrap();
-    assert_eq!(s.undo_label(), Some("Trocar layout"));
+    assert_eq!(s.undo_label(), Some("Trocar modelo"));
     assert_eq!(s.redo_label(), Some("Colocar foto"));
 }
 

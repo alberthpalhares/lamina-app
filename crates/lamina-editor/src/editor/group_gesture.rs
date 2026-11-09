@@ -2,7 +2,7 @@
 //! corpo de um quadro selecionado ou uma alça da caixa do grupo, arrastar e soltar vira uma
 //! edição. As contas estão em [`crate::group`].
 
-use lamina_core::{FrameContent, Project, Rect};
+use lamina_core::{FrameContent, Mm, Project, Rect};
 
 use super::Editor;
 use crate::group::{clamp_shift, group_box, scaled, scaled_text, shifted};
@@ -105,10 +105,25 @@ impl Editor {
             }
             grip => {
                 let (rects, sx, sy) = scaled(&g.starts, grip, (dx, dy), free, (trim, MIN_FRAME_MM));
-                match alone(&rects, grip, free).filter(|_| magnet) {
+                // Um quadro só: o ímã de mesmo tamanho (spec EG). Vários (spec GJ, conferência do
+                // dono 2026-11-07): a caixa do grupo encaixa na altura/largura dos quadros de fora
+                // e os quadros do grupo acompanham a escala.
+                let alone_rect = alone(&rects, grip, free);
+                let group_box = if alone_rect.is_none() {
+                    crate::group::group_box(&rects)
+                } else {
+                    None
+                };
+                match alone_rect.filter(|_| magnet) {
                     Some(rect) => sized_alone(start, rect, grip, (&near, tolerance), trim)
                         .unwrap_or((rects, (sx, sy), Vec::new(), Vec::new())),
-                    None => (rects, (sx, sy), Vec::new(), Vec::new()),
+                    None => match group_box.filter(|_| magnet) {
+                        Some(box_rect) => {
+                            sized_group(&rects, box_rect, grip, (&near, tolerance), trim)
+                                .unwrap_or((rects, (sx, sy), Vec::new(), Vec::new()))
+                        }
+                        None => (rects, (sx, sy), Vec::new(), Vec::new()),
+                    },
                 }
             }
         };
@@ -142,9 +157,13 @@ impl Editor {
         self.change(&label, |p, i| apply_group(p, i, &g))
     }
 
-    /// As marcas do ímã de mesmo tamanho e de espaçamento igual do gesto, para a tela.
+    /// As marcas do ímã de mesmo tamanho e de espaçamento igual do gesto (de um quadro na edição
+    /// comum ou do grupo), para a tela.
     pub fn magnet_marks(&self) -> &[Mark] {
-        self.group.as_ref().map_or(&[], |g| g.marks.as_slice())
+        if let Some(g) = &self.group {
+            return &g.marks;
+        }
+        self.gesture.as_ref().map_or(&[], |g| g.marks.as_slice())
     }
 
     /// O gesto do grupo está em curso.
@@ -202,6 +221,69 @@ fn sized_alone(
         r.height.get() / start.height.get(),
     );
     (inside && big).then(|| (vec![r], scale, lines, marks))
+}
+
+/// A caixa do grupo encaixada num quadro de fora (spec GJ): os quadros do grupo são reescalados
+/// pela mesma proporção da caixa, a partir do canto oposto ao grip.
+fn sized_group(
+    rects: &[Rect],
+    box_rect: Rect,
+    grip: Grip,
+    (near, tolerance): (&Near, f64),
+    trim: Rect,
+) -> Option<Sized> {
+    let (r, lines, marks) = magnets::magnet(box_rect, grip, near, tolerance);
+    // Sem encaixe (a caixa não mudou de tamanho), deixa o gesto seguir pelo `scaled` normal.
+    if (r.width.get() - box_rect.width.get()).abs() < 1e-9
+        && (r.height.get() - box_rect.height.get()).abs() < 1e-9
+    {
+        return None;
+    }
+    let inside = r.x.get() >= trim.x.get() - 1e-9
+        && r.y.get() >= trim.y.get() - 1e-9
+        && r.right().get() <= trim.right().get() + 1e-9
+        && r.bottom().get() <= trim.bottom().get() + 1e-9;
+    if !inside {
+        return None;
+    }
+    let (bw, bh) = (
+        box_rect.width.get().max(1e-9),
+        box_rect.height.get().max(1e-9),
+    );
+    let (sx, sy) = (r.width.get() / bw, r.height.get() / bh);
+    let Grip::Resize {
+        left,
+        right: _,
+        top,
+        bottom: _,
+    } = grip
+    else {
+        return None;
+    };
+    let (ax, ay) = (
+        if left {
+            box_rect.right().get()
+        } else {
+            box_rect.x.get()
+        },
+        if top {
+            box_rect.bottom().get()
+        } else {
+            box_rect.y.get()
+        },
+    );
+    let out: Vec<Rect> = rects
+        .iter()
+        .map(|s| {
+            Rect::new(
+                Mm(ax + (s.x.get() - ax) * sx),
+                Mm(ay + (s.y.get() - ay) * sy),
+                Mm(s.width.get() * sx),
+                Mm(s.height.get() * sy),
+            )
+        })
+        .collect();
+    Some((out, (sx, sy), lines, marks))
 }
 
 /// Os retângulos e os corpos de texto do gesto no projeto.

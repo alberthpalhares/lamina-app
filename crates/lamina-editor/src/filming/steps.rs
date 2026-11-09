@@ -1,7 +1,7 @@
 //! Cada passo do roteiro vira trechos da linha do tempo; câmera e legenda só entram no registro.
 
 use super::FilmError;
-use super::log::{CameraLog, CaptionLog};
+use super::log::{CameraLog, CaptionLog, HighlightLog};
 use super::marks::{Scene, is_known_mark};
 use super::script::{Button, Step};
 use super::timeline::{Action, FPS, Timeline};
@@ -33,6 +33,7 @@ impl Timeline {
                 Step::Move { mark, .. } => vec![mark],
                 Step::Drag { from, to, .. } => vec![from, to],
                 Step::Camera { target, .. } if target != OVERVIEW => vec![target],
+                Step::Highlight { mark, .. } => vec![mark],
                 _ => Vec::new(),
             };
             if let Some(name) = names.iter().find(|n| !is_known_mark(n, known)) {
@@ -131,6 +132,8 @@ impl Timeline {
             }
             Step::Click { button } => self.click(button),
             Step::Key { key } => self.pieces.push_back(Piece::Once(Action::Key(key))),
+            Step::Hold { key } => self.pieces.push_back(Piece::Once(Action::Hold(key))),
+            Step::Release { key } => self.pieces.push_back(Piece::Once(Action::ReleaseKey(key))),
             Step::Drag { from, to, ms } => self.drag(scene, &from, &to, ms)?,
             Step::Command { name } => {
                 if !scene.available(&name) {
@@ -141,11 +144,26 @@ impl Timeline {
                 }
                 self.pieces.push_back(Piece::Once(Action::Command(name)));
             }
-            Step::Caption { text, ms } => self.log.legendas.push(CaptionLog {
-                de: self.frame,
-                ate: self.frame + frames_in(ms),
-                texto: text,
-            }),
+            Step::Caption { text, ms } => {
+                // A legenda segura o relógio pelo tempo dela: sem isso, o passo seguinte entra
+                // por cima e as legendas se sobrepõem na filmagem (a fala acompanha o `de`).
+                self.log.legendas.push(CaptionLog {
+                    de: self.frame,
+                    ate: self.frame + frames_in(ms),
+                    texto: text,
+                });
+                self.pieces.push_back(Piece::Hold(frames_in(ms)));
+            }
+            Step::Highlight { mark, ms } => {
+                // O retângulo do alvo no registro, com a duração; o círculo o Remotion desenha.
+                self.place(scene, &mark)?;
+                self.log.destaques.push(HighlightLog {
+                    de: self.frame,
+                    ate: self.frame + frames_in(ms),
+                    marca: mark,
+                });
+                self.pieces.push_back(Piece::Hold(frames_in(ms)));
+            }
         }
         Ok(false)
     }

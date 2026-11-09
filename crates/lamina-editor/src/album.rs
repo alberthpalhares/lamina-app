@@ -297,11 +297,16 @@ pub fn create_album(
     }
     progress(Step::Building);
     let spreads = new.spreads.unwrap_or_else(|| suggestion(&imported.project));
+    // Os modelos de fábrica entram na disputa como os do fotógrafo (spec RM, regra 5).
+    let mut models = new.models.clone();
+    models.extend(lamina_layout::factory::factory_models_all());
     let options = BuildOptions {
         reuse: new.reuse,
         preferences: new.preferences.clone(),
         learned: new.learned.clone(),
-        models: new.models.clone(),
+        models,
+        // O Novo álbum é montagem pela janela: listas novas da RM (beta 9.1).
+        window: true,
         ..BuildOptions::default()
     };
     let mut built = auto_build(&imported.project, spreads, &options)?;

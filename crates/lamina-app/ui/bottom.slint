@@ -9,6 +9,7 @@ import { Icons } from "icons.slint";
 import { BarButton, FilterTab, IconTextButton, NeutralSlider } from "widgets.slint";
 import { OrganizeUi } from "organize.slint";
 import { StripHeader, StripTheme } from "strip_header.slint";
+import { SortPicker, SortUi } from "sort_picker.slint";
 import { CoverTile, CoverUi } from "cover.slint";
 import { SpreadStrip } from "spread_strip.slint";
 import { TimelineStrip, TimelineItem } from "timeline.slint";
@@ -83,12 +84,14 @@ export component BottomStrips inherits VerticalLayout {
     pure callback seq-marker(length) -> length;
     callback seq-drop(int, length);
     callback filter-changed(int);
+    callback sort-changed(int);
     callback photo-double-clicked(int);
     callback photo-pressed(int, bool, bool);
     // Fotos do navegador soltas num vão da faixa de lâminas: (foto arrastada, vão).
     callback drop-photos-gap(int, int);
     // Fotos do navegador soltas fora da faixa de lâminas: a janela vê onde caíram na lâmina.
     callback photos-dropped();
+    callback photo-reorder(int, int);
     // O ponteiro sobre a área de lâmina nova, para os arquivos soltos do Explorador (spec IM).
     out property <bool> new-spread-hover: spread-strip.new-hover;
 
@@ -113,11 +116,11 @@ export component BottomStrips inherits VerticalLayout {
     callback photo-height-drag(length);
     callback photo-height-set(length);
     callback photo-height-reset();
-    property <bool> grid-on: root.has-project && root.photos-open && !OrganizeUi.on;
+    property <bool> grid-on: root.has-project && root.photos-open;
     // O que não é nem a lâmina nem a grade: as barras de cima, os cabeçalhos, as outras faixas e
     // a divisória.
     property <length> chrome: root.above + (root.has-project ? 26px : 0px) + spread-strip.height
-        + (root.has-project && !OrganizeUi.on ? 26px : 0px)
+        + (root.has-project && root.photos-open ? 26px : 0px)
         + (root.has-project && root.timeline-open && !OrganizeUi.on ? 58px : 0px)
         + (root.grid-on ? 6px : 0px);
     init => { root.photo-room(root.room, root.chrome); }
@@ -193,13 +196,14 @@ export component BottomStrips inherits VerticalLayout {
     // No modo organizar, a linha do tempo e as fotos deslizam para fora e voltam ao sair, na
     // altura de cada uma (spec ZR, regra 12); faixas recolhidas continuam recolhidas.
     if root.has-project: Rectangle {
-        height: OrganizeUi.on ? 0px : rest.preferred-height;
+        height: rest.preferred-height;
         animate height { duration: Motion.on ? Motion.navigate-ms * 1ms : 0ms; easing: ease-out; }
         clip: true;
         rest := VerticalLayout {
             y: parent.height - self.preferred-height;
             height: self.preferred-height;
-            if root.timeline-open: TimelineStrip {
+            // A linha do tempo desliza para fora no organizar (spec ZR); o painel de fotos fica.
+            if root.timeline-open && !OrganizeUi.on: TimelineStrip {
                 height: 58px;
                 timeline: root.timeline;
                 cut-moved(spread, delta) => { root.cut-moved(spread, delta); }
@@ -216,6 +220,11 @@ export component BottomStrips inherits VerticalLayout {
                 FilterTab { text: "Todas"; active: root.filter == 0; clicked => { root.filter-changed(0); } }
                 FilterTab { text: "Usadas"; active: root.filter == 1; clicked => { root.filter-changed(1); } }
                 FilterTab { text: "Não usadas"; active: root.filter == 2; clicked => { root.filter-changed(2); } }
+                // O critério de ordenação (spec OF, beta 9.1).
+                SortPicker {
+                    enabled: root.photos-open;
+                    changed(i) => { root.sort-changed(i); }
+                }
                 // O zoom das miniaturas, de 64 a 240 px (spec PF, regra 4).
                 if root.photos-open: NeutralSlider {
                     label: "Tamanho das miniaturas";
@@ -233,6 +242,8 @@ export component BottomStrips inherits VerticalLayout {
                 height: root.photo-shown;
                 photos: root.photos;
                 selected-photo: root.selected-photo;
+                // Reordenar só com o critério Personalizada (spec OF, regra 4).
+                reorderable: SortUi.sort == 2;
                 columns: root.photo-columns;
                 zoom: round(root.photo-zoom);
                 scroll <=> root.photo-scroll;
@@ -242,6 +253,7 @@ export component BottomStrips inherits VerticalLayout {
                 lasso-done(x0, y0, x1, y1, add) => { root.photo-lasso(x0, y0, x1, y1, add); }
                 photo-double-clicked(i) => { root.photo-double-clicked(i); }
                 photo-pressed(i, ctrl, shift) => { root.photo-pressed(i, ctrl, shift); }
+                reorder(from, to) => { root.photo-reorder(from, to); }
                 dropped => {
                     // Sobre a faixa de lâminas, uma lâmina nova no vão (spec IM, regra 7).
                     if (cover-tile.visible && cover-tile.photos-over) {

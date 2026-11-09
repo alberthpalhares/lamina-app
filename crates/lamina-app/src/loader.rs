@@ -20,6 +20,9 @@ struct Queue {
     /// O álbum (`epoch`) e a lâmina dos pedidos na fila.
     owner: Option<(u64, usize)>,
     items: VecDeque<(PhotoId, Photo)>,
+    /// Pedidos da foto à vista (spec VF): na frente da fila, sem dono de lâmina; a vista tem
+    /// prioridade sobre as fotos das lâminas.
+    views: VecDeque<(u64, PhotoId, Photo)>,
 }
 
 type Shared = Arc<(Mutex<Queue>, Condvar)>;
@@ -59,6 +62,16 @@ impl Loader {
         q.items.extend(items);
         wake.notify_all();
     }
+
+    /// Pede a foto à vista (spec VF): fila própria, na frente das lâminas, com o epoch do álbum.
+    pub fn ask_view(&self, epoch: u64, items: Vec<(PhotoId, Photo)>) {
+        let (lock, wake) = &*self.queue;
+        let mut q = lock.lock().unwrap_or_else(PoisonError::into_inner);
+        q.views.retain(|(e, _, _)| *e == epoch);
+        q.views
+            .extend(items.into_iter().map(|(id, photo)| (epoch, id, photo)));
+        wake.notify_all();
+    }
 }
 
 /// Uma linha de leitura: pega o próximo pedido, lê e manda para a janela.
@@ -68,6 +81,10 @@ fn serve(queue: &Shared, cache: &Cache, mailbox: &Mailbox) {
         let (epoch, id, photo) = {
             let mut q = lock.lock().unwrap_or_else(PoisonError::into_inner);
             loop {
+                // A foto à vista primeiro (spec VF); depois as fotos da lâmina.
+                if let Some((epoch, id, photo)) = q.views.pop_front() {
+                    break (epoch, id, photo);
+                }
                 if let (Some((epoch, _)), Some((id, photo))) = (q.owner, q.items.pop_front()) {
                     break (epoch, id, photo);
                 }

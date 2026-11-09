@@ -1,5 +1,9 @@
 //! JP-B4 da spec `specs/janela-principal.md`: o "Novo álbum" da janela e o `lamina build` montam
-//! o mesmo álbum (mesmo arquivo de projeto, byte a byte).
+//! o mesmo álbum (mesmo arquivo de projeto, byte a byte). **Correção da spec RM (beta 9.1):** a
+//! janela monta com as listas novas (`window: true`, sem variantes deslocadas, com os modelos de
+//! fábrica), o `lamina build` com as de sempre (regra 12) — os arquivos podem diferir; o que
+//! segue valendo: as mesmas fotos, o mesmo número de lâminas e o `lamina build` byte a byte igual
+//! ao de antes da spec (travado pelos CB).
 
 // Arquivo só de testes (`tests/`): as funções auxiliares também podem usar `unwrap` (AGENTS.md,
 // regra 3, vale fora de testes).
@@ -51,10 +55,20 @@ fn jp_b4_novo_album_e_o_mesmo_do_lamina_build() {
         .save_as(&base.path("pela-janela/fotos.lamina"))
         .unwrap();
 
-    let by_build = std::fs::read(base.path("pelo-build/fotos.lamina")).unwrap();
-    let by_window = std::fs::read(base.path("pela-janela/fotos.lamina")).unwrap();
-    assert!(
-        by_build == by_window,
-        "os dois arquivos .lamina deveriam ser iguais"
+    let by_build: lamina_core::Project =
+        serde_json::from_slice(&std::fs::read(base.path("pelo-build/fotos.lamina")).unwrap())
+            .unwrap();
+    let by_window: lamina_core::Project =
+        serde_json::from_slice(&std::fs::read(base.path("pela-janela/fotos.lamina")).unwrap())
+            .unwrap();
+    assert_eq!(
+        by_build.photos.len(),
+        by_window.photos.len(),
+        "as mesmas fotos"
+    );
+    assert_eq!(
+        by_build.spreads.len(),
+        by_window.spreads.len(),
+        "o mesmo número de lâminas"
     );
 }

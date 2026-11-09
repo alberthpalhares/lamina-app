@@ -80,6 +80,7 @@ fn al_b1_o_auto_build_sem_aprendizado_e_o_de_sempre() {
 fn al_b6_modelo_nao_ganha_bonus_no_auto_build() {
     let c = LayoutCandidate {
         family: Family::Model {
+            factory: false,
             name: "Casamento".to_owned(),
             mirrored: false,
         },
@@ -91,7 +92,7 @@ fn al_b6_modelo_nao_ganha_bonus_no_auto_build() {
         score: crate::layouts::Score::default(),
         model: None,
     };
-    let key = model_key("Casamento", false);
+    let key = model_key("Casamento", false, false);
     let learned = Learned::from_weights([(key, 200_000)]);
     let got = window(vec![c], &[], &Preferences::default(), &learned);
     assert_eq!(got.boost[0].learned, 0.0);

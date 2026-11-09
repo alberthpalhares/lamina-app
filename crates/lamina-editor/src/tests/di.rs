@@ -32,7 +32,11 @@ fn single_page_start(spec: &lamina_core::AlbumSpec) -> lamina_core::AlbumSpec {
 #[test]
 fn di_b1_primeira_vez_o_novo_album_e_o_principal() {
     let buttons = welcome_buttons(false);
-    assert_eq!(buttons.body, [Command::NewAlbum, Command::OpenExample]);
+    // O início rápido (spec IQ, regra 8) entra ao lado do novo álbum, que continua principal.
+    assert_eq!(
+        buttons.body,
+        [Command::NewAlbum, Command::QuickStart, Command::OpenExample]
+    );
     assert_eq!(buttons.bar, [Command::Open]);
 }
 
@@ -52,7 +56,12 @@ fn di_b2_com_recentes_continuar_e_o_principal() {
     assert!(buttons.body.is_empty());
     assert_eq!(
         buttons.bar,
-        [Command::OpenExample, Command::Open, Command::NewAlbum]
+        [
+            Command::OpenExample,
+            Command::Open,
+            Command::NewAlbum,
+            Command::QuickStart
+        ]
     );
     // Com menos lâminas hoje, vale a última (TI, regra 3).
     let mut shrunk = list[0].clone();

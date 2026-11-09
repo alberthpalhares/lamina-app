@@ -82,9 +82,20 @@ pub fn plan_spreads(
     edges: Edges,
     options: &PlanOptions,
 ) -> Result<Vec<SpreadPlan>, PlanError> {
+    plan_spreads_ordered(photos, spreads, edges, options, &[])
+}
+
+/// Como [`plan_spreads`], mas com a ordem das fotos escolhida (spec OF, beta 9.1).
+pub fn plan_spreads_ordered(
+    photos: &[Photo],
+    spreads: usize,
+    edges: Edges,
+    options: &PlanOptions,
+    order: &[PhotoId],
+) -> Result<Vec<SpreadPlan>, PlanError> {
     validate(photos.len(), spreads, edges, options)?;
     let caps = capacities(spreads, edges, options.max_per_page);
-    let ordered = moments::ordered(photos);
+    let ordered = moments::ordered(photos, order);
     let mut moments = Moments::split(&ordered, options.moment_gap_secs);
     moments.merge_until(spreads);
     // Se um momento não couber nem tomando lâminas dos outros, ele se une ao vizinho mais

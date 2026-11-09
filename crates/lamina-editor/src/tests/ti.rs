@@ -272,13 +272,19 @@ fn ti_b13_montar_os_cartoes_e_rapido() {
 #[test]
 fn ti_b14_sem_recentes_a_boas_vindas_da_pc() {
     // Corrigido pela spec DI: sem recentes, o novo álbum é o principal, com o exemplo ao lado.
+    // Corrigido pela spec IQ (2026-11-07): o início rápido entra ao lado, sem mudar o principal.
     assert_eq!(
         welcome_buttons(false).body,
-        [Command::NewAlbum, Command::OpenExample]
+        [Command::NewAlbum, Command::QuickStart, Command::OpenExample]
     );
     assert_eq!(
         welcome_buttons(true).bar,
-        [Command::OpenExample, Command::Open, Command::NewAlbum]
+        [
+            Command::OpenExample,
+            Command::Open,
+            Command::NewAlbum,
+            Command::QuickStart
+        ]
     );
     assert!(cards(&[], &[], NOW).is_empty());
     assert!(Editor::new().available(Command::OpenExample));

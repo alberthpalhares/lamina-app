@@ -54,13 +54,12 @@ fn zr_b8_a_saida_anima_e_as_fileiras_voltam() {
         "animate view-zoom, view-pan-x, view-pan-y { duration: OrganizeUi.view-ms * 1ms;"
     ));
     let bottom = ui("bottom.slint");
-    assert!(bottom.contains("height: OrganizeUi.on ? 0px : rest.preferred-height;"));
+    // A linha do tempo desliza para fora no organizar, mas o painel de fotos fica visível
+    // (pedido do dono 2026-11-08; conferência da beta 9.1): o bloco inteiro não colapsa mais.
+    assert!(bottom.contains("if root.timeline-open && !OrganizeUi.on: TimelineStrip"));
+    assert!(bottom.contains("height: rest.preferred-height;"));
     assert!(
         bottom.contains("animate height { duration: Motion.on ? Motion.navigate-ms * 1ms : 0ms;")
-    );
-    assert!(
-        !bottom.contains("!OrganizeUi.on:"),
-        "nenhuma fileira entra e sai por if no modo"
     );
     let organize = ui("organize.slint");
     assert!(organize.contains("text: \"Voltar\";") && !organize.contains("\"Concluir\""));

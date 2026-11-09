@@ -129,6 +129,8 @@ export component TopBar inherits Rectangle {
     in property <string> tip-home;
     in property <string> tip-photos;
     in property <string> tip-panel;
+    // A dica do botão de modelos (a faixa, tecla L).
+    in property <string> tip-models;
     in property <string> tip-export;
     callback command(string);
     height: 44px;
@@ -171,6 +173,17 @@ export component TopBar inherits Rectangle {
         if root.has-project && root.page-meter.text != "": PageMeter { data: root.page-meter; room: root.meter-room; }
         Rectangle { horizontal-stretch: 1; }
         if !root.has-project: WelcomeActions { command(name) => { root.command(name); } }
+        if root.has-project: VerticalLayout {
+            alignment: center;
+            // A faixa de modelos (tecla L), à esquerda das faixas de baixo (conferência do dono
+            // 2026-11-08).
+            IconButton {
+                icon: Icons.layouts;
+                tip: root.tip-models;
+                tip-side: 1;
+                clicked => { root.command("ver.faixa-layouts"); }
+            }
+        }
         if root.has-project: VerticalLayout {
             alignment: center;
             // As faixas de baixo (spec FX, regras 7 e 8): o desenho da janela com a área de baixo

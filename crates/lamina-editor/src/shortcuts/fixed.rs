@@ -6,7 +6,7 @@ use super::{CROP, DRAG_AND_CLICK, ORGANIZE, Row};
 use crate::keys::Platform;
 
 /// Grupo, o que faz e como, na ordem da seção 4. "Ctrl", "Alt" e "Shift" viram ⌘, ⌥ e ⇧ no Mac.
-const FIXED: [(&str, &str, &str); 22] = [
+const FIXED: [(&str, &str, &str); 24] = [
     (
         DRAG_AND_CLICK,
         "Trocar duas fotos de lugar",
@@ -86,6 +86,17 @@ const FIXED: [(&str, &str, &str); 22] = [
     ),
     (ORGANIZE, "Encaixar sem o ímã", "Alt durante o arrasto"),
     (ORGANIZE, "Mover a vista", "Espaço + arrastar"),
+    // A foto à vista (spec VF, beta 9.1): Espaço abre e fecha a ampliada, ← e → navegam.
+    (
+        "Fotos",
+        "Ampliar a foto clicada",
+        "Espaço (Esc fecha; ← e → navegam)",
+    ),
+    (
+        DRAG_AND_CLICK,
+        "Selecionar vários quadros",
+        "Ctrl ou Shift+clique nos quadros (Esc desmarca)",
+    ),
     (
         ORGANIZE,
         "Aproximar e afastar a lâmina",

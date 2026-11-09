@@ -250,6 +250,9 @@ export component SpreadCanvas inherits Rectangle {    in property <SpreadData> d
     // Modo organizar (spec EG): segurar o corpo de qualquer quadro move o grupo; com Ctrl ou Shift,
     // o clique soma ou tira da seleção. O último número é a largura da lâmina em pixels.
     in property <bool> organizing;
+    // Na edição comum, a seleção de quadros é múltipla: o corpo de um quadro com foto segura o
+    // grupo (spec GJ), como o corpo do texto segura o quadro dele.
+    in property <bool> multi-selected;
     callback organize-press(int, bool, bool, length, length, length);
     callback grab-end();
     // Onde o mouse está na lâmina, em frações da largura (o T cria o texto naquela página).
@@ -343,8 +346,9 @@ export component SpreadCanvas inherits Rectangle {    in property <SpreadData> d
                 }
                 return;
             }
-            // O texto não tem foto para arrastar: segurar o corpo dele move o quadro.
-            if (f.kind == 2) {
+            // O texto não tem foto para arrastar: segurar o corpo dele move o quadro. Na edição
+            // comum com seleção múltipla, o corpo de qualquer quadro segura o grupo (spec GJ).
+            if (f.kind == 2 || root.multi-selected) {
                 if (e.button == PointerEventButton.left && e.kind == PointerEventKind.down) {
                     root.grab(f.index, 0, self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y, root.width);
                 }

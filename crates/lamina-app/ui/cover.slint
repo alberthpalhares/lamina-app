@@ -7,6 +7,7 @@ import { DialogButton, FilterTab, Dialog, DialogBody, DialogFooter, Field, Check
 import { NumberField } from "number_field.slint";
 import { SpreadCanvas, SpreadData } from "canvas.slint";
 import { DragUi } from "drag.slint";
+import { Mark } from "marks.slint";
 
 export global CoverUi {
     // A capa aberta.
@@ -60,6 +61,8 @@ export global CoverUi {
 
 // O item da capa na faixa de lâminas, fora da rolagem: sempre à mão, antes da lâmina 1.
 export component CoverTile inherits VerticalLayout {
+    // A marca da filmagem: o convite de criar a capa no canto esquerdo da faixa.
+    Mark { name: "botao-capacriar"; }
     in property <length> thumb: 84px;
     // Fotos arrastadas do painel sobre ele.
     out property <bool> photos-over: DragUi.kind == 1
@@ -114,6 +117,7 @@ export component CoverTile inherits VerticalLayout {
 
 // O desenho ao vivo da capa aberta, em proporção.
 component CoverDrawing inherits Rectangle {
+    Mark { name: "capa-frente"; }
     property <length> w: min(root.width, root.height * CoverUi.draw-aspect);
     property <length> h: self.w / max(0.1, CoverUi.draw-aspect);
     accessible-role: image;
@@ -140,6 +144,7 @@ component CoverDrawing inherits Rectangle {
             width: CoverUi.spine-w * parent.width;
             height: CoverUi.back-h * parent.height;
             background: Theme.line;
+            Mark { name: "capa-lombada"; }
         }
         Rectangle {
             x: CoverUi.front-x * parent.width;
@@ -305,6 +310,7 @@ export component CoverDialog inherits Dialog {
             primary: true;
             enabled: CoverUi.error == "";
             clicked => { CoverUi.confirm(); }
+            Mark { name: "capa-criar"; }
         }
     }
 }

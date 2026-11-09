@@ -44,6 +44,7 @@ pub fn run_command(app: &Shared, command: Command) {
     let closed = a.editor.close_band_for(command);
     match command {
         Command::NewAlbum => files::request(&mut a, Pending::NewAlbum),
+        Command::QuickStart => files::request(&mut a, Pending::QuickStart),
         Command::Open => files::request(&mut a, Pending::Open),
         Command::OpenExample => files::request(&mut a, Pending::Example),
         Command::CloseAlbum => files::request(&mut a, Pending::CloseAlbum),
@@ -94,7 +95,7 @@ pub fn run_command(app: &Shared, command: Command) {
         }
         Command::NewText => new_text(&mut a),
         Command::SaveModel => models::open_save(&mut a),
-        Command::Models => models::open_list(&a),
+        Command::Models => models::open_manage(&mut a),
         Command::CheckUpdates => updates::check_now(&mut a),
         Command::ToggleAutoUpdates => updates::toggle_automatic(&mut a),
         Command::ToggleBeta => updates::toggle_beta(&mut a),
@@ -199,6 +200,15 @@ pub fn connect(window: &AppWindow, app: &Shared) {
     window.on_command(move |name| {
         if let Some(command) = Command::from_name(&name) {
             run_command(&a, command);
+        }
+    });
+    // Clique no vazio da lâmina (fora do organizar): desmarca os quadros (conferência 2026-11-07).
+    let a = app.clone();
+    window.on_background_clicked(move || {
+        let mut app = a.borrow_mut();
+        if app.editor.deselect_frames() {
+            crate::photo_view::refresh(&mut app);
+            app.refresh_current();
         }
     });
     // O cabeçalho de uma faixa de baixo: clique simples e duplo recolhem e abrem, uma vez só

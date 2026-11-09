@@ -4,14 +4,22 @@ use serde::Serialize;
 
 /// As marcas repetidas: `quadro-2`, `foto-12` e `menu-3`.
 const REPEATED: [&str; 3] = ["quadro-", "foto-", "menu-"];
+/// Os prefixos repetidos das opções de um grupo: a opção i, como `pref-tema-op-2` (a 1ª é 0) e a
+/// linha i de um menu, como `menu-alinhar-1` (a 1ª é 1).
+const GROUP_PREFIXES: [&str; 4] = [
+    "pref-tema-op-",
+    "pref-texto-op-",
+    "pref-fundo-op-",
+    "menu-alinhar-",
+];
 
-/// O nome é de uma marca conhecida: da lista ou repetida, como `quadro-2`.
+/// O nome é de uma marca conhecida: da lista, repetida, ou de um grupo, como `quadro-2`.
 pub fn is_known_mark(name: &str, known: &[String]) -> bool {
     known.iter().any(|k| k == name)
-        || REPEATED.iter().any(|prefix| {
+        || REPEATED.iter().chain(GROUP_PREFIXES.iter()).any(|prefix| {
             name.strip_prefix(prefix)
                 .and_then(|n| n.parse::<u32>().ok())
-                .is_some_and(|n| n > 0)
+                .is_some_and(|n| n > 0 || GROUP_PREFIXES.contains(prefix))
         })
 }
 

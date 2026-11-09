@@ -565,3 +565,142 @@ fn fi_b13_o_endereco_de_fora_reprova_na_conferencia() {
         vec!["http://x.org/a", "https://youtu.be/abc"]
     );
 }
+
+#[test]
+fn fi_b14_segurar_e_soltar_viram_press_e_release_da_tecla() {
+    let text = with_steps(r#"{"segurar":"Control"},{"clicar":true},{"soltar":"Control"}"#);
+    let script = Script::parse(&text).unwrap();
+    let frames = all_frames(&script, &mut FakeScene::default());
+    let actions: Vec<Action> = frames.iter().flat_map(|f| f.actions.clone()).collect();
+    assert_eq!(
+        actions,
+        vec![
+            Action::Hold("Control".to_owned()),
+            Action::Press(Button::Left),
+            Action::Release(Button::Left),
+            Action::ReleaseKey("Control".to_owned()),
+        ]
+    );
+}
+
+#[test]
+fn fi_b14_segurar_so_aceita_modificador() {
+    let (_, message) = script_error(&with_steps(r#"{"segurar":"Enter"}"#));
+    assert!(
+        message.contains("só aceita Control, Shift e Alt"),
+        "{message}"
+    );
+    let (_, message) = script_error(&with_steps(r#"{"soltar":"A"}"#));
+    assert!(
+        message.contains("só aceita Control, Shift e Alt"),
+        "{message}"
+    );
+}
+
+#[test]
+fn fi_b14_segurar_sem_soltar_reprova_antes_de_filmar() {
+    let (_, message) = script_error(&with_steps(r#"{"segurar":"Control"}"#));
+    assert!(message.contains("sem \"soltar\" no fim"), "{message}");
+    let (_, message) = script_error(&with_steps(r#"{"soltar":"Shift"}"#));
+    assert!(message.contains("\"soltar\" sem \"segurar\""), "{message}");
+    // Ordem trocada com os dois soltos no fim é válido; o que reprova é um deles ficar sem soltar.
+    let text = with_steps(r#"{"segurar":"Control"},{"segurar":"Shift"},{"soltar":"Control"}"#);
+    let (_, message) = script_error(&text);
+    assert!(message.contains("Shift"), "{message}");
+    let text = with_steps(
+        r#"{"segurar":"Control"},{"segurar":"Shift"},{"soltar":"Control"},{"soltar":"Shift"}"#,
+    );
+    assert_eq!(
+        Script::parse(&text).map(|script| script.steps),
+        Ok(vec![
+            Step::Hold {
+                key: "Control".to_owned()
+            },
+            Step::Hold {
+                key: "Shift".to_owned()
+            },
+            Step::Release {
+                key: "Control".to_owned()
+            },
+            Step::Release {
+                key: "Shift".to_owned()
+            },
+        ])
+    );
+}
+
+#[test]
+fn fi_b14_ctrl_clique_e_dois_clicks_seguidos() {
+    // O Ctrl+clique do modo organizar: segurar, dois cliques somando quadros, soltar.
+    let text =
+        with_steps(r#"{"segurar":"Control"},{"clicar":true},{"clicar":true},{"soltar":"Control"}"#);
+    let script = Script::parse(&text).unwrap();
+    let frames = all_frames(&script, &mut FakeScene::default());
+    let actions: Vec<Action> = frames.iter().flat_map(|f| f.actions.clone()).collect();
+    // O Control fica aceso nos dois cliques e só sai no fim.
+    let hold = actions
+        .iter()
+        .position(|a| *a == Action::Hold("Control".to_owned()));
+    let release = actions
+        .iter()
+        .position(|a| *a == Action::ReleaseKey("Control".to_owned()));
+    let presses: Vec<usize> = actions
+        .iter()
+        .enumerate()
+        .filter(|(_, a)| **a == Action::Press(Button::Left))
+        .map(|(i, _)| i)
+        .collect();
+    assert!(hold.is_some() && release.is_some());
+    assert_eq!(presses.len(), 2);
+    assert!(hold.unwrap() < presses[0] && presses[1] < release.unwrap());
+}
+
+#[test]
+fn fi_b15_destaque_e_um_passo_com_marca_e_duracao() {
+    let text = with_steps(r#"{"destaque":"botao-alinhar","ms":2500}"#);
+    let script = Script::parse(&text).unwrap();
+    assert_eq!(
+        script.steps,
+        vec![Step::Highlight {
+            mark: "botao-alinhar".to_owned(),
+            ms: 2500
+        }]
+    );
+    // O nome do destaque é conferido como marca antes do primeiro quadro.
+    let mut known = vec!["botao-alinhar".to_owned()];
+    assert!(crate::filming::is_known_mark("botao-alinhar", &known));
+    known.clear();
+    assert!(!crate::filming::is_known_mark("botao-alinhar", &known));
+}
+
+#[test]
+fn fi_b15_as_opcoes_dos_grupos_sao_marcas_conhecidas() {
+    let known: Vec<String> = Vec::new();
+    for name in [
+        "pref-tema-op-0",
+        "pref-tema-op-2",
+        "pref-texto-op-4",
+        "pref-fundo-op-3",
+        "menu-alinhar-1",
+        "menu-alinhar-6",
+    ] {
+        assert!(crate::filming::is_known_mark(name, &known), "{name}");
+    }
+    for name in ["pref-tema-op-x", "menu-alinhar-", "pref-nada-op-1"] {
+        assert!(!crate::filming::is_known_mark(name, &known), "{name}");
+    }
+}
+
+#[test]
+fn fi_b15_destaque_segura_o_quadro_pela_duracao() {
+    // 600 ms a 30 q/s = 18 quadros de espera; sem o destaque, só o mover e o clique.
+    let text = with_steps(r#"{"mover":"a","ms":200},{"destaque":"a","ms":600},{"clicar":true}"#);
+    let script = Script::parse(&text).unwrap();
+    let mut scene = FakeScene::default().with("a", 10.0, 20.0);
+    let frames = all_frames(&script, &mut scene);
+    assert!(
+        frames.len() >= 18,
+        "o destaque não segurou: {} quadros",
+        frames.len()
+    );
+}

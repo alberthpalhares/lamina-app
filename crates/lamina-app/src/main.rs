@@ -65,7 +65,9 @@ mod palette;
 mod panel_width;
 mod photo_menu;
 mod photo_panel;
+mod photo_view;
 mod presets;
+mod quick_start;
 mod recents;
 mod refresh;
 mod relink;
@@ -142,6 +144,7 @@ fn connect(window: &AppWindow, app: &Shared) {
         );
     });
     browser::connect(window, app);
+    photo_view::connect(window, app);
     build_album::connect(window, app);
     grid::connect(window, app);
     connect_dialogs(window, app);

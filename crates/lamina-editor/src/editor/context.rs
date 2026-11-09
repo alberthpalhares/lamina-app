@@ -125,6 +125,11 @@ impl Editor {
         menu.push(self.sub("Distribuir", &DISTRIBUTE));
         menu.push(ContextEntry::Separator);
         menu.push(self.entry(C::SelectAllFrames));
+        // No modo organizar, o desenho que o fotógrafo ajustou à mão está a um clique de virar
+        // modelo (spec SM); fora do modo, o caminho é o menu do fundo e o menu Lâmina.
+        if self.organizing() {
+            menu.push(self.entry(C::SaveModel));
+        }
         menu
     }
 
@@ -133,7 +138,7 @@ impl Editor {
         let groups: [&[Command]; 5] = [
             &[C::PasteFrames, C::SelectAllFrames],
             &[C::NewText, C::NewPhotoFrame],
-            &[C::BlankPage, C::Mirror, C::SaveModel],
+            &[C::BlankPage, C::Mirror, C::SaveModel, C::Models],
             &[
                 C::NewSpread,
                 C::NewBlankSpread,

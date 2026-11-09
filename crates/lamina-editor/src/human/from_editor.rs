@@ -115,6 +115,10 @@ impl Human for ModelError {
                 format!("Já existe um modelo chamado \"{model}\"."),
                 "Escolha outro nome.".to_owned(),
             ),
+            ModelError::NotFound => (
+                "O modelo de fábrica não foi encontrado.".to_owned(),
+                "Reabra o painel de modelos e tente de novo.".to_owned(),
+            ),
             ModelError::Write(_) => (
                 "Não foi possível guardar os modelos.".to_owned(),
                 CHECK_DISK.to_owned(),

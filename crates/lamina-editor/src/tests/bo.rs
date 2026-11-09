@@ -90,12 +90,13 @@ fn bo_b4_os_menus_rodam_os_mesmos_comandos() {
         .iter()
         .flat_map(|m| m.commands().iter().copied())
         .collect();
-    assert_eq!(all.len(), 11);
+    // 11 de sempre + 8 "à lâmina" (spec GJ, conferência do dono 2026-11-04).
+    assert_eq!(all.len(), 19);
     let mut names: Vec<&str> = all.iter().map(|c| c.name()).collect();
     assert!(names.iter().all(|n| n.starts_with("organizar.alinhar-")
         || n.starts_with("organizar.igualar-")
         || n.starts_with("organizar.distribuir-")));
     names.sort_unstable();
     names.dedup();
-    assert_eq!(names.len(), 11, "cada um uma vez");
+    assert_eq!(names.len(), 19, "cada um uma vez");
 }

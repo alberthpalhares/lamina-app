@@ -71,6 +71,24 @@ fn icon_svg(command: Command) -> &'static [u8] {
         Command::DistributeAcross => {
             include_bytes!("../icons/lucide/align-horizontal-distribute-center.svg")
         }
+        // À lâmina (spec GJ): os mesmos ícones; o rótulo distingue.
+        Command::AlignLeftToSpread => include_bytes!("../icons/lucide/align-start-vertical.svg"),
+        Command::AlignCenterToSpread => {
+            include_bytes!("../icons/lucide/align-center-vertical.svg")
+        }
+        Command::AlignRightToSpread => include_bytes!("../icons/lucide/align-end-vertical.svg"),
+        Command::AlignTopToSpread => {
+            include_bytes!("../icons/lucide/align-start-horizontal.svg")
+        }
+        Command::AlignMiddleToSpread => {
+            include_bytes!("../icons/lucide/align-center-horizontal.svg")
+        }
+        Command::AlignBottomToSpread => {
+            include_bytes!("../icons/lucide/align-end-horizontal.svg")
+        }
+        Command::DistributeAcrossToSpread => {
+            include_bytes!("../icons/lucide/align-horizontal-distribute-center.svg")
+        }
         _ => include_bytes!("../icons/lucide/align-vertical-distribute-center.svg"),
     }
 }

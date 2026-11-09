@@ -84,7 +84,7 @@ fn model_option(
     }
     let pick = |wanted: bool| {
         panel.options.iter().position(|c| {
-            matches!(&c.family, Family::Model { name: n, mirrored: m } if n == name && *m == wanted)
+            matches!(&c.family, Family::Model { name: n, mirrored: m, .. } if n == name && *m == wanted)
         })
     };
     Ok(match mirrored {

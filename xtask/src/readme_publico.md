@@ -225,7 +225,9 @@ tem cada clique, com as telas.
 ## Por dentro do Lamina
 
 Na tela de boas-vindas, **Álbum de exemplo** abre um álbum pronto, com fotos
-livres, para você ver tudo funcionando. Depois, **Novo álbum…** monta o seu.
+livres, para você ver tudo funcionando. Depois, **Novo álbum…** monta o seu — ou **Começar** cria
+um álbum vazio na hora, sem escolher tamanho nem pasta: as fotos entram depois e o tamanho troca
+depois, com os quadros readequados.
 
 <table>
   <tr>

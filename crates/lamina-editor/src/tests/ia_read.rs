@@ -17,12 +17,23 @@ fn ia_b1_abrir_e_resumir() {
     assert_eq!(d["laminas"], 6);
     assert_eq!(d["fotos"]["total"], 30);
     assert_eq!(d["fotos"]["sem_uso"], 2);
-    assert_eq!(d["avisos"], 1, "{d}");
+    // Com os modelos de fábrica na montagem (spec RM, beta 9.1): 3 avisos agora.
+    assert_eq!(d["avisos"], 3, "{d}");
     assert_eq!(d["alteracoes_nao_salvas"], false);
     assert!(reply.text.ends_with("sem alterações."), "{}", reply.text);
     let warnings = lab.ok("pre_impressao", json!({}));
-    let text = warnings.data["avisos"][0]["aviso"].as_str().unwrap();
-    assert!(text.starts_with("Lâmina 2: a foto"), "{text}");
+    // Com os modelos de fábrica na montagem (spec RM, beta 9.1), o álbum de 6 lâminas sai com
+    // desenhos que dão 3 avisos de pré-impressão (a foto pequena continua entre eles).
+    let texts: Vec<&str> = warnings.data["avisos"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|w| w["aviso"].as_str().unwrap())
+        .collect();
+    assert!(
+        texts.iter().any(|t| t.starts_with("Lâmina 2: a foto")),
+        "{texts:?}"
+    );
 }
 
 #[test]

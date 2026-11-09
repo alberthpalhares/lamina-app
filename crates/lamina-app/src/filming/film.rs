@@ -43,6 +43,9 @@ pub fn key_text(key: &str) -> String {
         "Delete" => Key::Delete,
         "Backspace" => Key::Backspace,
         "F1" => Key::F1,
+        "Control" => Key::Control,
+        "Shift" => Key::Shift,
+        "Alt" => Key::Alt,
         other => return other.to_owned(),
     };
     char::from(named).to_string()
@@ -212,6 +215,15 @@ impl Film {
                     });
                     window.dispatch_event(WindowEvent::KeyReleased { text: text.into() });
                 }
+                // A tecla-modificador segurada: só o press agora, só o release no `ReleaseKey`.
+                // O Slint acende o bit do modificador no primeiro e o clique seguinte o carrega
+                // (i-slint-core: `state_update` + o estado aplicado ao `PointerEvent`).
+                Action::Hold(key) => window.dispatch_event(WindowEvent::KeyPressed {
+                    text: key_text(key).into(),
+                }),
+                Action::ReleaseKey(key) => window.dispatch_event(WindowEvent::KeyReleased {
+                    text: key_text(key).into(),
+                }),
                 Action::Command(name) => self.window().invoke_command(name.into()),
             }
         }

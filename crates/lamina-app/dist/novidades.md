@@ -24,20 +24,20 @@ Esta versão traz a capa fotográfica, a aprovação do cliente, o tema claro co
   ou o arquivo-guia. A capa pode ter outra medida que as lâminas, a lombada acompanha o álbum e as fotos seguem na mesma
   edição. Verso, Lombada, Frente e as guias na tela; texto em pé na lombada; exporta junto com as lâminas, sozinha ou sem
   ela, em `capa.jpg` ou `<nome>-capa.pdf`. A IA cria e edita a capa. Experimente: abra Arquivo, "Criar a capa…".
-  <!-- imagem: capa.jpg; comando: capa.criar; tipo: novo; video: https://alberthpalhares.github.io/lamina-app/v/capa.html; fixada: sim -->
+  <!-- imagem: capa-fotografica.png; comando: capa.criar; tipo: novo; fixada: sim -->
 - **Aprovação do cliente.** A janela Exportar ganha a aba "Para aprovação do cliente": imagens JPG leves para web, com número
   da lâmina e marca-d'água opcional, e um álbum animado num arquivo HTML só, que o cliente folheia, marca e responde pelo
   WhatsApp ou pelo e-mail dele, sem servidor. O código da prova diz qual versão o cliente viu; os nomes começam com `web-` e
   nunca se misturam com os da impressão, que continua igual, byte a byte. Experimente: abra Arquivo, "Exportar…", e escolha a
   aba "Para aprovação do cliente".
-  <!-- comando: arquivo.exportar; tipo: novo -->
+  <!-- imagem: aprovacao-cliente.png; comando: arquivo.exportar; tipo: novo -->
 - **Tema claro.** Agora o Lamina tem tema escuro, claro ou segue o sistema, na janela inteira, inclusive na barra de título; a
   lâmina e a exportação não mudam. Experimente: abra Editar, Preferências…, e escolha Claro.
-  <!-- imagem: tema-claro.jpg; tipo: novo; video: https://alberthpalhares.github.io/lamina-app/v/tema-claro.html; fixada: sim -->
+  <!-- imagem: tema-claro.png; tipo: novo; fixada: sim -->
 - **As preferências.** A cor em volta da lâmina passa a ser escolha sua (inclusive cinza 18%, para julgar as fotos), e o
   tamanho do texto da janela vai até 130%. Tudo vale na hora e fica lembrado. Experimente: abra Editar, Preferências…, e
   clique em Cinza 18%.
-  <!-- imagem: preferencias.jpg; comando: editar.preferencias; tipo: novo; video: https://alberthpalhares.github.io/lamina-app/v/preferencias.html -->
+  <!-- comando: editar.preferencias; tipo: novo -->
 - **A barra de atualização amarela.** Quando o Lamina acha uma versão nova, a barra agora é amarela com letras pretas, nos
   dois temas, e aparece assim que a versão é encontrada, sem esperar o download terminar. Se o download falhar, a barra some e
   um aviso explica. Experimente: espere a próxima versão chegar.
@@ -50,16 +50,16 @@ Esta versão traz a capa fotográfica, a aprovação do cliente, o tema claro co
 - **Uma tela inicial nova.** O último álbum aberto vem grande, e um clique em "Continuar" volta para a lâmina
   em que você parou. Os outros ficam embaixo, com os fixados primeiro. Num álbum com capa, a imagem é a capa aberta.
   Experimente: feche o álbum pelo botão Início e veja o álbum esperando por você.
-  <!-- imagem: janela-nova.jpg; comando: arquivo.abrir; tipo: novo; video: https://alberthpalhares.github.io/lamina-app/v/janela-nova.html; fixada: sim -->
+  <!-- comando: arquivo.abrir; tipo: novo -->
 - **O modo organizar mais limpo.** No notebook, Alinhar, Igualar e Distribuir ficam à vista, e as margens de
   segurança passam a cinza, para não parecerem seleção. O fundo ganhou "Outra cor…", com um quadro para escolher a
   cor no clique. Experimente: dê dois cliques fora dos quadros de uma lâmina e abra "Outra cor…" no painel.
-  <!-- imagem: organizar.jpg; comando: lamina.organizar; tipo: melhoria; video: https://alberthpalhares.github.io/lamina-app/v/organizar.html -->
+  <!-- imagem: barra-organizar.png; comando: lamina.organizar; tipo: melhoria -->
 - **Uma página de novidades.** "O que há de novo" agora cobre a janela e mostra tudo de uma vez: em cada versão, a data e
   as novidades inteiras, sem precisar clicar para ler. Dá para filtrar e buscar sem internet, e cada novidade tem o botão
   que já abre o recurso. A animação de cada novidade toca com um clique, e os destaques com vídeo abrem o navegador.
   Experimente: abra Ajuda, "O que há de novo…", e digite uma palavra na busca.
-  <!-- tipo: novo; comando: ajuda.novidades -->
+  <!-- imagem: pagina-novidades.png; comando: ajuda.novidades; tipo: novo -->
 - **Página e lâmina em branco.** Clique direito no fundo de uma página marca "Página em branco", e as fotos dela passam para
   a outra página. "Nova lâmina em branco" cria a folha antes ou depois da atual, e o álbum pode começar com uma folha em
   branco. A montagem e a troca de layouts respeitam a marca. Experimente: clique com o botão direito no fundo de uma página e

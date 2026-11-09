@@ -7,7 +7,8 @@ use lamina_core::{Mm, Rect};
 use super::Editor;
 use crate::hand::{MIN_FRAME_MM, fit_rect, frame_mm, set_rect};
 use crate::keys::{Key, Shortcut};
-use crate::snap::{Grip, SnapLine, dragged, guides, snap};
+use crate::magnets::{self, Mark, Near};
+use crate::snap::{Grip, SnapLine, dragged};
 
 /// O gesto em andamento: o quadro, a alça, o retângulo do começo e o de agora (em mm).
 #[derive(Debug, Clone)]
@@ -17,6 +18,7 @@ pub(super) struct Gesture {
     start: Rect,
     now: Rect,
     lines: Vec<SnapLine>,
+    pub(super) marks: Vec<Mark>,
 }
 
 impl Editor {
@@ -36,26 +38,24 @@ impl Editor {
             start,
             now: start,
             lines: Vec::new(),
+            marks: Vec::new(),
         });
         true
     }
 
     /// Arrasto de `dx`, `dy` mm desde o começo do gesto. Com `magnet`, encaixa nas guias a menos
-    /// de `tolerance` mm (8 pixels da tela, convertidos pela janela).
+    /// de `tolerance` mm (8 pixels da tela, convertidos pela janela) e nos ímãs de vão igual e
+    /// mesmo tamanho (spec GJ: os ímãs do organizar valem na edição comum).
     pub fn frame_drag(&mut self, dx: f64, dy: f64, magnet: bool, tolerance: f64) -> bool {
         let (Some(s), Some(g)) = (&self.session, &self.gesture) else {
             return false;
         };
         let moved = dragged(g.start, g.grip, dx, dy, MIN_FRAME_MM);
-        let (rect, lines) = if magnet {
-            snap(
-                moved,
-                g.grip,
-                &guides(s.project(), s.current(), g.frame),
-                tolerance,
-            )
+        let (rect, lines, marks) = if magnet {
+            let near = Near::of(s.project(), s.current(), &[g.frame]);
+            magnets::magnet(moved, g.grip, &near, tolerance)
         } else {
-            (moved, Vec::new())
+            (moved, Vec::new(), Vec::new())
         };
         // O que a tela mostra já é o que vai ficar: preso ao corte e ao mínimo.
         let fitted = fit_rect(s.project(), rect)
@@ -64,6 +64,7 @@ impl Editor {
         if let Some(g) = self.gesture.as_mut() {
             g.now = fitted;
             g.lines = lines;
+            g.marks = marks;
         }
         true
     }

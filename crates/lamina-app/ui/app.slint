@@ -23,7 +23,7 @@ import { FrameUi } from "frame.slint";
 import { FontUi, FontRowUi } from "font_list.slint";
 import { AboutDialog } from "about.slint";
 import { CalibrateUi, CalibrateDialog } from "calibrate.slint";
-import { ModelNameDialog, ModelsDialog, ModelUi } from "models.slint";
+import { ModelNameDialog, ModelsManageDialog, ModelCopyDialog, ModelUi, ModelRow } from "models.slint";
 import { HistoryItem } from "history.slint";
 import { ExportDialog } from "export.slint";
 import { PresetNameDialog, PresetsDialog, PresetUi } from "spec.slint";
@@ -34,6 +34,8 @@ import { TimelineItem } from "timeline.slint";
 import { PhotoData } from "photo_strip.slint";
 import { UpdateBar } from "update_bar.slint";
 import { RightPanel, PanelDivider } from "panel.slint";
+import { PhotoViewUi, PhotoOverlay } from "photo_view.slint";
+import { SortUi } from "sort_picker.slint";
 import { DragGhost, GhostData } from "ghost.slint";
 import { ContextUi, ContextMenu, ContextRow, MenuBoxData, MenuAnchor } from "context.slint";
 import { PaletteUi } from "palette.slint";
@@ -61,7 +63,7 @@ import { Marks } from "marks.slint";
 export { Marks }
 
 export { BuildUi }
-export { ApprovalUi, PageMeterData, CalibrateUi, SpreadData, FrameData, BoxData, LayoutItem, BandUi, Swatch, HistoryItem, PhotoData, TimelineItem, PresetUi, LookUi, FrameUi, FontUi, FontRowUi, ModelUi, RecentsUi, ClearUi, RelinkUi, RelinkRowUi, RecentCard, RecentItem, Motion, GhostData, OrganizeUi, MarkData, TickData, BarRow, ContextUi, ContextRow, MenuBoxData, MenuAnchor, PaletteUi, PhotoUi, DetailRow, NewProjectUi, FormatCard, DrawData, ImportUi, ShortcutsUi, RecoverUi, ShortcutGroup, ShortcutRow, NewsUi, NewsEntryData, NewsCardData, NewsFilterData, Theme, RollUi, RollCell, RollButton, RollHitData, TimelineStep, Backdrop, PrefsUi, Type, DialogFocus }
+export { ApprovalUi, PageMeterData, CalibrateUi, SpreadData, FrameData, BoxData, LayoutItem, BandUi, Swatch, HistoryItem, PhotoData, TimelineItem, PresetUi, LookUi, FrameUi, FontUi, FontRowUi, ModelUi, RecentsUi, ClearUi, RelinkUi, RelinkRowUi, RecentCard, RecentItem, Motion, GhostData, OrganizeUi, MarkData, TickData, BarRow, ContextUi, ContextRow, MenuBoxData, MenuAnchor, PaletteUi, PhotoUi, DetailRow, NewProjectUi, FormatCard, DrawData, ImportUi, ShortcutsUi, RecoverUi, ShortcutGroup, ShortcutRow, NewsUi, NewsEntryData, NewsCardData, NewsFilterData, Theme, RollUi, RollCell, RollButton, RollHitData, TimelineStep, Backdrop, PrefsUi, Type, DialogFocus, PhotoViewUi, ModelRow, SortUi }
 
 // Lê o tema do sistema (ADR 0016): nunca escreve no `Palette` nem aparece. Quem escreve no dele
 // é a janela, e cada componente tem o seu; o valor do sistema é o mesmo, o do processo.
@@ -155,6 +157,8 @@ export component AppWindow inherits Window {
     in-out property <int> panel-tab: 1;
     // O painel da direita aberto (Alt+4) e a aba Detalhes (spec AF).
     in property <bool> panel-open: true;
+    // Um gesto à mão em curso com marcas de ímã na edição comum (spec GJ).
+    in property <bool> gesture-marking;
     // As dicas da barra de cima (spec JE): Início, Fotos, Painel e Exportar.
     in property <[string]> bar-tips: ["", "", "", ""];
     in property <[DetailRow]> details;
@@ -235,11 +239,15 @@ export component AppWindow inherits Window {
     // Campos da janela "Novo álbum".
 
     callback command(string);
+    // Clique no vazio da lâmina (fora do organizar): desmarca os quadros (conferência 2026-11-07).
+    callback background-clicked();
     callback key(string, bool, bool, bool) -> bool;
     callback go-to <=> bottom.go-to;
     callback photo-clicked(int);
     callback photo-double-clicked <=> bottom.photo-double-clicked;
     callback filter-changed <=> bottom.filter-changed;
+    callback sort-changed <=> bottom.sort-changed;
+    callback photo-reorder <=> bottom.photo-reorder;
     callback confirm(int);
     // Arrastar (spec FQ; spec MV, regra 12): o gesto mora no global DragUi. O fantasma vem do
     // editor quando o arrasto começa; o destaque é o quadro onde a soltura cairia; ao soltar num
@@ -321,12 +329,13 @@ export component AppWindow inherits Window {
     callback seq-drop <=> bottom.seq-drop;
 
     // Um diálogo ou a página de novidades cobre a janela: o teclado é deles, e nada aqui atrás reage.
-    property <bool> covered: CoverUi.open || NewProjectUi.show || root.show-confirm || root.show-message || root.show-about || root.show-export || PresetUi.show-spec || PresetUi.show-name || PresetUi.show-list || ModelUi.show-name || ModelUi.show-list || RecentsUi.show-clear || ClearUi.show || RelinkUi.show || PhotoMenuUi.show-ask || CalibrateUi.show || ShortcutsUi.show || NewsUi.show || PrefsUi.show || BuildUi.show || RecoverUi.show || root.busy-text != "";
+    property <bool> covered: CoverUi.open || NewProjectUi.show || root.show-confirm || root.show-message || root.show-about || root.show-export || PresetUi.show-spec || PresetUi.show-name || PresetUi.show-list || ModelUi.show-name || ModelUi.show-manage || ModelUi.show-copy || RecentsUi.show-clear || ClearUi.show || RelinkUi.show || PhotoMenuUi.show-ask || CalibrateUi.show || ShortcutsUi.show || NewsUi.show || PrefsUi.show || BuildUi.show || RecoverUi.show || PhotoViewUi.open || root.busy-text != "";
 
     public function focus-main() {
         // Pedir o foco com algo por cima o tiraria de lá (spec DD, regra 8; PV, regra 17), e com o menu de
         // contexto aberto o foco fica nele (spec DC, regra 7). Ao fechar, o popup devolve o foco a quem o tinha.
-        if (!root.covered && !ContextUi.open) {
+        // A foto ampliada (spec VF) não é um diálogo: o teclado continua da janela (Espaço/Esc/setas).
+        if ((!root.covered || PhotoViewUi.open) && !ContextUi.open) {
             keys.focus();
         }
     }
@@ -343,6 +352,8 @@ export component AppWindow inherits Window {
         Menu {
             title: "Arquivo";
             MenuItem { title: "Novo álbum…  (Ctrl+N)"; activated => { root.command("arquivo.novo"); } }
+            // Início rápido (spec IQ): o álbum vazio com o tamanho padrão, sem assistente.
+            MenuItem { title: "Início rápido"; activated => { root.command("arquivo.inicio-rapido"); } }
             MenuItem { title: "Abrir…  (Ctrl+O)"; activated => { root.command("arquivo.abrir"); } }
             Menu {
                 title: "Abrir recente";
@@ -414,6 +425,14 @@ export component AppWindow inherits Window {
                 MenuItem { title: "Ao topo"; enabled: root.has-project; activated => { root.command("organizar.alinhar-topo"); } }
                 MenuItem { title: "Ao meio"; enabled: root.has-project; activated => { root.command("organizar.alinhar-meio"); } }
                 MenuItem { title: "À base"; enabled: root.has-project; activated => { root.command("organizar.alinhar-base"); } }
+                MenuSeparator { }
+                // Com a área da lâmina como referência (spec GJ, conferência do dono 2026-11-04).
+                MenuItem { title: "Na área da lâmina: à esquerda"; enabled: root.has-project; activated => { root.command("organizar.alinhar-lamina-esquerda"); } }
+                MenuItem { title: "Na área da lâmina: ao centro"; enabled: root.has-project; activated => { root.command("organizar.alinhar-lamina-centro"); } }
+                MenuItem { title: "Na área da lâmina: à direita"; enabled: root.has-project; activated => { root.command("organizar.alinhar-lamina-direita"); } }
+                MenuItem { title: "Na área da lâmina: ao topo"; enabled: root.has-project; activated => { root.command("organizar.alinhar-lamina-topo"); } }
+                MenuItem { title: "Na área da lâmina: ao meio"; enabled: root.has-project; activated => { root.command("organizar.alinhar-lamina-meio"); } }
+                MenuItem { title: "Na área da lâmina: à base"; enabled: root.has-project; activated => { root.command("organizar.alinhar-lamina-base"); } }
             }
             Menu {
                 title: "Igualar";
@@ -425,10 +444,12 @@ export component AppWindow inherits Window {
                 title: "Distribuir";
                 MenuItem { title: "Na horizontal"; enabled: root.has-project; activated => { root.command("organizar.distribuir-horizontal"); } }
                 MenuItem { title: "Na vertical"; enabled: root.has-project; activated => { root.command("organizar.distribuir-vertical"); } }
+                MenuSeparator { }
+                MenuItem { title: "Na área da lâmina: horizontal"; enabled: root.has-project; activated => { root.command("organizar.distribuir-lamina-horizontal"); } }
+                MenuItem { title: "Na área da lâmina: vertical"; enabled: root.has-project; activated => { root.command("organizar.distribuir-lamina-vertical"); } }
             }
             MenuSeparator { }
             MenuItem { title: "Salvar como modelo…"; enabled: root.has-project; activated => { root.command("lamina.salvar-modelo"); } }
-            MenuItem { title: "Meus modelos…"; activated => { root.command("lamina.modelos"); } }
         }
         Menu {
             title: "Capa";
@@ -440,16 +461,20 @@ export component AppWindow inherits Window {
             MenuItem { title: "Apagar a capa"; enabled: root.has-project; activated => { root.command("capa.apagar"); } }
         }
         Menu {
-            title: "Layout";
-            MenuItem { title: "Próximo layout  (↓)"; enabled: root.has-project; activated => { root.command("layout.proximo"); } }
-            MenuItem { title: "Layout anterior  (↑)"; enabled: root.has-project; activated => { root.command("layout.anterior"); } }
+            // "Layout" virou "Modelo" na interface (spec RM, beta 9.1; o código não muda).
+            title: "Modelo";
+            MenuItem { title: "Próximo modelo  (↓)"; enabled: root.has-project; activated => { root.command("layout.proximo"); } }
+            MenuItem { title: "Modelo anterior  (↑)"; enabled: root.has-project; activated => { root.command("layout.anterior"); } }
             MenuSeparator { }
             MenuItem { title: "Espelhar lâmina  (E)"; enabled: root.has-project; activated => { root.command("layout.espelhar"); } }
-            MenuItem { title: "Favoritar layout  (F)"; enabled: root.has-project; activated => { root.command("layout.favoritar"); } }
-            MenuItem { title: "Rejeitar layout  (X)"; enabled: root.has-project; activated => { root.command("layout.rejeitar"); } }
-            MenuItem { title: BandUi.list == 1 ? "Mostrar na ordem  (R)" : "Mostrar reordenadas  (R)"; enabled: root.has-project; activated => { root.command("layout.reordenadas"); } }
+            MenuItem { title: "Favoritar modelo  (F)"; enabled: root.has-project; activated => { root.command("layout.favoritar"); } }
+            MenuItem { title: "Rejeitar modelo  (X)"; enabled: root.has-project; activated => { root.command("layout.rejeitar"); } }
+            MenuItem { title: BandUi.list == 1 ? "Mostrar na ordem da linha do tempo  (R)" : "Mostrar reorganizado para encaixar  (R)"; enabled: root.has-project; activated => { root.command("layout.reordenadas"); } }
             MenuSeparator { }
-            MenuItem { title: "Apagar o aprendizado de layouts…"; activated => { root.command("layout.apagar-aprendizado"); } }
+            MenuItem { title: "Salvar como modelo…"; enabled: root.has-project; activated => { root.command("lamina.salvar-modelo"); } }
+            MenuItem { title: "Gerenciar modelos…"; activated => { root.command("lamina.modelos"); } }
+            MenuSeparator { }
+            MenuItem { title: "Apagar o aprendizado de modelos…"; activated => { root.command("layout.apagar-aprendizado"); } }
         }
         Menu {
             title: "Visualizar";
@@ -462,7 +487,8 @@ export component AppWindow inherits Window {
             MenuItem { title: "    Faixas de baixo  (Alt+0)"; enabled: root.has-project; activated => { root.command("ver.faixas"); } }
             MenuItem { title: (root.panel-open ? "✓ " : "    ") + "Mostrar painel  (Alt+4)"; enabled: root.has-project; activated => { root.command("ver.painel"); } }
             // Sem a marca: o título fixo não refaz a barra a cada abrir e fechar (spec MV, regra 16).
-            MenuItem { title: "    Faixa de layouts  (L)"; enabled: root.has-project; activated => { root.command("ver.faixa-layouts"); } }
+            MenuItem { title: "    Faixa de modelos  (L)"; enabled: root.has-project; activated => { root.command("ver.faixa-layouts"); } }
+            MenuItem { title: "    Ampliar a foto  (Espaço)"; enabled: root.has-project; activated => { PhotoViewUi.toggle(); } }
             MenuSeparator { }
             MenuItem { title: (root.gutter-shadow-on ? "✓ " : "    ") + "Sombra da dobra"; activated => { root.command("ver.sombra-dobra"); } }
             MenuSeparator { }
@@ -494,6 +520,23 @@ export component AppWindow inherits Window {
             }
         }
         key-pressed(event) => {
+            // A foto ampliada tem as próprias teclas (Espaço/Esc fecham, setas navegam) e responde
+            // mesmo com a janela "coberta" por ela mesma (spec VF).
+            if (PhotoViewUi.open) {
+                if (event.text == " " || event.text == Key.Escape) {
+                    PhotoViewUi.close();
+                    return accept;
+                }
+                if (event.text == Key.LeftArrow) {
+                    PhotoViewUi.step(false);
+                    return accept;
+                }
+                if (event.text == Key.RightArrow) {
+                    PhotoViewUi.step(true);
+                    return accept;
+                }
+                return reject;
+            }
             if (root.covered) {
                 return reject;
             }
@@ -506,6 +549,12 @@ export component AppWindow inherits Window {
             // No modo organizar, Espaço segurado é a mão (spec EG, seção 3).
             if (OrganizeUi.on && event.text == " ") {
                 OrganizeUi.hand = true;
+                return accept;
+            }
+            // Fora do modo organizar, Espaço abre a foto ampliada (spec VF, regra 3). Com o foco
+            // num campo de texto, o campo fica com o espaço.
+            if (event.text == " " && !TextInputInterface.text-input-focused) {
+                PhotoViewUi.toggle();
                 return accept;
             }
             // Esc com uma lâmina levantada na faixa: ela volta ao lugar (spec FX, regra 5); com uma
@@ -542,6 +591,7 @@ export component AppWindow inherits Window {
                 tip-home: root.bar-tips[0];
                 tip-photos: root.bar-tips[1];
                 tip-panel: root.bar-tips[2];
+                tip-models: "Modelos  (L)";
                 tip-export: root.bar-tips[3];
                 command(name) => { root.command(name); }
             }
@@ -578,6 +628,7 @@ export component AppWindow inherits Window {
                         guides: root.guides;
                         gutter-shadow: root.gutter-shadow;
                         selected-frame: root.selected-frame;
+                        gesture-marking: root.gesture-marking;
                         empty-album: root.empty-album;
                         photo-count: root.photos.length;
                         blank-aspect: root.blank-aspect;
@@ -596,6 +647,7 @@ export component AppWindow inherits Window {
                         has-leaving: root.has-leaving;
                         command(name) => { root.command(name); }
                         focus-main => { root.focus-main(); }
+                        background-clicked => { root.background-clicked(); }
                     }
                     bottom := BottomStrips {
                         strip-height: root.strip-height;
@@ -641,6 +693,7 @@ export component AppWindow inherits Window {
                 // Painel da direita: Detalhes (padrão), Aparência, Quadro e Histórico.
                 if root.has-project && root.panel-open: RightPanel {
                     panel-width: root.panel-width;
+                    photo-preview: PhotoViewUi.has-preview;
                     tab <=> root.panel-tab;
                     details: root.details;
                     details-kind: root.details-kind;
@@ -656,6 +709,7 @@ export component AppWindow inherits Window {
                     info-photo: root.info-photo;
                     history-go(i) => { root.history-go(i); }
                     done => { root.focus-main(); }
+                    command(c) => { root.command(c); }
                 }
             }
         }
@@ -726,7 +780,8 @@ export component AppWindow inherits Window {
     if PresetUi.show-list: PresetsDialog { }
     if PresetUi.show-name: PresetNameDialog { }
     if ModelUi.show-name: ModelNameDialog { }
-    if ModelUi.show-list: ModelsDialog { }
+    if ModelUi.show-manage: ModelsManageDialog { }
+    if ModelUi.show-copy: ModelCopyDialog { }
     if ShortcutsUi.show: ShortcutsDialog {
         closed => { root.focus-main(); }
     }
@@ -801,5 +856,23 @@ export component AppWindow inherits Window {
             root.gallery = false;
             root.focus-main();
         }
+    }
+    // A mão no organizar (Espaço segurado): o cursor vira mão por cima de tudo, inclusive dos
+    // quadros (conferência do dono 2026-11-07: o cursor não mudava sobre os quadros).
+    if OrganizeUi.hand && root.has-project: Rectangle {
+        x: stage.absolute-position.x;
+        y: stage.absolute-position.y;
+        width: stage.width;
+        height: stage.height;
+        z: 3000;
+        TouchArea {
+            mouse-cursor: self.pressed ? grabbing : grab;
+        }
+    }
+    // A foto ampliada no centro, sobre o véu (spec VF); montado só com ela aberta (o popup abre
+    // no init do componente, como os diálogos). O tamanho da janela, para o véu e a foto.
+    if PhotoViewUi.open: PhotoOverlay {
+        width: root.width;
+        height: root.height;
     }
 }

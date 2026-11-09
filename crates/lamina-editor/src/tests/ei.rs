@@ -99,6 +99,8 @@ fn ei_b2_pre_impressao_com_ir_para_a_lamina_e_ignorar() {
         .check_export(&folder, &ExportOptions::default())
         .unwrap();
 
+    // Com os modelos de fábrica (spec RM, beta 9.1), a montagem pode trazer avisos NearCut
+    // próprios; os construídos aqui são a foto ampliada na lâmina 3 e o quadro vazio na 4.
     let kinds: Vec<(usize, usize, bool)> = check
         .warnings
         .iter()
@@ -107,17 +109,29 @@ fn ei_b2_pre_impressao_com_ir_para_a_lamina_e_ignorar() {
             (w.spread, w.frame, enlarged)
         })
         .collect();
-    assert_eq!(kinds, [(2, 0, true), (3, 0, false)], "{:?}", check.warnings);
+    assert!(
+        kinds.contains(&(2, 0, true)) && kinds.contains(&(3, 0, false)),
+        "{:?}",
+        check.warnings
+    );
     assert!(check.existing.is_empty());
 
+    let before = check.warnings.len();
     assert!(check.ignore(1), "ignorar o quadro vazio");
-    assert_eq!(check.warnings.len(), 1);
+    assert_eq!(check.warnings.len(), before - 1);
     assert!(!check.ignore(5));
 
-    let warning = check.warnings[0].clone();
+    // "Ir para a lâmina" leva ao aviso da foto ampliada (lâmina 3, quadro 1).
+    let warning = check
+        .warnings
+        .iter()
+        .find(|w| matches!(w.kind, WarningKind::Enlarged { .. }))
+        .expect("o aviso da foto ampliada")
+        .clone();
     assert!(editor.go_to_warning(&warning));
-    assert_eq!(editor.session().unwrap().current(), 1);
-    assert_eq!(editor.selected_frame(), Some(0));
+    // `Warning::spread` é 1-based: ir para a lâmina dele deixa a atual em spread − 1.
+    assert_eq!(editor.session().unwrap().current(), warning.spread - 1);
+    assert_eq!(editor.selected_frame(), Some(warning.frame));
     assert!(!folder.exists(), "nada foi exportado");
 }
 

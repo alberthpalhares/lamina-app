@@ -259,7 +259,7 @@ fn fl_b5_o_clique_aplica_sem_segundo_deslize() {
     let preview = view_and_real(&editor).0;
     slots.update(&shown(&editor), place(&editor), false);
     assert!(editor.apply_option(Part::Spread, 4));
-    assert!(steps(&editor)[0].starts_with("Trocar layout"));
+    assert!(steps(&editor)[0].starts_with("Trocar modelo"));
     let (view, now) = view_and_real(&editor);
     assert_eq!(now, preview, "igual à prévia, quadro a quadro");
     assert_eq!(view, now, "a prévia foi limpa");

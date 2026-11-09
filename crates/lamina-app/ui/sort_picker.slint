@@ -1,0 +1,116 @@
+// O seletor de ordenação do painel de fotos (spec OF, beta 9.1): um botão com o critério atual
+// que abre as opções num popup. Só desenho: a decisão é do editor.
+
+import { Theme, Fixed, Type, Radius, Space } from "theme.slint";
+import { Icons } from "icons.slint";
+import { Tip } from "widgets.slint";
+
+export global SortUi {
+    // O critério atual (0 = data, 1 = nome, 2 = personalizada).
+    in property <int> sort: 0;
+    in property <[string]> options: ["Data de captura", "Nome do arquivo", "Personalizada"];
+    callback changed(int);
+}
+
+export component SortPicker inherits Rectangle {
+    accessible-role: combobox;
+    accessible-label: "Ordenar por";
+    accessible-value: SortUi.options[SortUi.sort];
+    accessible-action-default => { root.open(); }
+    in property <bool> enabled: true;
+    callback changed(int);
+    height: 22px;
+    width: label.preferred-width + 34px;
+    border-radius: Radius.small;
+    background: touch.has-hover && root.enabled ? Theme.dim : transparent;
+    function open() {
+        if (root.enabled) {
+            popup.show();
+        }
+    }
+    label := Text {
+        x: Space.s2;
+        height: parent.height;
+        text: "Ordenar: " + SortUi.options[SortUi.sort];
+        color: root.enabled ? Theme.text : Theme.text-disabled;
+        font-size: Type.small;
+        vertical-alignment: center;
+    }
+    Image {
+        accessible-role: none;
+        accessible-label: "";
+        x: label.x + label.preferred-width + Space.s1;
+        y: (parent.height - self.height) / 2;
+        width: 12px;
+        height: 12px;
+        source: Icons.chevron-down;
+        colorize: root.enabled ? Theme.text : Theme.text-disabled;
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        clicked => { root.open(); }
+    }
+    Tip {
+        x: 0px;
+        y: parent.height + 4px;
+        text: "A ordem das fotos no painel";
+        shown: touch.has-hover;
+    }
+    popup := PopupWindow {
+        // Ancorado ao botão (coordenadas relativas, como o MenuButton do organizar); o
+        // PopupWindow é uma janela separada, então escapa do clip do cabeçalho.
+        x: 0;
+        y: root.height + 2px;
+        width: 200px;
+        height: 96px;
+        Rectangle {
+            width: parent.width;
+            height: parent.height;
+            background: Theme.raised;
+            border-width: 1px;
+            border-color: Theme.line;
+            border-radius: Radius.small;
+            VerticalLayout {
+                padding: Space.s1;
+                spacing: 2px;
+                for o[i] in SortUi.options: Rectangle {
+                    height: 28px;
+                    border-radius: Radius.small;
+                    background: opt.has-hover ? Theme.dim : transparent;
+                    HorizontalLayout {
+                        padding-left: Space.s2;
+                        spacing: Space.s2;
+
+                        // A marca do critério em uso vem do `Icons`, nunca de um caractere
+                        // (spec DF, regra 7); a vaga é fixa para as opções alinharem.
+                        Rectangle {
+                            width: 14px;
+                            if SortUi.sort == i: Image {
+                                accessible-role: none;
+                                y: (parent.height - self.height) / 2;
+                                width: 14px;
+                                height: 14px;
+                                source: Icons.check;
+                                colorize: Theme.accent;
+
+                            }
+                        }
+                        Text {
+                            text: o;
+                            color: Theme.text;
+                            font-size: Type.small;
+                            vertical-alignment: center;
+                        }
+                    }
+                    opt := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            SortUi.changed(i);
+                            root.changed(i);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

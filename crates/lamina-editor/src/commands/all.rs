@@ -5,8 +5,9 @@ use super::Command;
 
 impl Command {
     /// Todos os comandos, na ordem em que a IA e os testes os veem.
-    pub const ALL: [Command; 115] = [
+    pub const ALL: [Command; 124] = [
         Command::NewAlbum,
+        Command::QuickStart,
         Command::Open,
         Command::Save,
         Command::SaveAs,
@@ -101,6 +102,14 @@ impl Command {
         Command::EqualSize,
         Command::DistributeAcross,
         Command::DistributeDown,
+        Command::AlignLeftToSpread,
+        Command::AlignCenterToSpread,
+        Command::AlignRightToSpread,
+        Command::AlignTopToSpread,
+        Command::AlignMiddleToSpread,
+        Command::AlignBottomToSpread,
+        Command::DistributeAcrossToSpread,
+        Command::DistributeDownToSpread,
         Command::CopyFrames,
         Command::PasteFrames,
         Command::DuplicateFrames,

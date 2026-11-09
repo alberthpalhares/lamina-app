@@ -57,6 +57,17 @@ pub(super) fn settle(screen: &Screen) {
     }
 }
 
+/// A tecla pelo texto (o caractere), para o Espaço e o Escape como o Slint manda.
+pub(super) fn press_key(screen: &Screen, text: &str) {
+    let text = SharedString::from(text);
+    screen
+        .window
+        .dispatch_event(WindowEvent::KeyPressed { text: text.clone() });
+    screen
+        .window
+        .dispatch_event(WindowEvent::KeyReleased { text });
+}
+
 pub(super) fn press(screen: &Screen, key: Key) {
     let text = SharedString::from(key);
     screen
@@ -128,8 +139,11 @@ pub(super) const SCREENS: &[(&str, Opener)] = &[
     ("ModelNameDialog", |s, _| {
         s.app.global::<ModelUi>().set_show_name(true)
     }),
-    ("ModelsDialog", |s, _| {
-        s.app.global::<ModelUi>().set_show_list(true)
+    ("ModelsManageDialog", |s, _| {
+        s.app.global::<ModelUi>().set_show_manage(true)
+    }),
+    ("ModelCopyDialog", |s, _| {
+        s.app.global::<ModelUi>().set_show_copy(true)
     }),
     ("NewProjectDialog", |_, a| run(a, Command::Specification)),
     ("RemoveAskDialog", |s, _| {

@@ -271,3 +271,9 @@ pub fn connect(window: &AppWindow, app: &Shared) {
 mod tests;
 #[cfg(test)]
 mod tests_focus;
+#[cfg(test)]
+#[path = "window_look/vf_janela.rs"]
+mod vf_janela;
+#[cfg(test)]
+#[path = "window_look/vf_sort.rs"]
+mod vf_sort;

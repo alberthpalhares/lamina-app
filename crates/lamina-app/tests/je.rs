@@ -33,14 +33,17 @@ fn commands(text: &str) -> Vec<String> {
 }
 
 #[test]
-fn je_b9_a_barra_de_cima_chama_so_quatro_comandos() {
+fn je_b9_a_barra_de_cima_chama_cinco_comandos() {
     let topbar = ui("topbar.slint");
     let bar = component(&topbar, "TopBar");
     let names = commands(bar);
+    // O botão da faixa de modelos entrou na barra (pedido do dono 2026-11-08, entre as faixas de
+    // baixo e o fechar; mudança registrada na spec JE).
     assert_eq!(
         names,
         [
             "arquivo.fechar",
+            "ver.faixa-layouts",
             "ver.faixas",
             "ver.painel",
             "arquivo.exportar"

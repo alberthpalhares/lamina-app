@@ -232,7 +232,7 @@ fn al_b24_sempre_ativo_e_sem_nada_nao_pergunta() {
     assert_eq!(Command::DeleteLearned.name(), "layout.apagar-aprendizado");
     assert_eq!(
         Command::DeleteLearned.label(),
-        "Apagar o aprendizado de layouts…"
+        "Apagar o aprendizado de modelos…"
     );
     let (mut on_cover, _dir) = learning_at(album(), 0);
     let measures = lamina_core::CoverMeasures::defaults(&on_cover.session().unwrap().album().spec);

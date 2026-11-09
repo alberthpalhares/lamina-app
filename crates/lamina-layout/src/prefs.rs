@@ -19,11 +19,28 @@ pub const FAVORITE_BONUS: f64 = 10.0;
 pub struct Preferences {
     pub favorites: BTreeSet<String>,
     pub rejected: BTreeSet<String>,
+    /// Modelos de fábrica ocultos pelo fotógrafo (spec RM, beta 9.1): chaves `fabrica:`.
+    pub hidden: BTreeSet<String>,
 }
 
 impl Preferences {
     pub fn is_empty(&self) -> bool {
-        self.favorites.is_empty() && self.rejected.is_empty()
+        self.favorites.is_empty() && self.rejected.is_empty() && self.hidden.is_empty()
+    }
+
+    /// Oculta um modelo de fábrica (spec RM, regra 8: sai da vista; restaurar traz de volta).
+    pub fn hide(&mut self, key: &str) {
+        self.favorites.remove(key);
+        self.rejected.remove(key);
+        self.hidden.insert(key.to_owned());
+    }
+
+    /// Restaura os modelos de fábrica (spec RM, regra 7): ocultos voltam e as marcas de fábrica
+    /// zeram; os modelos do fotógrafo não são tocados.
+    pub fn restore_factory(&mut self) {
+        self.hidden.clear();
+        self.favorites.retain(|k| !k.starts_with("fabrica:"));
+        self.rejected.retain(|k| !k.starts_with("fabrica:"));
     }
 
     /// Marca ou desmarca como favorito. Favoritar tira dos rejeitados.
@@ -69,8 +86,13 @@ pub(crate) fn design_key_of(
     aspects: &[f64],
 ) -> String {
     // O modelo tem chave pelo nome: renomear leva as marcas junto (spec MD, regra 5).
-    if let Family::Model { name, mirrored } = family {
-        return model_key(name, *mirrored);
+    if let Family::Model {
+        name,
+        mirrored,
+        factory,
+    } = family
+    {
+        return model_key(name, *mirrored, *factory);
     }
     let orientations: String = order
         .iter()
@@ -94,10 +116,12 @@ pub(crate) fn design_key_of(
     )
 }
 
-/// Chave do desenho de um modelo: "modelo:<nome>", com ":e" no espelho.
-pub fn model_key(name: &str, mirrored: bool) -> String {
+/// Chave do desenho de um modelo: "modelo:<nome>" (ou "fabrica:<nome>", spec RM), com ":e" no
+/// espelho.
+pub fn model_key(name: &str, mirrored: bool, factory: bool) -> String {
     let e = if mirrored { ":e" } else { "" };
-    format!("modelo:{name}{e}")
+    let ns = if factory { "fabrica" } else { "modelo" };
+    format!("{ns}:{name}{e}")
 }
 
 fn layout_text(layout: &PageLayout) -> String {
@@ -177,7 +201,11 @@ fn family_text(family: &Family) -> String {
             format!("mosaico:{}:{}", scope_text(*scope), layout_text(layout))
         }
         Family::FullBleed(format) => full_bleed_text(format),
-        Family::Model { name, mirrored } => model_key(name, *mirrored),
+        Family::Model {
+            name,
+            mirrored,
+            factory,
+        } => model_key(name, *mirrored, *factory),
     }
 }
 
@@ -193,6 +221,8 @@ pub fn apply_preferences(
     let mut tagged: Vec<(bool, LayoutCandidate)> = list
         .into_iter()
         .zip(&keys)
+        // Oculto (fábrica, spec RM) e rejeitado saem da lista.
+        .filter(|(_, k)| !prefs.hidden.contains(*k))
         .filter(|(_, k)| all_rejected || !prefs.rejected.contains(*k))
         .map(|(c, k)| (prefs.favorites.contains(k), c))
         .collect();

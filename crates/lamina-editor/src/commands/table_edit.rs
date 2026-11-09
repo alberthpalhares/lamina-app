@@ -69,7 +69,7 @@ impl Command {
             ),
             C::DeleteLearned => (
                 "layout.apagar-aprendizado",
-                "Apagar o aprendizado de layouts…",
+                "Apagar o aprendizado de modelos…",
                 Menu::Layout,
                 None,
             ),
@@ -208,7 +208,7 @@ impl Command {
                 Menu::Spread,
                 None,
             ),
-            C::Models => ("lamina.modelos", "Meus modelos…", Menu::Spread, None),
+            C::Models => ("lamina.modelos", "Gerenciar modelos…", Menu::Spread, None),
             _ => return None,
         })
     }

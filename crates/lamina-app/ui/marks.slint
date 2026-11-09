@@ -13,11 +13,19 @@ export global Marks {
         "aba-laminas",
         "aba-sequencia",
     ];
-    // As que só aparecem num certo estado da janela. As repetidas (quadro-N, foto-N e menu-N) são
-    // conferidas pelo `is_known_mark` do editor.
+    // As que só aparecem num certo estado da janela. As repetidas (quadro-N, foto-N, menu-N e os
+    // grupos, como pref-tema-op-N e menu-alinhar-N) são conferidas pelo `is_known_mark` do editor.
     out property <[string]> on-demand: [
         "exportar-cancelar",
         "exportar-confirmar",
+        "barra-alinhar",
+        "botao-alinhar",
+        "pref-tema",
+        "pref-texto",
+        "capa-frente",
+        "botao-capacriar",
+        "capa-criar",
+        "capa-lombada",
     ];
     in-out property <int> ask;
     callback report(string, length, length, length, length);

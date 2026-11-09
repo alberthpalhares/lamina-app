@@ -16,6 +16,7 @@ impl Command {
                 Menu::File,
                 Some(S::ctrl('n')),
             ),
+            C::QuickStart => ("arquivo.inicio-rapido", "Início rápido", Menu::File, None),
             C::Open => ("arquivo.abrir", "Abrir…", Menu::File, Some(S::ctrl('o'))),
             C::Save => ("arquivo.salvar", "Salvar", Menu::File, Some(S::ctrl('s'))),
             C::SaveAs => (

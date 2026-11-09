@@ -1,17 +1,24 @@
 //! Regras 1 a 3 da spec: ordem das fotos, corte em momentos e união de momentos vizinhos.
 
-use lamina_core::Photo;
+use lamina_core::{Photo, PhotoId};
 
 /// Intervalo "infinito" antes do momento das fotos sem data: é o último a ser unido.
 pub const NO_DATE_GAP: i64 = i64::MAX;
 
 /// Fotos em ordem: por data de captura; empate e fotos sem data pelo nome do arquivo (regra 1).
-pub fn ordered(photos: &[Photo]) -> Vec<&Photo> {
+/// As fotos na ordem de captura (data, depois nome). Com `order` não vazio (spec OF, beta 9.1),
+/// a ordem do critério escolhido pelo painel.
+pub fn ordered<'a>(photos: &'a [Photo], order: &[PhotoId]) -> Vec<&'a Photo> {
     let mut list: Vec<&Photo> = photos.iter().collect();
-    list.sort_by_key(|p| {
-        let name = p.path.file_name().map(|n| n.to_string_lossy().into_owned());
-        (p.taken_at.is_none(), p.taken_at, name, p.path.clone())
-    });
+    if order.is_empty() {
+        list.sort_by_key(|p| {
+            let name = p.path.file_name().map(|n| n.to_string_lossy().into_owned());
+            (p.taken_at.is_none(), p.taken_at, name, p.path.clone())
+        });
+    } else {
+        let pos = |id: PhotoId| order.iter().position(|o| *o == id);
+        list.sort_by_key(|p| (pos(p.id).is_none(), pos(p.id).unwrap_or(usize::MAX)));
+    }
     list
 }
 

@@ -14,6 +14,8 @@ pub(super) enum PanelNeed {
     Frame { spread: SpreadId, frame: FrameId },
     /// O modo organizar, enquanto ele estiver aberto.
     Organize,
+    /// Uma foto à vista (prévia da lateral, spec VF, regra 1): enquanto houver foto escolhida.
+    PhotoView,
 }
 
 /// Como a aba Quadro abre para o texto selecionado: só a aba (um clique no texto) ou a aba com o
@@ -49,6 +51,7 @@ impl Editor {
             PanelNeed::Frame { spread, frame } => {
                 self.selected_frame_key() == Some((spread, frame)) && !self.organizing()
             }
+            PanelNeed::PhotoView => self.photo_view.chosen.is_some(),
         }
     }
 

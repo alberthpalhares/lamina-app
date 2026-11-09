@@ -54,10 +54,11 @@ pub fn connect(window: &AppWindow, app: &Shared) {
     let a = app.clone();
     window.on_frame_grab(move |frame, grip, x, y, width| {
         let mut app = a.borrow_mut();
-        // No modo organizar, as alças são as da caixa do grupo (spec EG, regra 5).
-        let organizing = app.editor.organizing();
+        // No modo organizar, ou na edição comum com seleção múltipla (spec GJ), as alças são as
+        // da caixa do grupo (spec EG, regra 5).
+        let group = app.editor.selected_frames().len() > 1;
         let grabbed = usize::try_from(frame).is_ok_and(|f| {
-            if organizing {
+            if group {
                 app.editor.group_grab(f, grip_of(grip))
             } else {
                 app.editor.frame_grab(f, grip_of(grip))

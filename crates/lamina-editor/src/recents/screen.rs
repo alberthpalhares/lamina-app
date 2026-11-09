@@ -119,17 +119,23 @@ pub struct WelcomeButtons {
     pub bar: &'static [Command],
 }
 
-/// Sem recentes, o novo álbum é o principal, com o exemplo ao lado. Com recentes, o principal é
-/// continuar o álbum em andamento e os três botões ficam na barra.
+/// Sem recentes, o novo álbum é o principal, com o início rápido e o exemplo ao lado. Com
+/// recentes, o principal é continuar o álbum em andamento e os botões ficam na barra (spec IQ,
+/// regra 8: o "Começar" entra ao lado do "Novo álbum…", sem mudar o principal).
 pub fn welcome_buttons(has_recents: bool) -> WelcomeButtons {
     if has_recents {
         WelcomeButtons {
             body: &[],
-            bar: &[Command::OpenExample, Command::Open, Command::NewAlbum],
+            bar: &[
+                Command::OpenExample,
+                Command::Open,
+                Command::NewAlbum,
+                Command::QuickStart,
+            ],
         }
     } else {
         WelcomeButtons {
-            body: &[Command::NewAlbum, Command::OpenExample],
+            body: &[Command::NewAlbum, Command::QuickStart, Command::OpenExample],
             bar: &[Command::Open],
         }
     }

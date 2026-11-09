@@ -3,7 +3,7 @@
 // igual embaixo. Só desenho.
 
 import { LineEdit, ListView } from "std-widgets.slint";
-import { Theme, Type, Line, Space } from "theme.slint";
+import { Theme, Type, Line, Space, Radius } from "theme.slint";
 import { BarButton, DialogButton, DialogFocus, FilterTab } from "widgets.slint";
 import { NewsUi } from "news.slint";
 import { NewsItem, NewsCard } from "news_item.slint";
@@ -244,6 +244,61 @@ component PageBody inherits Rectangle {
     init => {
         root.narrow = root.width < 900px;
         keys.focus();
+    }
+
+    // A animação tocando abre grande no centro (decisão do dono, 2026-11-04): o véu escurece a
+    // página inteira, o quadro 16:9 centrado com moldura, e Esc ou clique fora param.
+    if NewsUi.playing >= 0: player := FocusScope {
+        x: 0;
+        y: 0;
+        width: root.width;
+        height: root.height;
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                NewsUi.cover-clicked(NewsUi.playing);
+                keys.focus();
+                return accept;
+            }
+            return reject;
+        }
+        // O véu: escurece a página por baixo (o TouchArea de cima bloqueia o mouse).
+        Rectangle {
+            x: 0; y: 0;
+            width: root.width;
+            height: root.height;
+            background: Theme.veil;
+        }
+        TouchArea {
+            x: 0; y: 0;
+            width: root.width;
+            height: root.height;
+            clicked => {
+                NewsUi.cover-clicked(NewsUi.playing);
+                keys.focus();
+            }
+        }
+        // O quadro grande, centrado: 16:9 com margem, moldura e o quadro da animação.
+        Rectangle {
+            x: (root.width - self.width) / 2;
+            y: (root.height - self.height) / 2;
+            width: min(root.width - 96px, (root.height - 140px) * 16 / 9);
+            height: self.width * 9 / 16;
+            drop-shadow-blur: 30px;
+            drop-shadow-color: Theme.shadow;
+            border-radius: Radius.medium;
+            border-width: 1px;
+            border-color: Theme.line;
+            background: Theme.g2;
+            clip: true;
+            Image {
+                accessible-role: none;
+                x: 0; y: 0;
+                width: parent.width;
+                height: parent.height;
+                source: NewsUi.frame;
+                image-fit: contain;
+            }
+        }
     }
 }
 

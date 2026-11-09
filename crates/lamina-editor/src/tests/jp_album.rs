@@ -149,11 +149,10 @@ fn jp_b8_navegador_de_fotos() {
 fn jp_b10_aviso_de_pre_impressao_na_faixa() {
     let base = Base::with_photos(12, (600, 400));
     let mut project = base.project(3);
+    // Com os modelos de fábrica (spec RM, beta 9.1), a montagem pode já ter avisos de ampliação
+    // (fotos pequenas em desenhos que preenchem mais); contamos os de antes para comparar.
     let clean = Session::new_unsaved(project.clone());
-    assert!(
-        (0..3).all(|i| clean.warnings_for(i).is_empty()),
-        "sem avisos antes"
-    );
+    let before: usize = (0..3).map(|i| clean.warnings_for(i).len()).sum();
     // Uma foto da lâmina 2 com 1/20 dos pixels: ampliada muito acima de 120%.
     let FrameContent::Photo { photo, .. } = project.spreads[1].frames[0].content else {
         panic!("quadro com foto");
@@ -163,8 +162,12 @@ fn jp_b10_aviso_de_pre_impressao_na_faixa() {
     small.height_px /= 20;
     let file = base.save(project, "album/casamento.lamina");
     let session = Session::open(&file).unwrap();
-    assert!(session.warnings_for(0).is_empty() && session.warnings_for(2).is_empty());
     let warnings = session.warnings_for(1);
+    let now = (0..3).map(|i| session.warnings_for(i).len()).sum::<usize>();
+    assert!(
+        now > before,
+        "a foto ampliada demais aumenta os avisos ({before} → {now})"
+    );
     assert!(
         warnings
             .iter()

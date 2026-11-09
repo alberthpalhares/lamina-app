@@ -18,6 +18,7 @@
 //! - [`photos`]: o painel de fotos (as abas e os usos de cada foto).
 //! - [`photo_grid`]: a grade do painel de fotos, o zoom, a altura e o laço (spec PF).
 //! - [`presets`] e [`respec`]: presets e trocar a especificação de um álbum pronto (spec PR).
+//! - [`quick_start`]: o início rápido, o álbum vazio com o tamanho padrão (spec IQ).
 //! - [`strips`]: as três faixas de baixo, com título e recolhíveis (spec PN).
 //! - [`recents`]: a lista de recentes e o que a tela inicial mostra (spec TI).
 //! - [`received`]: os arquivos que o sistema entrega ao Lamina (duplo clique; spec MA).
@@ -80,6 +81,7 @@ pub mod motion;
 pub mod naming;
 pub mod new_project;
 pub mod number_step;
+pub mod ordering;
 pub mod organize_bar;
 pub mod page_meter;
 pub mod palette_tips;
@@ -89,6 +91,7 @@ pub mod photos;
 pub mod prefs_store;
 pub mod preset_names;
 pub mod presets;
+pub mod quick_start;
 pub mod received;
 pub mod recents;
 pub mod relink;
@@ -152,10 +155,12 @@ pub use lamina_render::text_image;
 pub use learned_store::{LEARNED_FILE, LearnedJob, LearnedStore};
 pub use models::{MODELS_FILE, ModelError, ModelsStore, model_from_spread};
 pub use photos::{
-    Filter, PhotoInfo, PhotoItem, photo_info, photo_list, same_photo_list, used_photos,
+    Filter, PhotoInfo, PhotoItem, photo_info, photo_list, photo_list_sorted, same_photo_list,
+    used_photos,
 };
 pub use prefs_store::{PREFS_FILE, PrefsStore, config_dir};
 pub use presets::{PRESETS_FILE, Preset, PresetError, PresetsStore, builtin_presets};
+pub use quick_start::{QUICK_START_NAME, quick_start_project};
 pub use recents::{RECENTS_FILE, Recent, RecentsStore};
 pub use relink::{
     Found, RELINK_LATER, not_found_message, relinked_message, search_folder, search_near,

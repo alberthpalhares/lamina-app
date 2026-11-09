@@ -39,6 +39,10 @@ pub struct SpreadModel {
     /// Páginas que a lâmina usa.
     pub left: bool,
     pub right: bool,
+    /// É um modelo de fábrica (spec RM, beta 9.1): chave `fabrica:`, não gravado em
+    /// `modelos.json`.
+    #[serde(default)]
+    pub factory: bool,
 }
 
 /// O que o candidato de um modelo leva além dos quadros: borda e cantos de cada foto (na ordem
@@ -66,6 +70,7 @@ impl SpreadModel {
     pub fn mirrored(&self) -> SpreadModel {
         SpreadModel {
             name: self.name.clone(),
+            factory: self.factory,
             slots: self
                 .slots
                 .iter()
@@ -191,6 +196,7 @@ fn candidate(
         family: Family::Model {
             name: model.name.clone(),
             mirrored,
+            factory: model.factory,
         },
         breathing: Breathing::default(),
         frames: slot_of.iter().map(|&k| model.slots[k].rect).collect(),
@@ -209,6 +215,45 @@ fn candidate(
 }
 
 /// Os candidatos dos modelos que casam: (na ordem, reordenados).
+/// Um candidato do motor vira modelo de fábrica (spec RM, regra 5): cada foto, na ordem, com a
+/// orientação de `aspects` e as frações do corte do candidato. As páginas são as da mistura
+/// (`both`: lâmina aberta; senão página única).
+pub fn model_from_candidate(
+    c: &LayoutCandidate,
+    aspects: &[f64],
+    name: &str,
+    both: bool,
+) -> Option<SpreadModel> {
+    if c.model.is_some() {
+        return None;
+    }
+    let mut slots = Vec::new();
+    for (i, rect) in c.frames.iter().enumerate() {
+        let orientation = c
+            .order
+            .get(i)
+            .and_then(|&photo| aspects.get(photo))
+            .map(|a| Orientation::from_aspect_ratio(*a));
+        slots.push(ModelSlot {
+            rect: *rect,
+            orientation,
+            border: Border::default(),
+            radius: Mm::default(),
+        });
+    }
+    if slots.is_empty() {
+        return None;
+    }
+    Some(SpreadModel {
+        name: name.to_owned(),
+        slots,
+        texts: Vec::new(),
+        left: both,
+        right: true,
+        factory: true,
+    })
+}
+
 pub(super) fn candidates(
     ctx: &Ctx,
     aspects: &[f64],
@@ -272,6 +317,7 @@ mod tests {
             texts: Vec::new(),
             left: true,
             right: false,
+            factory: false,
         };
         let m = model.mirrored();
         assert!((m.slots[0].rect.x() - 0.7).abs() < 1e-9);

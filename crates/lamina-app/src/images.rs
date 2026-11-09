@@ -49,6 +49,10 @@ pub struct Images {
     /// de ir para ela; até lá, a miniatura (e a imagem pronta da lâmina por baixo).
     pub(crate) gated: bool,
     revealed: std::collections::HashSet<PhotoId>,
+    /// As imagens das fotos à vista (prévia e ampliada, spec VF), lidas fora da linha da janela;
+    /// pedidas fora do plano das lâminas, com prioridade sobre as miniaturas da grade.
+    viewed: HashMap<PhotoId, Image>,
+    view_asked: std::collections::HashSet<PhotoId>,
 }
 
 impl Images {
@@ -68,6 +72,8 @@ impl Images {
             original: None,
             arrived: false,
             sliding: false,
+            viewed: HashMap::new(),
+            view_asked: std::collections::HashSet::new(),
             gated: false,
             revealed: std::collections::HashSet::new(),
         }
@@ -84,6 +90,8 @@ impl Images {
         self.thumb_plan.forget();
         self.fresh.clear();
         self.original = None;
+        self.viewed.clear();
+        self.view_asked.clear();
     }
 
     /// Lê as miniaturas com `side` px no lado maior (o tamanho da peça da grade; spec PF, seção
@@ -233,9 +241,14 @@ impl Images {
         images
     }
 
-    /// Uma foto de tela chegou do trabalhador (`None`: não há imagem de tela no cache).
+    /// Uma foto de tela chegou do trabalhador (`None`: não há imagem de tela no cache). A foto
+    /// à vista (spec VF) é aceita fora do plano.
     pub fn screen_arrived(&mut self, epoch: u64, id: PhotoId, pixels: Option<Pixels>) {
         if epoch != self.epoch {
+            return;
+        }
+        if self.view_asked.contains(&id) {
+            self.view_arrived(epoch, id, pixels);
             return;
         }
         let Some(pixels) = pixels else {
@@ -251,6 +264,35 @@ impl Images {
                 self.held.insert(id, Image::from_rgba8(pixels));
             }
             Arrival::Discard => {}
+        }
+    }
+
+    /// A imagem da foto à vista (prévia e ampliada, spec VF): a lida para a vista, ou a de tela,
+    /// ou a miniatura enquanto não chega. Pede a leitura se falta (com prioridade, `ask_view`).
+    pub fn photo_view(&mut self, project: &Project, id: PhotoId) -> Option<Image> {
+        if !self.view_asked.contains(&id)
+            && !self.viewed.contains_key(&id)
+            && let Ok(photo) = project.photo(id)
+        {
+            self.view_asked.insert(id);
+            self.loader.ask_view(self.epoch, vec![(id, photo.clone())]);
+        }
+        self.viewed
+            .get(&id)
+            .cloned()
+            .or_else(|| self.sharp(id).cloned())
+            .or_else(|| self.thumb(id))
+    }
+
+    /// A imagem de foto à vista chegou (fora do plano das lâminas, spec VF).
+    pub fn view_arrived(&mut self, epoch: u64, id: PhotoId, pixels: Option<Pixels>) {
+        if epoch != self.epoch || !self.view_asked.contains(&id) {
+            return;
+        }
+        if let Some(pixels) = pixels {
+            self.viewed.insert(id, Image::from_rgba8(pixels));
+        } else {
+            self.view_asked.remove(&id);
         }
     }
 

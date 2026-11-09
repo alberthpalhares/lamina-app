@@ -25,9 +25,17 @@ pub fn family_name(kind: FamilyKind) -> &'static str {
 /// modelo do fotógrafo (spec MD, seção 4).
 pub fn option_title(family: &Family) -> String {
     match family {
-        Family::Model { name, mirrored } => {
+        Family::Model {
+            name,
+            mirrored,
+            factory,
+        } => {
             let e = if *mirrored { " · espelhado" } else { "" };
-            format!("Modelo · {name}{e}")
+            if *factory {
+                format!("Modelo de fábrica · {name}{e}")
+            } else {
+                format!("Modelo · {name}{e}")
+            }
         }
         other => family_name(other.kind()).to_owned(),
     }

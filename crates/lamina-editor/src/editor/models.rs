@@ -47,7 +47,10 @@ impl Editor {
         }
         let prefs = &mut self.prefs.prefs;
         for mirrored in [false, true] {
-            let (from, to) = (model_key(old, mirrored), model_key(new.trim(), mirrored));
+            let (from, to) = (
+                model_key(old, mirrored, false),
+                model_key(new.trim(), mirrored, false),
+            );
             for set in [&mut prefs.favorites, &mut prefs.rejected] {
                 if set.remove(&from) {
                     set.insert(to.clone());
@@ -58,6 +61,79 @@ impl Editor {
         Ok(true)
     }
 
+    /// Oculta um modelo de fábrica (spec RM, regra 8): sai da faixa e do painel; restaurar traz
+    /// de volta. `true` = mudou.
+    pub fn hide_factory_model(&mut self, name: &str) -> bool {
+        for mirrored in [false, true] {
+            let key = model_key(name, mirrored, true);
+            self.prefs.prefs.hide(&key);
+        }
+        self.lists.borrow_mut().clear();
+        self.save_prefs();
+        true
+    }
+
+    /// Restaura os modelos de fábrica (spec RM, regra 7). `true` = havia algo a restaurar.
+    pub fn restore_factory_models(&mut self) -> bool {
+        let had = !self.prefs.prefs.hidden.is_empty()
+            || self
+                .prefs
+                .prefs
+                .favorites
+                .iter()
+                .any(|k| k.starts_with("fabrica:"))
+            || self
+                .prefs
+                .prefs
+                .rejected
+                .iter()
+                .any(|k| k.starts_with("fabrica:"));
+        self.prefs.prefs.restore_factory();
+        self.lists.borrow_mut().clear();
+        self.save_prefs();
+        had
+    }
+
+    /// Há modelos de fábrica ocultos ou marcados (o "Restaurar" vale)?
+    pub fn can_restore_factory(&self) -> bool {
+        !self.prefs.prefs.hidden.is_empty()
+            || self
+                .prefs
+                .prefs
+                .favorites
+                .iter()
+                .any(|k| k.starts_with("fabrica:"))
+            || self
+                .prefs
+                .prefs
+                .rejected
+                .iter()
+                .any(|k| k.starts_with("fabrica:"))
+    }
+
+    /// Um nome de cópia de fábrica já existe (entre os meus e na fábrica; spec RM, regra 8)?
+    pub fn factory_copy_exists(&self, name: &str) -> bool {
+        self.model_exists(name)
+            || lamina_layout::factory::factory_models_all()
+                .iter()
+                .any(|m| m.name == name)
+    }
+
+    /// Salva o desenho do modelo de fábrica `source` como um modelo do fotógrafo `name` (spec RM,
+    /// regra 8: "Salvar como cópia…").
+    pub fn save_factory_copy(&mut self, source: &str, name: &str) -> Result<(), ModelError> {
+        let found = lamina_layout::factory::factory_models_all()
+            .into_iter()
+            .find(|m| m.name == source)
+            .ok_or(ModelError::NotFound)?;
+        let mut copy = found.clone();
+        copy.factory = false;
+        copy.name = name.trim().to_owned();
+        self.models.save(copy)?;
+        self.lists.borrow_mut().clear();
+        Ok(())
+    }
+
     /// Apaga o modelo e as marcas dele.
     pub fn remove_model(&mut self, name: &str) -> Result<bool, ModelError> {
         if !self.models.remove(name)? {
@@ -65,7 +141,7 @@ impl Editor {
         }
         let prefs = &mut self.prefs.prefs;
         for mirrored in [false, true] {
-            let key = model_key(name, mirrored);
+            let key = model_key(name, mirrored, false);
             prefs.favorites.remove(&key);
             prefs.rejected.remove(&key);
         }

@@ -51,6 +51,8 @@ pub(super) fn is_dialog(command: Command) -> bool {
     matches!(
         command,
         C::NewAlbum
+            // O início rápido é só da janela (spec IQ, regra 6): a IA cria o álbum com novo_album.
+            | C::QuickStart
             | C::BuildAlbum
             | C::Open
             | C::OpenExample
