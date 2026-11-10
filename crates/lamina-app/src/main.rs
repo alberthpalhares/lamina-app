@@ -355,6 +355,14 @@ fn main() -> anyhow::Result<()> {
         })
         .select()?;
     let window = AppWindow::new()?;
+    // O tamanho de restaurar, dito por nós: o backend do Slint aplica o preferred do `.slint`
+    // duas vezes sem olhar o `maximized` (ao criar e ao mostrar), e o segundo resize assíncrono
+    // brigava com o estilo `WS_MAXIMIZE` do Windows — a janela abria sem ocupar a tela, mas com
+    // o botão de restaurar aceso (conferência do dono em 2026-11-09; spec FB, regra 5). Com um
+    // tamanho explícito, o backend não redimensiona ao mostrar e o maximizado prevalece.
+    window
+        .window()
+        .set_size(slint::PhysicalSize::new(1400, 900));
     // `LAMINA_GALERIA=1`: abre a galeria de componentes por cima da janela (spec DF, saída 6).
     window.set_gallery(std::env::var("LAMINA_GALERIA").is_ok_and(|v| v == "1"));
     let (app, rx, _tick) = open_app(&window, Cache::system(), startup);

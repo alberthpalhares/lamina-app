@@ -10,6 +10,7 @@ import { LookPanel } from "look.slint";
 import { PhotoUi, PhotoSection } from "photo.slint";
 import { FocusRing, IconButton, NeutralSlider, Tip, DialogButton, CheckRow } from "widgets.slint";
 import { Mark } from "marks.slint";
+import { Motion } from "motion.slint";
 import { PaletteUi } from "palette.slint";
 
 // Uma marca do ímã de mesmo tamanho ou de espaçamento igual: a linha e o texto, em frações da
@@ -225,26 +226,34 @@ component MenuButton inherits Rectangle {
             popup.show();
         }
     }
-    width: label.preferred-width + 34px;
+    width: label-layout.preferred-width + 2 * Space.s2;
     height: 32px;
     border-radius: Radius.small;
     background: touch.has-hover && root.enabled ? Theme.press : transparent;
     // A seta é um desenho nosso: a fonte da janela não tem o "▾" (aparecia um quadradinho).
-    label := Text {
-        x: Space.s2;
+    // Pelo layout (não por posição na mão): o texto medido podia ficar mais largo na fonte do
+    // computador e as letras vazavam pela direita, por cima da seta (conferência de 2026-11-09).
+    label-layout := HorizontalLayout {
         height: parent.height;
-        text: root.text;
-        color: root.enabled ? Theme.text-strong : Theme.text-disabled;
-        vertical-alignment: center;
-    }
-    Image {
-        accessible-role: none;
-        x: label.x + label.preferred-width + Space.s1;
-        y: (parent.height - self.height) / 2;
-        width: 12px;
-        height: 12px;
-        source: Icons.chevron-down;
-        colorize: root.enabled ? Theme.text-strong : Theme.text-disabled;
+        padding-left: Space.s2;
+        padding-right: Space.s2;
+        spacing: Space.s1;
+        alignment: start;
+        label := Text {
+            text: root.text;
+            color: root.enabled ? Theme.text-strong : Theme.text-disabled;
+            vertical-alignment: center;
+        }
+        VerticalLayout {
+            alignment: center;
+            Image {
+                accessible-role: none;
+                width: 12px;
+                height: 12px;
+                source: Icons.chevron-down;
+                colorize: root.enabled ? Theme.text-strong : Theme.text-disabled;
+            }
+        }
     }
     Mark { name: root.mark; on: root.mark != ""; }
     touch := TouchArea {
@@ -694,9 +703,13 @@ component AlignCell inherits Rectangle {
     width: 30px;
     height: 30px;
     border-radius: Radius.small;
-    border-width: 1px;
-    border-color: root.spread ? Theme.accent : Theme.line;
-    background: touch.has-hover ? Theme.dim : Theme.raised;
+    border-width: root.spread ? 1px : 0px;
+    border-color: Theme.accent;
+    // Ícone limpo em repouso, como os IconButton da barra (conferência do dono em 2026-11-09:
+    // as sobras de fundo e a borda em toda célula eram lixo visual). Marcado (à lâmina), o tom
+    // de foco distingue (conferência de 2026-11-08).
+    background: root.spread ? Theme.accent-soft : touch.has-hover ? Theme.hover : transparent;
+    animate background { duration: Motion.on ? 120ms : 0ms; }
     Image {
         accessible-role: none;
         accessible-label: "";
@@ -730,7 +743,7 @@ component AlignGrid inherits Rectangle {
     function cmd(base: string, to-spread: string) {
         root.command(reference == 1 ? to-spread : base);
     }
-    VerticalLayout {
+    grid := VerticalLayout {
         spacing: Space.s1;
         Text {
             text: "Alinhar";
@@ -757,9 +770,13 @@ component AlignGrid inherits Rectangle {
             spacing: Space.s1;
             AlignCell { icon: Icons.distribute-horizontal; tip: "Distribuir na horizontal"; picked => { root.cmd("organizar.distribuir-horizontal", "organizar.distribuir-lamina-horizontal"); } }
             AlignCell { icon: Icons.distribute-vertical; tip: "Distribuir na vertical"; picked => { root.cmd("organizar.distribuir-vertical", "organizar.distribuir-lamina-vertical"); } }
-            // O seletor de referência (pedido do dono 2026-11-09): abaixo do sexto ícone de alinhar,
-            // na mesma linha dos de distribuir. Marcado, os comandos valem em relação à área da
-            // lâmina — inclusive com uma foto só.
+        }
+        // O seletor de referência (pedido do dono 2026-11-09): mais à direita, abaixo da linha do
+        // Distribuir — abaixo do último botão de alinhar. Marcado, os comandos valem em relação à
+        // área da lâmina — inclusive com uma foto só. O espaçador invisível empurra a célula para
+        // a direita.
+        HorizontalLayout {
+            Rectangle { horizontal-stretch: 1; }
             AlignCell {
                 icon: Icons.spread-frame;
                 tip: "Alinhar em relação à área da lâmina (marcado) ou entre os selecionados";

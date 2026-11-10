@@ -270,3 +270,7 @@ fn union(a: PxRect, b: PxRect) -> PxRect {
 #[cfg(test)]
 #[path = "organize_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "organize_align_tests.rs"]
+mod align_tests;
