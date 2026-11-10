@@ -100,8 +100,9 @@ impl Editor {
         }))
     }
 
-    /// A área útil da lâmina atual (a união das zonas seguras das páginas ativas; spec GJ). Sem
-    /// sessão, o corte vazio.
+    /// A área útil da lâmina atual (a união das páginas ativas no corte final; spec GJ; conferência
+    /// do dono 2026-11-09: a borda que o fotógrafo vê, não a zona segura — alinhar "à direita"
+    /// encosta na borda da página). Sem sessão, o corte vazio.
     fn spread_area(&self) -> Rect {
         let Some(s) = self.session.as_ref() else {
             return Rect::new(Mm(0.0), Mm(0.0), Mm(0.0), Mm(0.0));
@@ -109,26 +110,17 @@ impl Editor {
         let project = s.project();
         let index = s.current();
         let active = project.content_pages(index);
-        let left = project.spec.safe_rect(PageSide::Left);
-        let right = project.spec.safe_rect(PageSide::Right);
-        let pick = |r: Rect, side: PageSide| {
-            let page = project.spec.page_rect(side);
-            let (x, w) = if r.x.get() < page.x.get() {
-                (r.x.get(), r.right().get() - r.x.get())
-            } else {
-                (page.x.get(), r.right().get() - page.x.get())
-            };
-            Rect::new(lamina_core::Mm(x), r.y, lamina_core::Mm(w), r.height)
-        };
+        let left = project.spec.page_rect(PageSide::Left);
+        let right = project.spec.page_rect(PageSide::Right);
         match (active.left, active.right) {
             (true, true) => Rect::new(
-                lamina_core::Mm(left.x.get().min(right.x.get())),
-                lamina_core::Mm(left.y.get().min(right.y.get())),
-                lamina_core::Mm(left.width.get() + right.width.get()),
-                lamina_core::Mm(left.height.get().max(right.height.get())),
+                Mm(left.x.get().min(right.x.get())),
+                Mm(left.y.get().min(right.y.get())),
+                Mm(left.width.get() + right.width.get()),
+                Mm(left.height.get().max(right.height.get())),
             ),
-            (true, false) => pick(left, PageSide::Left),
-            (false, true) => pick(right, PageSide::Right),
+            (true, false) => left,
+            (false, true) => right,
             (false, false) => left,
         }
     }

@@ -60,9 +60,10 @@ fn gj_b12_distribuir_na_area_da_lamina() {
     let frames = editor.frames_mm();
     let s = editor.session().unwrap();
     let spec = &s.project().spec;
-    // A área útil como o código calcula: a união das zonas seguras das páginas ativas.
-    let left = spec.safe_rect(lamina_core::PageSide::Left);
-    let right = spec.safe_rect(lamina_core::PageSide::Right);
+    // A área útil como o código calcula: a união das páginas ativas no corte final (conferência
+    // do dono 2026-11-09, noite: a borda visível, não a zona segura).
+    let left = spec.page_rect(lamina_core::PageSide::Left);
+    let right = spec.page_rect(lamina_core::PageSide::Right);
     let start = left.x.get();
     let span = left.width.get() + right.width.get();
     let gap = (span - 150.0) / 4.0;
@@ -198,11 +199,34 @@ fn gj_b18_alinhar_a_lamina_com_uma_foto_sozinha() {
     assert!(editor.run(command));
     let frames = editor.frames_mm();
     let s = editor.session().unwrap();
-    let left = s.project().spec.safe_rect(lamina_core::PageSide::Left);
+    let left = s.project().spec.page_rect(lamina_core::PageSide::Left);
     assert!(
         close(frames[0].x.get(), left.x.get()),
         "a foto encosta na borda esquerda da área útil: {:?} (área começa em {})",
         frames[0],
         left.x.get()
+    );
+}
+
+/// Bug da conferência da noite (2026-11-10): "à lâmina" usava a zona segura — a foto parava uns
+/// milímetros antes da borda. Agora a referência é a página visível: à direita, encosta na borda
+/// da página direita.
+#[test]
+fn gj_b19_alinhar_a_direita_encosta_na_borda_da_pagina() {
+    let project = album_mm(&[(60.0, 50.0, 60.0, 60.0)]);
+    let mut editor = editor_at(project, 1);
+    editor.frame_click(0, false, false);
+    let Some(command) = Command::from_name("organizar.alinhar-lamina-direita") else {
+        panic!("o nome existe no registro");
+    };
+    assert!(editor.run(command));
+    let frames = editor.frames_mm();
+    let s = editor.session().unwrap();
+    let right = s.project().spec.page_rect(lamina_core::PageSide::Right);
+    assert!(
+        close(frames[0].right().get(), right.right().get()),
+        "a foto encosta na borda direita da página: {:?} (página termina em {})",
+        frames[0],
+        right.right().get()
     );
 }

@@ -117,8 +117,14 @@ component MenuRow inherits Rectangle {
     in property <bool> active;
     in property <bool> focused;
     callback run();
+    // A largura que o rótulo pede: para a linha caber nele com folga (ver `min-width`).
+    property <length> label-preferred: label.preferred-width;
     height: 28px;
-    min-width: 210px;
+    // Cabe o rótulo mais comprido ("Alinhar à área da lâmina: esquerda") com folga: o
+    // `min-width` antigo (210px) perdia para o texto na fonte do computador, que renderiza
+    // mais largo que o medido, e as letras vazavam pela direita (conferência do dono
+    // 2026-11-10).
+    min-width: root.label-preferred + Space.s3;
     border-radius: Radius.small;
     background: (row-touch.has-hover || root.active) && root.data.enabled ? Theme.press : transparent;
     HorizontalLayout {
@@ -136,7 +142,7 @@ component MenuRow inherits Rectangle {
                 colorize: root.data.enabled ? Theme.text : Theme.text-disabled;
             }
         }
-        Text { text: root.data.label; color: root.data.enabled ? Theme.text : Theme.text-disabled; vertical-alignment: center; }
+        label := Text { text: root.data.label; color: root.data.enabled ? Theme.text : Theme.text-disabled; vertical-alignment: center; }
     }
     accessible-role: button;
     accessible-label: root.data.label;
@@ -770,13 +776,9 @@ component AlignGrid inherits Rectangle {
             spacing: Space.s1;
             AlignCell { icon: Icons.distribute-horizontal; tip: "Distribuir na horizontal"; picked => { root.cmd("organizar.distribuir-horizontal", "organizar.distribuir-lamina-horizontal"); } }
             AlignCell { icon: Icons.distribute-vertical; tip: "Distribuir na vertical"; picked => { root.cmd("organizar.distribuir-vertical", "organizar.distribuir-lamina-vertical"); } }
-        }
-        // O seletor de referência (pedido do dono 2026-11-09): mais à direita, abaixo da linha do
-        // Distribuir — abaixo do último botão de alinhar. Marcado, os comandos valem em relação à
-        // área da lâmina — inclusive com uma foto só. O espaçador invisível empurra a célula para
-        // a direita.
-        HorizontalLayout {
-            Rectangle { horizontal-stretch: 1; }
+            // O seletor de referência (pedido do dono 2026-11-09, reafirmado na conferência da
+            // noite): na mesma linha dos de distribuir, abaixo do "Alinhar à base". Marcado, os
+            // comandos valem em relação à área da lâmina — inclusive com uma foto só.
             AlignCell {
                 icon: Icons.spread-frame;
                 tip: "Alinhar em relação à área da lâmina (marcado) ou entre os selecionados";

@@ -17,10 +17,10 @@ use crate::headless::{self, Screen};
 const TALL: (u32, u32) = (1366, 920);
 /// O centro vertical da fileira dos ícones de alinhar (medido).
 const ALIGN_ROW_Y: usize = 538;
-/// O centro vertical da fileira própria do seletor (medido).
-const SELECTOR_ROW_Y: usize = 625;
-/// O centro horizontal do seletor (medido): a célula encostada à direita do painel.
-const SELECTOR_X: f32 = 1338.0;
+/// O centro vertical da linha dos de distribuir + seletor (medido).
+const SELECTOR_ROW_Y: usize = 591;
+/// O centro horizontal do seletor: a terceira célula da linha do distribuir (medido).
+const SELECTOR_X: f32 = 1148.0;
 /// O centro horizontal da primeira célula de alinhar (medido).
 const ALIGN_FIRST_X: f32 = 1093.0;
 
@@ -54,14 +54,12 @@ fn click(screen: &Screen, x: f32, y: f32) {
     screen.draw();
 }
 
-/// As colunas com pixels claros (o ícone) numa linha do desenho. O ícone de scan tem linhas
-/// vazias no meio, então varre uma faixa de ±6 linhas e junta.
-fn bright_columns(screen: &Screen, y: usize) -> Vec<usize> {
-    let pixels = screen.draw();
-    let width = screen.width() as usize;
-    let height = screen.height() as usize;
+/// As colunas com pixels claros (o ícone) numa faixa de linhas do desenho dado. O ícone de scan
+/// tem linhas vazias no meio, então varre ±9 linhas e junta. Usa os pixels já desenhados: um
+/// `draw` novo no meio do teste pode pegar outro quadro da animação de fundo.
+fn columns_in(pixels: &[slint::Rgb8Pixel], width: usize, height: usize, y: usize) -> Vec<usize> {
     let mut cols = Vec::new();
-    for dy in y.saturating_sub(6)..(y + 6).min(height) {
+    for dy in y.saturating_sub(9)..(y + 9).min(height) {
         for x in 0..width {
             let p = pixels[dy * width + x];
             if p.r > 150 && p.g > 150 && !cols.contains(&x) {
@@ -69,6 +67,8 @@ fn bright_columns(screen: &Screen, y: usize) -> Vec<usize> {
             }
         }
     }
+    // A ordem do vetor é a de descoberta (linha a linha), não a de x: ordena.
+    cols.sort_unstable();
     cols
 }
 
@@ -108,41 +108,59 @@ fn o_alinhar_desmarcado_manda_o_comando_entre_selecionados() {
     );
 }
 
-/// O seletor mora na própria fileira, encostado à direita do painel (pedido do dono
-/// 2026-11-09): o ícone dele fica no fim da janela, longe dos ícones de distribuir (que
-/// ficam na esquerda) e abaixo da linha deles.
+/// O seletor mora na mesma linha dos ícones de distribuir, como terceira célula — abaixo do
+/// "Alinhar à base" (pedido do dono reafirmado na conferência de 2026-11-10): o ícone dele
+/// fica na mesma faixa vertical dos de distribuir, à direita deles.
 #[test]
-fn o_seletor_fica_a_direita_do_painel() {
+fn o_seletor_fica_na_linha_do_distribuir() {
     let (screen, _seen) = align_window();
     screen.draw();
     screen.draw();
+    let pixels = screen.draw();
+    let (w, h) = (screen.width() as usize, screen.height() as usize);
     if let Ok(folder) = std::env::var("LAMINA_CAPTURAS") {
-        let pixels = screen.draw();
         let bytes: Vec<u8> = pixels.iter().flat_map(|p| [p.r, p.g, p.b]).collect();
         let out = image::RgbImage::from_raw(screen.width(), screen.height(), bytes).unwrap();
         out.save(format!("{folder}/seletor.png")).unwrap();
     }
-    let cols = bright_columns(&screen, SELECTOR_ROW_Y);
-    let first = *cols.first().expect("a fileira do seletor tem ícone");
-    let last = *cols.last().expect("a fileira do seletor tem ícone");
-    let width = screen.width() as usize;
-    // Encostado à direita: o último pixel fica a menos de 60 px da borda.
+    let cols = columns_in(&pixels, w, h, SELECTOR_ROW_Y);
+    if std::env::var("LAMINA_DEBUG").is_ok() {
+        println!(
+            "cols em {SELECTOR_ROW_Y}: primeiro {:?}, último {:?}",
+            cols.first(),
+            cols.last()
+        );
+        for dy in [585usize, 595] {
+            let bright: Vec<usize> = (1140..w)
+                .filter(|x| pixels[dy * w + x].r > 150 && pixels[dy * w + x].g > 150)
+                .collect();
+            println!("linha {dy}: claros à direita {bright:?}");
+        }
+    }
+    let first = *cols.first().expect("a linha do distribuir tem ícones");
+    let last = *cols.last().expect("a linha do distribuir tem ícones");
+    // Os dois de distribuir ficam entre 1079 e 1140 (medido); o seletor, depois deles.
     assert!(
-        width - last < 60,
-        "o seletor encosta na direita (último pixel em {last}, janela {width})"
+        first < 1140,
+        "os de distribuir ficam à esquerda (primeiro pixel em {first})"
     );
-    // Abaixo da linha de distribuir e longe dela: o seletor não divide a fileira com os
-    // ícones de distribuir, que ficam à esquerda (x < 1140).
     assert!(
-        first > 1140,
-        "o seletor não fica junto dos ícones de distribuir (primeiro pixel em {first})"
+        last > 1140,
+        "o seletor fica depois dos de distribuir (último pixel em {last})"
     );
-    // A fileira de alinhar (acima) não passa de x 1280: o seletor começa depois dela.
-    let align_cols = bright_columns(&screen, ALIGN_ROW_Y);
-    let align_last = *align_cols.last().expect("a fileira de alinhar tem ícones");
+    // Três células na mesma faixa vertical: a distância total da linha cabe em ~110 px
+    // (3 células de 30 px + 2 vãos de 4 px), a partir do primeiro ícone.
     assert!(
-        first > align_last,
-        "o seletor fica abaixo e além do último botão de alinhar (seletor em {first}, alinhar termina em {align_last})"
+        last - first < 115,
+        "três células na linha (de {first} a {last})"
+    );
+    // E abaixo da fileira de alinhar: o primeiro da linha de distribuir vem depois do fim da
+    // fileira de alinhar em y (mesma coluna, outra faixa).
+    let align_cols = columns_in(&pixels, w, h, ALIGN_ROW_Y);
+    let align_last_x = *align_cols.last().expect("a fileira de alinhar tem ícones");
+    assert!(
+        align_last_x > 1250,
+        "a fileira de alinhar vai até o sexto botão ({align_last_x})"
     );
 }
 

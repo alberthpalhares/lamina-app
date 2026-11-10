@@ -15,6 +15,10 @@ pub(crate) struct Waits {
     resize: Quiet,
     bar: HoverGrace,
     headers: HeaderClicks,
+    /// A janela recém-criada ainda entrega o primeiro Resized (o tamanho inicial/maximizado):
+    /// não é o fotógrafo mudando o tamanho, e o silêncio de 150 ms atrasava o primeiro quadro
+    /// completo da abertura (conferência do dono 2026-11-10, "o maximizar ainda demora").
+    opening: bool,
 }
 
 impl Default for Waits {
@@ -24,6 +28,7 @@ impl Default for Waits {
             resize: Quiet::new(RESIZE_QUIET_MS),
             bar: HoverGrace::default(),
             headers: HeaderClicks::default(),
+            opening: true,
         }
     }
 }
@@ -51,8 +56,14 @@ fn until(waits: &Waits, due: u64) -> Duration {
     Duration::from_millis(due.saturating_sub(waits.now()) + 2)
 }
 
-/// A janela mudou de tamanho: a lâmina para de animar até o silêncio.
+/// A janela mudou de tamanho: a lâmina para de animar até o silêncio. O primeiro Resized (o da
+/// criação, maximizada) não conta: a abertura já desenha tudo e o silêncio só atrasaria o
+/// primeiro quadro.
 pub(crate) fn resized(app: &mut App) {
+    if app.waits.opening {
+        app.waits.opening = false;
+        return;
+    }
     let now = app.waits.now();
     app.waits.resize.poke(now);
     if let Some(w) = app.window.upgrade() {
