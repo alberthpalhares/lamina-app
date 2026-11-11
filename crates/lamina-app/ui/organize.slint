@@ -117,14 +117,14 @@ component MenuRow inherits Rectangle {
     in property <bool> active;
     in property <bool> focused;
     callback run();
-    // A largura que o rótulo pede: para a linha caber nele com folga (ver `min-width`).
+    // A largura que o rótulo pede: para a linha caber nele com folga (ver `width`).
     property <length> label-preferred: label.preferred-width;
     height: 28px;
-    // Cabe o rótulo mais comprido ("Alinhar à área da lâmina: esquerda") com folga: o
-    // `min-width` antigo (210px) perdia para o texto na fonte do computador, que renderiza
-    // mais largo que o medido, e as letras vazavam pela direita (conferência do dono
-    // 2026-11-10).
-    min-width: root.label-preferred + Space.s3;
+    // A largura pela soma real (ícone + espaçamento + rótulo + paddings) com 15% de folga: o
+    // preferred medido media menor que o texto renderizado na fonte do computador (a medição e
+    // o render usam caminhos diferentes do layout de texto), e o texto vazava pela direita
+    // (conferências do dono 2026-11-10).
+    width: (18px + Space.s2 + label.preferred-width + Space.s3) * 1.15;
     border-radius: Radius.small;
     background: (row-touch.has-hover || root.active) && root.data.enabled ? Theme.press : transparent;
     HorizontalLayout {
@@ -179,6 +179,10 @@ component MenuRows inherits VerticalLayout {
     forward-focus: scope;
     padding: Space.s1;
     spacing: Space.s1;
+    // As linhas grudam na esquerda: o padrão do VerticalLayout é centrar na horizontal, o que
+    // fazia a linha com largura maior que o painel transbordar igualmente dos dois lados
+    // (conferência do dono 2026-11-10).
+    alignment: start;
     scope := FocusScope {
         width: 0;
         height: 0;
@@ -226,9 +230,12 @@ component MenuButton inherits Rectangle {
     in property <string> mark;
     in property <[BarRow]> rows;
     property <int> first: -1;
+    // O menu está aberto: esconde a dica do botão (o balão desenhava por cima do popup).
+    property <bool> menu-open: false;
     function open(by-keys: bool) {
         if (root.enabled) {
             root.first = by-keys ? 0 : -1;
+            root.menu-open = true;
             popup.show();
         }
     }
@@ -292,6 +299,7 @@ component MenuButton inherits Rectangle {
             pointer-event(e) => {
                 if (e.kind == PointerEventKind.up) {
                     popup.close();
+                    root.menu-open = false;
                 }
             }
         }
@@ -302,6 +310,9 @@ component MenuButton inherits Rectangle {
             x: root.absolute-position.x;
             y: root.absolute-position.y + root.height + Line.focus;
             width: list.preferred-width + 2 * Space.s1;
+            // A altura termina no último item: sem ela, o painel herdava a altura do popup
+            // gigante (16000px) e ia até o fim da tela (conferência do dono 2026-11-10).
+            height: list.preferred-height + 2 * Space.s1;
             background: Theme.raised;
             border-radius: Radius.medium;
             border-width: Line.thin;
@@ -309,14 +320,16 @@ component MenuButton inherits Rectangle {
             drop-shadow-blur: Elevation.menu-blur;
             drop-shadow-offset-y: Elevation.menu-y;
             drop-shadow-color: Elevation.menu-color;
-            list := MenuRows { rows: root.rows; mark-prefix: root.mark-prefix; tab-moves: true; active: root.first; picked => { popup.close(); } escaped => { popup.close(); } }
+            list := MenuRows { rows: root.rows; mark-prefix: root.mark-prefix; tab-moves: true; active: root.first; picked => { popup.close(); root.menu-open = false; } escaped => { popup.close(); root.menu-open = false; } }
         }
     }
     Tip {
         x: 0px;
         y: parent.height + Space.s1;
         text: root.tip;
-        shown: touch.has-hover && !touch.pressed;
+        // Sem a dica com o menu aberto: o balão desenhava por cima do popup e o texto parecia
+        // vazar do painel (conferência do dono 2026-11-10).
+        shown: touch.has-hover && !touch.pressed && !root.menu-open;
     }
 }
 
