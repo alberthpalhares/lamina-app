@@ -16,6 +16,26 @@ todo item com `video` ou `fixada` precisa dela.
 
 ## [Não lançado]
 
+## [0.1.0-beta.10.1] - 2026-11-10
+
+Esta versão corrige os detalhes que a conferência no aplicativo apontou.
+
+- **Alinhar à lâmina no lugar certo.** O seletor de moldura do painel de alinhar está na linha
+  dos botões de distribuir, logo abaixo do "Alinhar à base" — e com ele marcado, alinhar à
+  direita (ou a qualquer lado) encosta na borda da página, sem parar uns milímetros antes.
+  Experimente: organize (tecla O), marque o seletor e alinhe uma foto à direita.
+  <!-- tipo: correção -->
+- **Menus da barra arrumados.** O painel dos menus Alinhar, Igualar e Distribuir termina no
+  último botão — antes descia até o fim da janela com uma moldura escura — e o texto das linhas
+  cabe no painel, sem vazar. Experimente: clique em Alinhar na barra do organizar.
+  <!-- tipo: correção -->
+- **Abertura fluida.** A janela abre maximizada, sem a pausa logo após a abertura.
+  Experimente: abra o Lamina e confira a janela ocupar a tela de uma vez.
+  <!-- tipo: correção -->
+- **Animações das novidades.** A página "O que há de novo" ganhou as animações das últimas
+  funções, e o botão Fechar ficou destacado para achar a saída.
+  <!-- tipo: melhoria -->
+
 ## [0.1.0-beta.10] - 2026-11-09
 
 Esta versão traz a visualização das fotos, as guias de edição, os modelos reformados, a ordenação das fotos, o início rápido e mais.
