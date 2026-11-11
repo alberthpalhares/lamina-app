@@ -1,6 +1,8 @@
 //! Tarefas do projeto. Uso: `cargo xtask <tarefa>`.
 //!
 //! - `verify`: a porta de verificação única (a mesma que o CI roda).
+//! - `ciclo`: a porta do ciclo de correção (compila, lints e testes; ADR 0018).
+//! - `conferir <pasta>`: verify completo, build de release e o exe na pasta (ADR 0018).
 //! - `layers`: confere que nenhum crate depende de uma camada igual ou acima dele.
 //! - `size`: alerta de tamanho de arquivo (nunca reprova).
 //! - `specs`: toda spec implementada tem um teste por cenário BDD.
@@ -19,6 +21,7 @@
 //! - `limpar [--dias N] [--poupar <pasta>] [--simular]`: apaga o cache incremental (ADR 0015).
 
 mod asserts;
+mod conferir;
 mod contraste;
 mod cores;
 mod docs;
@@ -50,6 +53,8 @@ fn main() -> ExitCode {
     let task = std::env::args().nth(1).unwrap_or_default();
     let ok = match task.as_str() {
         "verify" => verify(),
+        "ciclo" => ciclo(),
+        "conferir" => conferir::run(&std::env::args().skip(2).collect::<Vec<_>>()),
         "layers" => layers::run(),
         "size" => {
             size::run();
@@ -73,7 +78,7 @@ fn main() -> ExitCode {
         "limpar" => limpar::run(&std::env::args().skip(2).collect::<Vec<_>>()),
         _ => {
             eprintln!(
-                "uso: cargo xtask <verify | layers | size | specs | asserts | erros | sala-limpa | cores | contraste | icones | esquema | portao | fotos | exemplo | versao | mcpb | limpar>"
+                "uso: cargo xtask <verify | ciclo | conferir | layers | size | specs | asserts | erros | sala-limpa | cores | contraste | icones | esquema | portao | fotos | exemplo | versao | mcpb | limpar>"
             );
             false
         }
@@ -88,43 +93,59 @@ fn main() -> ExitCode {
 /// Uma checagem do repositório: nome e função que diz se passou.
 type Check = (&'static str, fn() -> bool);
 
+/// As etapas de cargo das duas portas: o `verify` completo e o `ciclo` de correção.
+const CARGO_STEPS: [(&str, &[&str]); 4] = [
+    ("formatação", &["fmt", "--all", "--check"]),
+    (
+        "clippy",
+        &[
+            "clippy",
+            "--workspace",
+            "--all-targets",
+            "--",
+            "-D",
+            "warnings",
+        ],
+    ),
+    // A filmagem (spec FI) só compila com a feature: sem esta linha, o clippy não a veria.
+    (
+        "clippy da filmagem",
+        &[
+            "clippy",
+            "-p",
+            "lamina-app",
+            "--features",
+            "filmagem",
+            "--",
+            "-D",
+            "warnings",
+        ],
+    ),
+    (
+        "testes",
+        &["test", "--workspace", "--quiet", "--", "--skip", "rapido"],
+    ),
+];
+
+/// A porta do ciclo de correção: compila, lints e testes. Sem testes de velocidade —
+/// reprovam com a máquina ocupada pelas outras sessões — e sem as checagens de documento,
+/// que raramente mudam num bugfix. O `verify` completo roda na entrega (`conferir`) e no
+/// lote (regra 8 do AGENTS.md, ADR 0018).
+fn ciclo() -> bool {
+    for (name, args) in CARGO_STEPS {
+        if !step(name, || cargo(args)) {
+            return false;
+        }
+    }
+    println!("\n✔ ciclo: verde (o verify completo roda na entrega e no lote)");
+    true
+}
+
 /// Roda todos os passos em ordem e para no primeiro que reprovar.
 fn verify() -> bool {
     // Os testes de velocidade (todos com "rapido" no nome) rodam num passo próprio, um de cada
     // vez: junto dos outros, disputam a máquina e reprovam sem motivo (auditoria do Marco 2, M1).
-    let cargo_steps: [(&str, &[&str]); 4] = [
-        ("formatação", &["fmt", "--all", "--check"]),
-        (
-            "clippy",
-            &[
-                "clippy",
-                "--workspace",
-                "--all-targets",
-                "--",
-                "-D",
-                "warnings",
-            ],
-        ),
-        // A filmagem (spec FI) só compila com a feature: sem esta linha, o clippy não a veria.
-        (
-            "clippy da filmagem",
-            &[
-                "clippy",
-                "-p",
-                "lamina-app",
-                "--features",
-                "filmagem",
-                "--",
-                "-D",
-                "warnings",
-            ],
-        ),
-        (
-            "testes",
-            &["test", "--workspace", "--quiet", "--", "--skip", "rapido"],
-        ),
-    ];
-    for (name, args) in cargo_steps {
+    for (name, args) in CARGO_STEPS {
         if !step(name, || cargo(args)) {
             return false;
         }
@@ -162,8 +183,10 @@ fn verify() -> bool {
 }
 
 fn step(name: &str, run: impl FnOnce() -> bool) -> bool {
+    let start = std::time::Instant::now();
     println!("\n▶ {name}");
     let ok = run();
+    println!("· {name}: {:.1}s", start.elapsed().as_secs_f64());
     if !ok {
         eprintln!("\n✘ porta de verificação reprovou em: {name}");
     }
