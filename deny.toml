@@ -14,18 +14,16 @@ ignore = [
     { id = "RUSTSEC-2026-0370", reason = "transitivo do Slint/rfd; revisar a cada versão do Slint" },
     { id = "RUSTSEC-2026-0371", reason = "transitivo do Slint/rfd; revisar a cada versão do Slint" },
     { id = "RUSTSEC-2026-0372", reason = "transitivo do Slint/rfd; revisar a cada versão do Slint" },
-    # `zip` 8.6, preso pelo Velopack (spec DS, decisão 2 do dono; ADR 0009). Os três alertas são
-    # de `ZipArchive::extract` (bits SUID e links simbólicos); o Velopack não usa essa função:
-    # grava arquivo por arquivo com `by_index`, sem permissões nem links, e confere o SHA de cada
-    # pacote. Saem quando o Velopack passar para o `zip` 9.
-    { id = "RUSTSEC-2026-0367", reason = "transitivo do Velopack; função afetada não é usada; revisar a cada versão do Velopack" },
-    { id = "RUSTSEC-2026-0368", reason = "transitivo do Velopack; função afetada não é usada; revisar a cada versão do Velopack" },
-    { id = "RUSTSEC-2026-0369", reason = "transitivo do Velopack; função afetada não é usada; revisar a cada versão do Velopack" },
-    # `derivative` sem manutenção (não é falha de segurança): macro de compilação do Velopack.
-    { id = "RUSTSEC-2024-0388", reason = "macro de compilação do Velopack; revisar a cada versão do Velopack" },
+    # RUSTSEC-2026-0367/0368/0369 (`zip` 8.6) e RUSTSEC-2024-0388 (`derivative`) saíram da árvore
+    # com o Velopack 1.3.39: os quatro ignores ficaram `advisory-not-detected` e foram retirados
+    # (auditoria de 2026-11-11, S7). Se o `zip` 8.6 voltar a entrar, o alerta reprova em vez de
+    # ficar mudo.
     # `pin-utils` sem manutenção (não é falha de segurança; o repositório foi arquivado). Chega
     # pelo `spin_on` do Slint; sai quando o Slint trocar.
     { id = "RUSTSEC-2026-0441", reason = "transitivo do Slint/spin_on; revisar a cada versão do Slint" },
+    # `chrono` sem manutenção (não é falha de segurança). Usado em `lamina-editor` e transitivo
+    # do Slint (`i-slint-core`), `schemars`, `rmcp` e `lopdf`; sem atualização disponível.
+    { id = "RUSTSEC-2026-0543", reason = "transitivo do Slint/schemars/rmcp/lopdf e uso local; sem substituto direto nas dependências" },
 ]
 
 [licenses]

@@ -377,3 +377,22 @@ fn pd_b11_rapido_o_bastante() {
     }
     assert!(elapsed < budget(15_000), "{elapsed:?}");
 }
+
+#[test]
+fn nome_do_pdf_limpa_caractere_proibido_de_album_antigo() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut item = album(spec(), 1);
+    item.project.name = "ESPETACULO: ALICE NO PAÍS ENCANTADO DO AMANHÃ".to_owned();
+    let report = item.export(dir.path(), &pdf_options()).unwrap();
+    let expected = dir
+        .path()
+        .join("ESPETACULO ALICE NO PAÍS ENCANTADO DO AMANHÃ.pdf");
+    assert!(expected.is_file());
+    assert_eq!(report.files, [expected]);
+    assert_eq!(
+        crate::pdf::file_name_for("CON"),
+        "album.pdf",
+        "nome reservado do Windows cai no padrão seguro"
+    );
+    assert_eq!(crate::pdf::file_name_for("Casamento"), "Casamento.pdf");
+}

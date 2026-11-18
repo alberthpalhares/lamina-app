@@ -85,6 +85,36 @@ fn ia_b26_renomear_o_album() {
     assert_eq!(lab.labels().len(), 1);
 }
 
+#[test]
+fn ia_b26_nome_invalido_e_recusado() {
+    let base = Base::with_photos(12, (600, 400));
+    let mut lab = blank(&base, json!({}));
+    let err = lab
+        .call("renomear_album", json!({ "nome": "Ana: Leo" }))
+        .unwrap_err();
+    assert!(matches!(
+        err,
+        ToolError::Core(lamina_core::CoreError::InvalidName(_))
+    ));
+    assert_eq!(lab.project().name, "Teste Manual MCP");
+
+    let target = base.path("ia").join("Outro.lamina");
+    let err = lab
+        .call(
+            "novo_album",
+            json!({
+                "pasta_fotos": base.path("fotos"),
+                "salvar_em": target,
+                "nome": "Ana: Leo",
+            }),
+        )
+        .unwrap_err();
+    assert!(matches!(
+        err,
+        ToolError::Core(lamina_core::CoreError::InvalidName(_))
+    ));
+}
+
 fn options(reply: &ToolReply) -> Vec<Value> {
     reply.data["opcoes"].as_array().unwrap().clone()
 }

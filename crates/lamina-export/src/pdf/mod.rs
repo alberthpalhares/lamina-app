@@ -33,9 +33,17 @@ const IMAGE_ICC: Ref = Ref::new(6);
 /// Primeiro número livre: cada página usa três (página, conteúdo, imagem).
 const FIRST_PAGE: i32 = 7;
 
-/// `casamento.pdf`.
+/// `casamento.pdf`. Se um álbum antigo já veio com caractere que não serve de arquivo (ex.: `:`),
+/// limpa o nome do arquivo na exportação para não quebrar em exFAT e no Windows.
 pub fn file_name(project: &Project) -> String {
-    format!("{}.pdf", project.name)
+    file_name_for(&project.name)
+}
+
+pub(crate) fn file_name_for(name: &str) -> String {
+    if lamina_core::validate_project_name(name).is_ok() {
+        return format!("{name}.pdf");
+    }
+    format!("{}.pdf", crate::clean::safe_file_stem(name, "album"))
 }
 
 /// Uma página pronta: a imagem em JPEG e onde fica o corte.

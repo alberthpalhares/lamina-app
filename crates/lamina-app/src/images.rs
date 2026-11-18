@@ -79,6 +79,31 @@ impl Images {
         }
     }
 
+    /// Um `Images` sem os trabalhadores (testes do gate da lâmina: nenhuma leitura sai).
+    #[cfg(test)]
+    pub fn new_for_test() -> Self {
+        Images {
+            epoch: 0,
+            thumb_epoch: 0,
+            thumb_side: 0,
+            plan: ScreenPlan::default(),
+            loader: Loader::new_for_test(),
+            screens: HashMap::new(),
+            held: HashMap::new(),
+            thumbs: HashMap::new(),
+            thumb_plan: ThumbPlan::default(),
+            thumb_loader: ThumbLoader::new_for_test(),
+            fresh: Vec::new(),
+            original: None,
+            arrived: false,
+            sliding: false,
+            viewed: HashMap::new(),
+            view_asked: std::collections::HashSet::new(),
+            gated: false,
+            revealed: std::collections::HashSet::new(),
+        }
+    }
+
     /// Esquece tudo (álbum novo).
     pub fn clear(&mut self) {
         self.epoch += 1;
@@ -224,6 +249,14 @@ impl Images {
                 .collect();
             self.loader.ask(self.epoch, index, items);
         }
+        // A lâmina parada mostra na hora as fotos nítidas que já estão na memória: sem isto, criar
+        // uma lâmina com fotos já lidas deixava o gate fechado para sempre (a navegação esvazia o
+        // `revealed` e nada chega para reabri-lo — bug da beta 10.2). Deslizando, o gate continua e
+        // as fotos entram uma por quadro (`reveal_next`).
+        if !self.sliding {
+            let ids = photos_of(project, index);
+            self.reveal_arrived(&ids);
+        }
         let mut images = HashMap::new();
         for id in photos_of(project, index) {
             let original = self
@@ -242,19 +275,32 @@ impl Images {
     }
 
     /// Uma foto de tela chegou do trabalhador (`None`: não há imagem de tela no cache). A foto
-    /// à vista (spec VF) é aceita fora do plano.
+    /// à vista (spec VF) é aceita fora do plano — e a imagem serve às duas coisas: a lâmina e a
+    /// vista (antes, o pedido da vista desviava a imagem e a lâmina ficava na miniatura para
+    /// sempre — bug da beta 10.2).
     pub fn screen_arrived(&mut self, epoch: u64, id: PhotoId, pixels: Option<Pixels>) {
         if epoch != self.epoch {
             return;
         }
-        if self.view_asked.contains(&id) {
-            self.view_arrived(epoch, id, pixels);
-            return;
-        }
+        let viewing = self.view_asked.contains(&id);
         let Some(pixels) = pixels else {
-            self.plan.failed(id);
+            if viewing {
+                self.view_asked.remove(&id);
+            } else {
+                self.plan.failed(id);
+            }
             return;
         };
+        if viewing {
+            let copy = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
+                pixels.as_bytes(),
+                pixels.width(),
+                pixels.height(),
+            );
+            self.view_arrived(epoch, id, Some(copy));
+        }
+        // A imagem é da lâmina também: sem isto, a foto que passou pela vista nunca saía da
+        // miniatura na lâmina atual.
         match self.plan.arrived(id, self.sliding) {
             Arrival::Show => {
                 self.screens.insert(id, Image::from_rgba8(pixels));
@@ -263,15 +309,25 @@ impl Images {
             Arrival::Hold => {
                 self.held.insert(id, Image::from_rgba8(pixels));
             }
-            Arrival::Discard => {}
+            Arrival::Discard => {
+                // Foto pedida só pela vista e que agora está na lâmina: entra, e o gate abre
+                // (não veio do plano, então ninguém a revelaria num quadro desenhado).
+                if viewing {
+                    self.screens.insert(id, Image::from_rgba8(pixels));
+                    self.revealed.insert(id);
+                    self.arrived = true;
+                }
+            }
         }
     }
 
     /// A imagem da foto à vista (prévia e ampliada, spec VF): a lida para a vista, ou a de tela,
-    /// ou a miniatura enquanto não chega. Pede a leitura se falta (com prioridade, `ask_view`).
+    /// ou a miniatura enquanto não chega. Pede a leitura se falta, mas só se a foto ainda não está
+    /// na fila da lâmina (evita trabalho duplicado).
     pub fn photo_view(&mut self, project: &Project, id: PhotoId) -> Option<Image> {
         if !self.view_asked.contains(&id)
             && !self.viewed.contains_key(&id)
+            && !self.screens.contains_key(&id)
             && let Ok(photo) = project.photo(id)
         {
             self.view_asked.insert(id);
@@ -338,6 +394,17 @@ impl Images {
         Some((id, self.screens.get(&id)?.clone()))
     }
 
+    /// Revela de uma vez as fotos nítidas de `ids` que já chegaram: com a janela parada nenhum
+    /// quadro novo desenhava, e a lâmina ficava na miniatura para sempre (revela todas, sem o
+    /// passo de uma por quadro).
+    pub fn reveal_arrived(&mut self, ids: &[PhotoId]) {
+        for id in ids {
+            if self.screens.contains_key(id) {
+                self.revealed.insert(*id);
+            }
+        }
+    }
+
     /// A lâmina começou a deslizar (navegação).
     pub fn start_slide(&mut self) {
         self.sliding = true;
@@ -370,13 +437,19 @@ impl Images {
 }
 
 /// Depois de tratar as mensagens: as linhas das miniaturas que chegaram são trocadas e, se chegou
-/// foto nítida, a lâmina é redesenhada uma vez só.
+/// foto nítida, a lâmina é redesenhada uma vez só — já com as fotos da lâmina atual reveladas
+/// (sem esperar um quadro novo, que com a janela parada não vinha).
 pub fn after_arrivals(app: &mut App) {
     let fresh = app.images.take_fresh();
     if !fresh.is_empty() {
         crate::thumbs::show(app, &fresh);
     }
-    if std::mem::take(&mut app.images.arrived) {
+    if app.images.arrived {
+        let ids = app.session().map_or_else(Vec::new, |s| {
+            lamina_editor::edits::spread_photos(s.project(), s.current())
+        });
+        app.images.reveal_arrived(&ids);
+        std::mem::take(&mut app.images.arrived);
         crate::crop::refresh_spread(app);
     }
 }
@@ -392,4 +465,143 @@ fn photos_of(project: &Project, index: usize) -> Vec<PhotoId> {
             })
             .collect()
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use lamina_core::{Crop, RelRect};
+
+    fn foto() -> (PhotoId, Image) {
+        let spec = lamina_core::AlbumSpec::new(
+            lamina_core::Mm::from_cm(30.0),
+            lamina_core::Mm::from_cm(30.0),
+            lamina_core::Dpi::new(300).unwrap(),
+        )
+        .unwrap();
+        let mut project = lamina_core::Project::new("teste", spec);
+        let id = project.add_photo("foto.jpg", 10, 10);
+        let pixels = SharedPixelBuffer::<Rgba8Pixel>::new(1, 1);
+        (id, Image::from_rgba8(pixels))
+    }
+
+    #[test]
+    fn foto_nitida_revelada_entra_na_lamina_parada() {
+        // Bug da beta 10.2: com a janela parada nenhum quadro novo desenhava, e a foto nítida da
+        // lâmina atual nunca entrava (a miniatura ficava esticada para sempre). `reveal_arrived`
+        // revela de uma vez o que já chegou.
+        let mut images = Images::new_for_test();
+        images.gated = true;
+        let (id, img) = foto();
+        images.screens.insert(id, img);
+        assert!(images.sharp(id).is_none());
+        images.reveal_arrived(&[id]);
+        assert!(images.sharp(id).is_some());
+    }
+
+    #[test]
+    fn reveal_arrived_nao_revela_o_que_nao_chegou() {
+        let mut images = Images::new_for_test();
+        images.gated = true;
+        let (id, _) = foto();
+        images.reveal_arrived(&[id]);
+        assert!(images.sharp(id).is_none());
+    }
+
+    #[test]
+    fn lamina_nova_mostra_a_foto_que_ja_esta_na_memoria() {
+        // O caso da conferência: criar uma lâmina e arrastar fotos que já têm a imagem de tela
+        // (lidas na importação). Nada "chega" depois, então o gate nunca abria e a lâmina nova
+        // ficava na miniatura para sempre; a anterior melhorava ao deixar de ser a atual.
+        let mut images = Images::new_for_test();
+        images.gated = true;
+        let spec = lamina_core::AlbumSpec::new(
+            lamina_core::Mm::from_cm(30.0),
+            lamina_core::Mm::from_cm(30.0),
+            lamina_core::Dpi::new(300).unwrap(),
+        )
+        .unwrap();
+        let mut project = lamina_core::Project::new("teste", spec);
+        let id = project.add_photo("foto.jpg", 10, 10);
+        let spread = project.add_spread();
+        let rect = RelRect::new(0.05, 0.05, 0.9, 0.9).unwrap();
+        project
+            .add_frame(
+                spread,
+                rect,
+                FrameContent::Photo {
+                    photo: id,
+                    crop: Crop::default(),
+                },
+            )
+            .unwrap();
+        let pixels = SharedPixelBuffer::<Rgba8Pixel>::new(1, 1);
+        images.screens.insert(id, Image::from_rgba8(pixels));
+        // A navegação esvazia o revelado; a lâmina parada pede as imagens e elas entram.
+        images.reset_reveal();
+        assert!(images.sharp(id).is_none());
+        let _ = images.spread(&project, 0);
+        assert!(
+            images.sharp(id).is_some(),
+            "a foto nítida ficou presa no gate"
+        );
+    }
+
+    #[test]
+    fn deslizando_o_gate_continua() {
+        let mut images = Images::new_for_test();
+        images.gated = true;
+        images.start_slide();
+        let spec = lamina_core::AlbumSpec::new(
+            lamina_core::Mm::from_cm(30.0),
+            lamina_core::Mm::from_cm(30.0),
+            lamina_core::Dpi::new(300).unwrap(),
+        )
+        .unwrap();
+        let project = lamina_core::Project::new("teste", spec);
+        let (id, img) = foto();
+        images.screens.insert(id, img);
+        let _ = images.spread(&project, 0);
+        assert!(
+            images.sharp(id).is_none(),
+            "no deslize quem revela é reveal_next"
+        );
+    }
+
+    #[test]
+    fn foto_da_vista_tambem_entra_na_lamina() {
+        // O caso exato da conferência: a foto foi clicada na grade (a vista a pediu) e depois
+        // usada na lâmina. Antes, a chegada era desviada só para a vista e a lâmina ficava na
+        // miniatura para sempre.
+        let mut images = Images::new_for_test();
+        images.gated = true;
+        let spec = lamina_core::AlbumSpec::new(
+            lamina_core::Mm::from_cm(30.0),
+            lamina_core::Mm::from_cm(30.0),
+            lamina_core::Dpi::new(300).unwrap(),
+        )
+        .unwrap();
+        let mut project = lamina_core::Project::new("teste", spec);
+        let id = project.add_photo("foto.jpg", 10, 10);
+        let spread = project.add_spread();
+        let rect = RelRect::new(0.05, 0.05, 0.9, 0.9).unwrap();
+        project
+            .add_frame(
+                spread,
+                rect,
+                FrameContent::Photo {
+                    photo: id,
+                    crop: Crop::default(),
+                },
+            )
+            .unwrap();
+        // A vista pede a foto; a imagem chega do trabalhador.
+        images.view_asked.insert(id);
+        let pixels = SharedPixelBuffer::<Rgba8Pixel>::new(1, 1);
+        images.screen_arrived(images.epoch, id, Some(pixels));
+        assert!(
+            images.sharp(id).is_some(),
+            "a imagem da vista não chegou à lâmina"
+        );
+    }
 }

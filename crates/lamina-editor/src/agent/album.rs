@@ -187,7 +187,10 @@ fn refuse_unsaved(editor: &Editor, discard: bool) -> Result<(), ToolError> {
 /// `.lamina`), que é o que o fotógrafo chamou o álbum; o da pasta das fotos só em último caso.
 fn album_name(a: &NewAlbumCall) -> Result<String, ToolError> {
     if let Some(nome) = &a.nome {
-        return clean_album_name(nome).ok_or_else(|| ToolError::Refused(EMPTY_NAME.to_owned()));
+        let clean =
+            clean_album_name(nome).ok_or_else(|| ToolError::Refused(EMPTY_NAME.to_owned()))?;
+        lamina_core::validate_project_name(&clean)?;
+        return Ok(clean);
     }
     let file = lamina_file(&a.salvar_em);
     let stem = file.file_stem().map(|s| s.to_string_lossy().into_owned());
@@ -203,7 +206,7 @@ pub(super) fn rename_album(editor: &mut Editor, nome: &str) -> Result<ToolReply,
     if session(editor)?.project().name == clean {
         return Err(ToolError::Refused(format!("O álbum já se chama {clean}.")));
     }
-    editor.rename_album(&clean);
+    editor.rename_album(&clean)?;
     let s = session(editor)?;
     Ok(ToolReply::new(
         format!("Álbum renomeado: {clean}. O arquivo .lamina continua com o mesmo nome."),

@@ -83,6 +83,11 @@ fn media() -> Vec<MediaError> {
             path,
             source: image::ImageError::IoError(io::Error::other("unexpected EOF")),
         },
+        MediaError::TooLarge {
+            path: PathBuf::from("/fotos/hdr.tif"),
+            size: 2_000_000_000,
+            max: 1_500_000_000,
+        },
         catalog,
     ]
 }

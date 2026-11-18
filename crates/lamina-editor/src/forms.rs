@@ -2,7 +2,7 @@
 //! Marco 2, M4): os campos do "Novo álbum" e da "Exportar", os passos do painel de aparência, a
 //! dica da barra de baixo e os textos do painel de informações.
 
-use lamina_core::{PageLimits, Project};
+use lamina_core::{PageLimits, Project, validate_project_name};
 
 use crate::Editor;
 use crate::album::SpecFields;
@@ -115,9 +115,16 @@ pub fn limits_text(limits: PageLimits) -> (String, String) {
     (text(limits.min), text(limits.max))
 }
 
-/// "Dê um nome ao álbum." quando o nome está vazio.
+/// Erro do nome no Novo álbum: vazio ou caractere que não serve para nome de arquivo (spec NP).
 pub fn album_name_error(name: &str) -> Option<&'static str> {
-    name.trim().is_empty().then_some("Dê um nome ao álbum.")
+    let trimmed = name.trim();
+    if trimmed.is_empty() {
+        return Some("Dê um nome ao álbum.");
+    }
+    if validate_project_name(trimmed).is_err() {
+        return Some("O nome tem caracteres que não servem para nome de arquivo.");
+    }
+    None
 }
 
 impl Editor {

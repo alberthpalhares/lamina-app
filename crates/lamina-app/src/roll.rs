@@ -23,7 +23,7 @@ use crate::state::App;
 use crate::{AppWindow, RollUi};
 
 /// Pausa depois da última edição (ou do último redimensionamento) que pede a imagem de tela.
-pub const QUIET: Duration = Duration::from_millis(300);
+pub const QUIET: Duration = Duration::from_millis(100);
 
 /// O estado do rolo na janela.
 pub struct RollState {

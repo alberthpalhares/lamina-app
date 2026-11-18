@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use lamina_editor::frame_form::page_at;
-use lamina_editor::{Command, Key, Shortcut};
+use lamina_editor::{Command, Human, Key, Shortcut};
 
 use crate::state::{App, Pending};
 use crate::{AppWindow, export, files, help, models, spec_dialog, updates};
@@ -225,12 +225,14 @@ pub fn connect(window: &AppWindow, app: &Shared) {
             run_command(&a, command);
         }
     });
-    // O nome do álbum digitado no topo (spec NA).
+    // O nome do álbum digitado no topo (spec NA). Nome que não serve de arquivo mostra o aviso.
     let a = app.clone();
     window.on_rename_album(move |name| {
         let mut app = a.borrow_mut();
-        if app.editor.rename_album(&name) {
-            app.refresh_current();
+        match app.editor.rename_album(&name) {
+            Ok(true) => app.refresh_current(),
+            Ok(false) => {}
+            Err(e) => files::show_error(&app, &e.human()),
         }
     });
     let a = app.clone();

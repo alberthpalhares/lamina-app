@@ -1,6 +1,7 @@
 //! Tarefas do projeto. Uso: `cargo xtask <tarefa>`.
 //!
-//! - `verify`: a porta de verificação única (a mesma que o CI roda).
+//! - `verify`: a porta de verificação única (a mesma que o CI roda). Reprova se o cargo-deny
+//!   não estiver instalado: sem ele, a checagem de licenças e de avisos de segurança não existe.
 //! - `ciclo`: a porta do ciclo de correção (compila, lints e testes; ADR 0018).
 //! - `conferir <pasta>`: verify completo, build de release e o exe na pasta (ADR 0018).
 //! - `layers`: confere que nenhum crate depende de uma camada igual ou acima dele.
@@ -171,12 +172,20 @@ fn verify() -> bool {
     }
     size::run();
     if cargo_deny_available() {
-        let deny = || cargo(&["deny", "check", "licenses", "bans", "sources"]);
+        // `advisories` junto das licenças: um aviso de segurança nas dependências reprova a porta
+        // aqui também, e não só no CI (auditoria de 2026-11-11, S1).
+        let deny = || cargo(&["deny", "check", "advisories", "licenses", "bans", "sources"]);
         if !step("licenças (cargo deny)", deny) {
             return false;
         }
     } else {
-        println!("\n· licenças: cargo-deny não instalado aqui; o CI confere.");
+        // Sem a ferramenta não há porta: reprovar aqui é melhor do que "verde" sem checagem
+        // (auditoria de 2026-11-11, S2).
+        eprintln!("\n✘ porta de verificação reprovou em: licenças (cargo deny)");
+        eprintln!(
+            "  cargo-deny não instalado: instale com `cargo install cargo-deny` e rode de novo."
+        );
+        return false;
     }
     println!("\n✔ porta de verificação: tudo verde");
     true

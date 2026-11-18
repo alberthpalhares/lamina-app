@@ -231,8 +231,10 @@ jobs:
           codesign -dv "$app" 2>&1 | grep -E "Signature|Format" || true
           lipo -archs "$app/Contents/MacOS/lamina-app"
           "$app/Contents/MacOS/lamina-app" --verificar "$PWD/fumaca/album/fotos.lamina"
-          # O exemplo dentro do .app e a assinatura com ele (spec PC, regra 8).
-          codesign --verify --deep --strict "$app" && echo "assinatura ok" || echo "ATENÇÃO: assinatura"
+          # O exemplo dentro do .app e a assinatura com ele (spec PC, regra 8). A assinatura
+          # reprova o passo: um .app mal assinado não pode chegar à release (auditoria de
+          # 2026-11-11, S3).
+          codesign --verify --deep --strict "$app" && echo "assinatura ok"
           "$app/Contents/MacOS/lamina-app" --verificar exemplo
 
       - name: Teste de fumaça (Linux)

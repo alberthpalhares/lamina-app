@@ -12,6 +12,11 @@ use crate::{
     Catalog, CatalogEntry, ImageFormat, MediaError, gather_photos, list_photos, map_photos,
 };
 
+/// O tamanho máximo de arquivo que a importação lê: 1,5 GB. acima disso, a foto não entra. As
+/// câmeras reais param na casa das centenas de MB; o teto afasta TIFF gigante e arquivo que não
+/// é foto de verdade (auditoria de 2026-11-11, S4).
+pub const FILE_MAX: i64 = 1_500_000_000;
+
 /// Resultado de uma importação.
 #[derive(Debug, Default)]
 pub struct ImportReport {
@@ -101,6 +106,12 @@ fn import_list(
                 continue;
             }
         };
+        // O teto de tamanho: um arquivo que não cabe na memória não chega a ser lido (auditoria
+        // de 2026-11-11, S4). Não é erro de álbum: a foto fica de fora, como as que não abrem.
+        if size_over_limit(size) {
+            report.failures.push((path, too_large(size, FILE_MAX)));
+            continue;
+        }
         match catalog.get(&path)? {
             Some(e) if is_current(&e, size, modified, dirs) => {
                 report.reused += 1;
@@ -169,6 +180,19 @@ fn file_stamp(path: &Path) -> Result<(i64, i64), MediaError> {
         .and_then(|d| i64::try_from(d.as_secs()).ok())
         .unwrap_or(0);
     Ok((size, modified))
+}
+
+/// O motivo que entra na lista de falhas quando a foto passa do teto: linguagem de fotógrafo
+/// (regra 15), sem o caminho no meio porque ele já vem no lado de fora do par.
+fn too_large(size: i64, max: i64) -> String {
+    let max_gb = max / 1_000_000_000;
+    let size_gb = size / 1_000_000_000;
+    format!("grande demais para importar: {size_gb} GB (o máximo é {max_gb} GB)")
+}
+
+/// Se o carimbo do tamanho passa do teto de importação.
+fn size_over_limit(size: i64) -> bool {
+    size > FILE_MAX
 }
 
 /// Uma foto: o arquivo é lido do disco uma vez só (spec TR, regra 2).
@@ -279,6 +303,33 @@ mod tests {
         let report = import_folder(dir.path(), &catalog, &dir.path().join("t")).unwrap();
         assert_eq!(report.failures.len(), 1);
         assert!(report.failures[0].1.contains("não suportado"));
+    }
+
+    #[test]
+    fn arquivo_grande_demais_fica_de_fora_sem_ser_lido() {
+        // Auditoria de 2026-11-11, S4: o carimbo do tamanho vem do metadado do sistema; gravar
+        // 1,5 GB de verdade não cabe num teste. O que este teste confere é a decisão e a frase:
+        // acima do teto a foto é afastada com o motivo, abaixo (e no próprio limite) ela entra.
+        let small = 60_000_i64;
+        let huge = FILE_MAX + 500_000_000;
+        assert!(size_over_limit(huge));
+        assert!(!size_over_limit(small));
+        assert!(!size_over_limit(FILE_MAX), "o próprio limite passa");
+        // O motivo que o usuário vê, em linguagem de fotógrafo (regra 15):
+        assert_eq!(
+            too_large(huge, FILE_MAX),
+            "grande demais para importar: 2 GB (o máximo é 1 GB)"
+        );
+    }
+
+    #[test]
+    fn foto_no_limite_do_teto_passa() {
+        let dir = tempfile::tempdir().unwrap();
+        write_jpeg(dir.path(), "no_limite.jpg", 60, 40, None);
+        assert_eq!(FILE_MAX, 1_500_000_000);
+        let catalog = Catalog::open_in_memory().unwrap();
+        let report = import_folder(dir.path(), &catalog, &dir.path().join("t")).unwrap();
+        assert!(report.failures.is_empty(), "{:?}", report.failures);
     }
 
     #[test]

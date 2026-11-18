@@ -254,7 +254,7 @@ fn remove_old_cover_pdf(
     wrote_cover: bool,
     folder: &Path,
 ) -> Result<Vec<PathBuf>, ExportError> {
-    let old = folder.join(format!("{}.pdf", cover::pdf_project_name(project)));
+    let old = folder.join(pdf::file_name_for(&cover::pdf_project_name(project)));
     let stale = options.overwrite && !wrote_cover;
     if !stale || !old.exists() {
         return Ok(Vec::new());

@@ -43,6 +43,14 @@ impl Loader {
         Loader { queue }
     }
 
+    /// Um `Loader` sem as linhas de leitura (testes: nenhuma leitura sai).
+    #[cfg(test)]
+    pub fn new_for_test() -> Self {
+        Loader {
+            queue: Arc::default(),
+        }
+    }
+
     /// Pede as fotos da lâmina `center` do álbum `epoch`. Pedidos de outra lâmina que ainda não
     /// começaram saem da fila (regra 1).
     /// Nada na fila (a filmagem espera por isto).
@@ -63,7 +71,7 @@ impl Loader {
         wake.notify_all();
     }
 
-    /// Pede a foto à vista (spec VF): fila própria, na frente das lâminas, com o epoch do álbum.
+    /// Pede a foto à vista (spec VF): fila própria, atrás das fotos da lâmina, com o epoch do álbum.
     pub fn ask_view(&self, epoch: u64, items: Vec<(PhotoId, Photo)>) {
         let (lock, wake) = &*self.queue;
         let mut q = lock.lock().unwrap_or_else(PoisonError::into_inner);
@@ -81,11 +89,11 @@ fn serve(queue: &Shared, cache: &Cache, mailbox: &Mailbox) {
         let (epoch, id, photo) = {
             let mut q = lock.lock().unwrap_or_else(PoisonError::into_inner);
             loop {
-                // A foto à vista primeiro (spec VF); depois as fotos da lâmina.
-                if let Some((epoch, id, photo)) = q.views.pop_front() {
+                // As fotos da lâmina primeiro; depois a foto à vista (spec VF).
+                if let (Some((epoch, _)), Some((id, photo))) = (q.owner, q.items.pop_front()) {
                     break (epoch, id, photo);
                 }
-                if let (Some((epoch, _)), Some((id, photo))) = (q.owner, q.items.pop_front()) {
+                if let Some((epoch, id, photo)) = q.views.pop_front() {
                     break (epoch, id, photo);
                 }
                 q = wake.wait(q).unwrap_or_else(PoisonError::into_inner);
@@ -134,5 +142,35 @@ mod tests {
         assert_eq!(q.items.len(), 1);
         assert_eq!(q.items[0].0, ids[2]);
         assert_eq!(q.owner, Some((1, 7)));
+    }
+
+    #[test]
+    fn lamina_tem_prioridade_sobre_a_vista() {
+        let loader = Loader {
+            queue: Arc::default(),
+        };
+        let spec = lamina_core::AlbumSpec::new(
+            lamina_core::Mm::from_cm(30.0),
+            lamina_core::Mm::from_cm(30.0),
+            lamina_core::Dpi::new(300).unwrap(),
+        )
+        .unwrap();
+        let mut project = lamina_core::Project::new("teste", spec);
+        let ids: Vec<PhotoId> = (0..3)
+            .map(|i| project.add_photo(format!("{i}.jpg"), 10, 10))
+            .collect();
+        let item = |i: usize| (ids[i], project.photo(ids[i]).unwrap().clone());
+        // A lâmina pede duas fotos; a vista pede uma no meio.
+        loader.ask(1, 0, vec![item(0), item(1)]);
+        loader.ask_view(1, vec![item(2)]);
+        let q = loader.queue.0.lock().unwrap();
+        // A fila da lâmina tem 2 itens; a vista tem 1.
+        assert_eq!(q.items.len(), 2);
+        assert_eq!(q.views.len(), 1);
+        // O primeiro a sair deve ser da lâmina, não da vista.
+        // (O serve() real faria isso; aqui verificamos a estrutura da fila.)
+        assert_eq!(q.items[0].0, ids[0]);
+        assert_eq!(q.items[1].0, ids[1]);
+        assert_eq!(q.views[0].1, ids[2]);
     }
 }

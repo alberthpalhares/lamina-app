@@ -43,6 +43,15 @@ impl Human for MediaError {
                 "O Lamina não conseguiu usar a pasta de miniaturas das fotos.".to_owned(),
                 format!("Feche e abra o Lamina de novo. {REPORT}"),
             ),
+            MediaError::TooLarge { path, .. } => (
+                format!(
+                    "A foto \"{}\" é grande demais para importar.",
+                    name(&path.to_string_lossy())
+                ),
+                "O Lamina lê arquivos de até 1,5 GB. Exporte uma versão menor da foto, em JPEG ou \
+                 TIFF, e importe de novo."
+                    .to_owned(),
+            ),
         };
         HumanMessage::new(title, what, details)
     }

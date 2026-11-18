@@ -13,3 +13,6 @@ Thumbs.db
 
 # Saídas de conferência do `lamina layouts` na raiz
 /*.svg
+
+# Grafo de conhecimento do graphify: saída de análise, não código (auditoria de 2026-11-11, A9)
+/graphify-out/

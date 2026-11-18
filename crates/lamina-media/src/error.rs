@@ -22,6 +22,9 @@ pub enum MediaError {
 
     #[error("Erro no catálogo de fotos: {0}.")]
     Catalog(#[from] rusqlite::Error),
+
+    #[error("A foto {path} é grande demais para importar: {size} bytes (o máximo é {max}).")]
+    TooLarge { path: PathBuf, size: i64, max: i64 },
 }
 
 /// Motivo de um erro de arquivo em português, o mesmo em qualquer sistema (o texto do sistema
@@ -59,5 +62,20 @@ mod tests {
         let text = err.to_string();
         assert!(text.starts_with("Não foi possível ler fotos"), "{text}");
         assert!(text.ends_with("a.jpg: arquivo não encontrado."), "{text}");
+    }
+
+    #[test]
+    fn foto_grande_demas_diz_o_maximo() {
+        let err = MediaError::TooLarge {
+            path: PathBuf::from("fotos/hdr.tif"),
+            size: 4_000_000_000,
+            max: 1_500_000_000,
+        };
+        let text = err.to_string();
+        assert!(
+            text.starts_with("A foto fotos/hdr.tif é grande demais"),
+            "{text}"
+        );
+        assert!(text.contains("o máximo é 1500000000"), "{text}");
     }
 }

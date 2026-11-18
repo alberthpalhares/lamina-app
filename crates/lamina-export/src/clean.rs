@@ -59,6 +59,36 @@ pub fn remove_leftovers(
     Ok(found)
 }
 
+/// Nomes que o Windows reserva para dispositivos, com ou sem extensão.
+const RESERVED: [&str; 22] = [
+    "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
+    "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+];
+
+/// Base segura de nome de arquivo a partir de `name`: o que o sistema recusa vira espaço, sem
+/// espaços repetidos nem espaço ou ponto no fim; cai em `fallback` quando fica vazio ou reservado.
+pub(crate) fn safe_file_stem(name: &str, fallback: &str) -> String {
+    let clean: String = name
+        .chars()
+        .map(|c| {
+            if c.is_control() || "<>:\"/\\|?*".contains(c) {
+                ' '
+            } else {
+                c
+            }
+        })
+        .collect();
+    let words: Vec<&str> = clean.split_whitespace().collect();
+    let joined = words.join(" ");
+    let joined = joined.trim_end_matches(['.', ' ']);
+    let stem = joined.split('.').next().unwrap_or_default().trim();
+    let reserved = RESERVED.iter().any(|r| r.eq_ignore_ascii_case(stem));
+    if joined.is_empty() || reserved {
+        return fallback.to_owned();
+    }
+    joined.to_owned()
+}
+
 fn remove_failed(path: &Path, e: &std::io::Error) -> ExportError {
     ExportError::Remove {
         path: path.display().to_string(),

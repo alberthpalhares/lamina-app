@@ -20,11 +20,6 @@ const HTML_SIDE: u32 = 1600;
 const FILE_SUFFIX: &str = "-aprovacao.html";
 /// Sem nome que sirva de arquivo, o HTML se chama assim; o cliente continua vendo o nome digitado.
 const FILE_FALLBACK: &str = "album";
-/// Nomes que o Windows reserva, com ou sem extensão.
-const RESERVED: [&str; 22] = [
-    "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
-    "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
-];
 
 /// Uma imagem do HTML, já codificada.
 pub(super) struct Image {
@@ -279,23 +274,8 @@ fn escaped(text: &str) -> String {
 /// O nome do arquivo (seção 6): o que o sistema recusa vira espaço, sem espaços repetidos nem espaço
 /// ou ponto nas pontas.
 pub fn html_file_name(name: &str) -> String {
-    let clean: String = name
-        .chars()
-        .map(|c| {
-            if c.is_control() || "<>:\"/\\|?*".contains(c) {
-                ' '
-            } else {
-                c
-            }
-        })
-        .collect();
-    let words: Vec<&str> = clean.split_whitespace().collect();
-    let joined = words.join(" ");
-    let joined = joined.trim_end_matches('.');
-    let stem = joined.split('.').next().unwrap_or_default();
-    let reserved = RESERVED.iter().any(|r| r.eq_ignore_ascii_case(stem));
-    if joined.is_empty() || reserved {
-        return format!("{FILE_FALLBACK}{FILE_SUFFIX}");
-    }
-    format!("{joined}{FILE_SUFFIX}")
+    format!(
+        "{}{FILE_SUFFIX}",
+        crate::clean::safe_file_stem(name, FILE_FALLBACK)
+    )
 }

@@ -261,3 +261,29 @@ fn tf_b13_o_explorador_abre_com_a_foto_selecionada() {
     );
     assert_eq!(args.len(), 1);
 }
+
+#[test]
+fn tf_caminho_com_aspas_no_nome_e_recusado_no_windows() {
+    // Auditoria de 2026-11-11, S6: a aspas fecharia o argumento `/select,"..."` antes da hora.
+    // No Windows, um nome desses não existe de verdade (o sistema recusa criar); o que chega
+    // aqui é o caminho de um projeto de terceiro ou de disco montado, já sem o arquivo atrás.
+    // O caminho vira o erro de foto não encontrada, que já tem frase humana.
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("festa \"supresa\".jpg");
+    // No Windows o arquivo não existe (o nome é inválido lá): o erro é o de foto não
+    // encontrada, com o caminho por inteiro na mensagem técnica — sem aspas sumindo.
+    let err = reveal_command(&file, System::Windows).unwrap_err();
+    assert!(
+        matches!(err, crate::EditorError::PhotoFileMissing(ref path) if path.contains('"')),
+        "{err:?}"
+    );
+    // Onde o nome com aspas pode existir (Mac, Linux), o caminho continua chegando inteiro ao
+    // comando: no Mac os argumentos são escapados pelo Rust, sem montagem manual.
+    #[cfg(unix)]
+    {
+        std::fs::write(&file, b"x").unwrap();
+        let (program, args) = reveal_command(&file, System::Mac).unwrap();
+        assert_eq!(program, "open");
+        assert!(args[1].contains('"'), "{}", args[1]);
+    }
+}

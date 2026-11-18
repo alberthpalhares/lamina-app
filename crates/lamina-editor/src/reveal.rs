@@ -41,6 +41,10 @@ impl System {
 /// No Windows, o Explorador só seleciona o arquivo com o caminho absoluto, com barras invertidas e
 /// entre aspas logo depois de `/select,` (correção do dono de 2026-10-29, TF-B13). O argumento sai
 /// pronto: a janela o passa como está, sem as aspas que o Rust poria em volta dele todo.
+///
+/// Caminho com aspas no nome: um projeto de terceiro pode apontar para pasta com `"` nele, e a
+/// aspas fecharia o argumento antes da hora (auditoria de 2026-11-11, S6). O caminho vira erro
+/// humano: o Explorador sem a foto selecionada é melhor que o Explorador no lugar errado.
 pub fn reveal_command(file: &Path, system: System) -> Result<(String, Vec<String>), EditorError> {
     if !file.is_file() {
         return Err(EditorError::PhotoFileMissing(file.display().to_string()));
@@ -50,6 +54,9 @@ pub fn reveal_command(file: &Path, system: System) -> Result<(String, Vec<String
     Ok(match system {
         System::Windows => {
             let windows = shown.replace('/', "\\");
+            if windows.contains('"') {
+                return Err(EditorError::PhotoFileMissing(windows));
+            }
             (
                 "explorer".to_owned(),
                 vec![format!("/select,\"{windows}\"")],

@@ -174,13 +174,13 @@ fn shrink(image: DynamicImage, max_side: u32) -> DynamicImage {
     }
     let size = fit(w, h, max_side);
     let fast = match &image {
-        DynamicImage::ImageRgb8(i) => box_resize(i.as_raw(), (w, h), size, PixelType::U8x3)
+        DynamicImage::ImageRgb8(i) => lanczos3_resize(i.as_raw(), (w, h), size, PixelType::U8x3)
             .and_then(|raw| image::RgbImage::from_raw(size.0, size.1, raw))
             .map(DynamicImage::ImageRgb8),
-        DynamicImage::ImageRgba8(i) => box_resize(i.as_raw(), (w, h), size, PixelType::U8x4)
+        DynamicImage::ImageRgba8(i) => lanczos3_resize(i.as_raw(), (w, h), size, PixelType::U8x4)
             .and_then(|raw| image::RgbaImage::from_raw(size.0, size.1, raw))
             .map(DynamicImage::ImageRgba8),
-        DynamicImage::ImageLuma8(i) => box_resize(i.as_raw(), (w, h), size, PixelType::U8)
+        DynamicImage::ImageLuma8(i) => lanczos3_resize(i.as_raw(), (w, h), size, PixelType::U8)
             .and_then(|raw| image::GrayImage::from_raw(size.0, size.1, raw))
             .map(DynamicImage::ImageLuma8),
         // 16 bits e o resto: o caminho de antes.
@@ -199,12 +199,17 @@ fn fit(w: u32, h: u32, max_side: u32) -> (u32, u32) {
     (side(w), side(h))
 }
 
-/// Reduz os pixels `raw` (`from`) para `to` pela média da área; `None` se o redutor recusar.
-fn box_resize(raw: &[u8], from: (u32, u32), to: (u32, u32), kind: PixelType) -> Option<Vec<u8>> {
+/// Reduz os pixels `raw` (`from`) para `to` com Lanczos3; `None` se o redutor recusar.
+fn lanczos3_resize(
+    raw: &[u8],
+    from: (u32, u32),
+    to: (u32, u32),
+    kind: PixelType,
+) -> Option<Vec<u8>> {
     let src = ImageRef::new(from.0, from.1, raw, kind).ok()?;
     let mut dst = Image::new(to.0, to.1, kind);
     let options = ResizeOptions::new()
-        .resize_alg(ResizeAlg::Convolution(FilterType::Box))
+        .resize_alg(ResizeAlg::Convolution(FilterType::Lanczos3))
         .use_alpha(false);
     Resizer::new().resize(&src, &mut dst, &options).ok()?;
     Some(dst.into_vec())

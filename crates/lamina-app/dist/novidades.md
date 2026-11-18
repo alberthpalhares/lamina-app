@@ -16,6 +16,28 @@ todo item com `video` ou `fixada` precisa dela.
 
 ## [Não lançado]
 
+## [0.1.0-beta.10.2] - 2026-11-18
+
+Esta versão deixa a diagramação mais leve — a lâmina responde na hora e com nitidez — e garante que o nome do álbum não quebre a gravação do PDF.
+
+- **Fotos na lâmina sem espera.** Ao clicar numa foto para colocá-la na lâmina, ela aparece
+  logo — antes, cada clique entrava numa fila e atrasava as fotos seguintes.
+  Experimente: diagramar várias fotos em sequência e ver cada uma entrar na hora.
+  <!-- tipo: correção -->
+- **Cópia de tela mais nítida.** A foto na lâmina não aparece mais borrada enquanto você
+  trabalha: a versão mostrada na tela tem a nitidez certa para conferir o enquadramento.
+  Experimente: coloque uma foto na lâmina e compare com a visualização ampliada (Espaço).
+  <!-- tipo: correção -->
+- **A lâmina vem primeiro.** Enquanto o Lamina prepara as fotos em segundo plano, o que está
+  na lâmina tem prioridade — mexer no álbum não fica mais lento por causa das outras fotos.
+  Experimente: importe uma pasta grande e continue diagramando durante a preparação.
+  <!-- tipo: correção -->
+- **Nome do álbum e PDF sempre válidos.** Criar ou renomear um álbum avisa na hora se o nome
+  tiver caracteres proibidos para arquivos (como `:` ou `/`); e álbuns antigos que já tinham esses
+  caracteres continuam abrindo e exportam o PDF normalmente.
+  Experimente: renomear o álbum no topo com `:` e exportar um álbum antigo em PDF.
+  <!-- tipo: correção -->
+
 ## [0.1.0-beta.10.1] - 2026-11-10
 
 Esta versão corrige os detalhes que a conferência no aplicativo apontou.

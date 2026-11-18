@@ -139,3 +139,14 @@ fn faixa_de_paginas_e_preferencias_da_exportacao() {
     assert_eq!(prefs.format, OutputFormat::Pdf);
     assert!(prefs.pages);
 }
+
+#[test]
+fn np_b17_nome_com_caractere_invalido() {
+    let mensagem = Some("O nome tem caracteres que não servem para nome de arquivo.");
+    assert_eq!(album_name_error("Ana: Leo"), mensagem);
+    assert_eq!(album_name_error("Festa/2026"), mensagem);
+    assert_eq!(album_name_error("CON"), mensagem);
+    assert_eq!(album_name_error("nome."), mensagem);
+    assert_eq!(album_name_error("Casamento"), None);
+    assert_eq!(album_name_error("  Casamento  "), None);
+}

@@ -1,7 +1,8 @@
-//! Trocar o nome do álbum (spec NA): o nome limpo vira um passo do histórico; vazio ou igual não
-//! muda nada. O nome do arquivo `.lamina` continua o mesmo (regra 6).
+//! Trocar o nome do álbum (spec NA): o nome limpo vira um passo do histórico; vazio, igual ou com
+//! caractere que não serve para nome de arquivo não muda nada. O nome do arquivo `.lamina`
+//! continua o mesmo (regra 6).
 
-use std::convert::Infallible;
+use lamina_core::{CoreError, validate_project_name};
 
 use super::Editor;
 
@@ -21,22 +22,24 @@ pub fn clean_album_name(name: &str) -> Option<String> {
 }
 
 impl Editor {
-    /// Troca o nome do álbum aberto; `true` se mudou (regras 3 a 5).
-    pub fn rename_album(&mut self, name: &str) -> bool {
+    /// Troca o nome do álbum aberto; `Ok(true)` se mudou (regras 3 a 5 e 8). Um nome que não
+    /// serve para nome de arquivo devolve `Err(CoreError::InvalidName)`: como o título vira o
+    /// nome do PDF (spec PD), precisa abrir em exFAT e no Windows.
+    pub fn rename_album(&mut self, name: &str) -> Result<bool, CoreError> {
         let Some(clean) = clean_album_name(name) else {
-            return false;
+            return Ok(false);
         };
+        validate_project_name(&clean)?;
         let Some(session) = self.session_mut() else {
-            return false;
+            return Ok(false);
         };
         if session.project().name == clean {
-            return false;
+            return Ok(false);
         }
-        session
-            .edit("Renomear álbum · álbum", |p| {
-                p.name = clean;
-                Ok::<_, Infallible>(())
-            })
-            .is_ok()
+        session.edit("Renomear álbum · álbum", |p| {
+            p.name = clean;
+            Ok::<_, CoreError>(())
+        })?;
+        Ok(true)
     }
 }

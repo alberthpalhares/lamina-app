@@ -44,6 +44,14 @@ impl ThumbLoader {
         ThumbLoader { queue }
     }
 
+    /// Um `ThumbLoader` sem as linhas de leitura (testes: nenhuma leitura sai).
+    #[cfg(test)]
+    pub fn new_for_test() -> Self {
+        ThumbLoader {
+            queue: Arc::default(),
+        }
+    }
+
     /// Pede as miniaturas `items` do álbum `epoch`; pedidos de outro álbum saem da fila.
     pub fn ask(&self, epoch: u64, items: Vec<(PhotoId, Photo)>) {
         if items.is_empty() {
