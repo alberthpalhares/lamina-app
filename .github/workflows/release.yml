@@ -326,8 +326,22 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           falhou=0
+          ua="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
           for url in $(grep -oE 'https://[^ )`"<>]+' README.md | sort -u); do
-            if curl -sSfIL --retry 2 -o /dev/null "$url"; then echo "ok  $url"; else echo "FALHOU  $url"; falhou=1; fi
+            if curl -sSfIL --retry 2 -A "$ua" -o /dev/null "$url" 2>/dev/null; then
+              echo "ok  $url"
+            elif curl -sSfL --retry 2 --max-time 20 -r 0-0 -A "$ua" -o /dev/null "$url" 2>/dev/null; then
+              echo "ok (GET)  $url"
+            else
+              code=$(curl -sSL --max-time 15 -A "$ua" -o /dev/null -w '%{http_code}' -r 0-0 "$url") || code="000"
+              if [ "$code" = "403" ] && [ "$url" = "https://www.microsoft.com/wdsi/filesubmission" ]; then
+                # Akamai/WAF da Microsoft costuma responder 403 para IPs de nuvem no GitHub Actions.
+                echo "aviso (403 no runner)  $url"
+              else
+                echo "FALHOU ($code)  $url"
+                falhou=1
+              fi
+            fi
           done
           for alvo in $(grep -oE '\]\([^)#h][^)]*\)' README.md | sed 's/^](//; s/)$//' | sort -u); do
             if [ -e "$alvo" ]; then echo "ok  $alvo"; else echo "FALTA  $alvo"; falhou=1; fi
